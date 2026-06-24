@@ -2,8 +2,10 @@ import type { APIRoute } from 'astro';
 import { clientIp, rateLimit } from '../../../lib/ratelimit';
 import { createMemberToken, registerMember, setMemberCookie } from '../../../lib/member';
 import { fail, readJson } from '../../../lib/api';
+import { publicRegistrationEnabled } from '../../../lib/security';
 
 export const POST: APIRoute = async ({ request }) => {
+  if (!publicRegistrationEnabled()) return fail('当前测试环境暂未开放注册', 403);
   const limited = rateLimit(`member-register:${clientIp(request)}`, 8, 60_000);
   if (!limited.ok) return fail('操作太频繁，请稍后再试', 429);
   const body = await readJson<{ username?: string; password?: string }>(request);

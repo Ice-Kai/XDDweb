@@ -409,6 +409,46 @@ const cloudWords = [
           p.style.left = Math.max(12, Math.min(window.innerWidth - w - 12, r.right - w)) + 'px';
           p.style.top = Math.min(window.innerHeight - 180, r.bottom + 8) + 'px';
         };
+        const setPop = (p, title, message, links) => {
+          p.replaceChildren();
+          const x = document.createElement('button');
+          x.type = 'button';
+          x.className = 'download-pop-x';
+          x.setAttribute('aria-label', '关闭');
+          x.textContent = '×';
+          x.addEventListener('click', close);
+          p.appendChild(x);
+          const t = document.createElement('div');
+          t.className = 'download-pop-title';
+          t.textContent = title;
+          p.appendChild(t);
+          if (message) {
+            const m = document.createElement('div');
+            m.className = 'download-pop-muted';
+            m.textContent = message;
+            p.appendChild(m);
+          }
+          for (const item of links || []) {
+            const a = document.createElement('a');
+            a.className = 'download-pop-link';
+            a.href = item.href;
+            a.textContent = item.text;
+            if (/^https:\/\//i.test(item.href)) {
+              a.target = '_blank';
+              a.rel = 'noopener';
+            }
+            p.appendChild(a);
+            if (item.pass) {
+              const pass = document.createElement('div');
+              pass.className = 'download-pop-muted';
+              pass.append('提取码：');
+              const b = document.createElement('b');
+              b.textContent = item.pass;
+              pass.appendChild(b);
+              p.appendChild(pass);
+            }
+          }
+        };
         document.addEventListener('click', async (e) => {
           const btn = e.target.closest('[data-dl]');
           if (!btn) { if (pop && !e.target.closest('.download-pop')) close(); return; }
@@ -420,25 +460,26 @@ const cloudWords = [
           const link = btn.closest('a[href^="/d/"]');
           const m = link && link.getAttribute('href').match(/\/d\/(\d+)/);
           if (!m) return;
-          p.innerHTML = '<button type="button" class="download-pop-x" aria-label="关闭">×</button><div class="download-pop-title">正在获取下载链接...</div><div class="download-pop-muted">请稍等</div>';
-          p.querySelector('.download-pop-x')?.addEventListener('click', close);
+          setPop(p, '正在获取下载链接...', '请稍等');
           try {
             const res = await fetch('/api/download/' + m[1], { credentials: 'include' });
             const data = await res.json();
             if (res.status === 401) {
-              p.innerHTML = '<button type="button" class="download-pop-x" aria-label="关闭">×</button><div class="download-pop-title">请先登录</div><div class="download-pop-muted">登录后即可查看网盘链接。</div><a class="download-pop-link" href="/member/login">去登录</a>';
+              setPop(p, '请先登录', '登录后即可查看网盘链接。', [{ text: '去登录', href: '/member/login' }]);
             } else if (res.status === 403) {
-              p.innerHTML = '<button type="button" class="download-pop-x" aria-label="关闭">×</button><div class="download-pop-title">VIP 资源</div><div class="download-pop-muted">该资源需要会员权限。</div><a class="download-pop-link" href="/member/vip">查看会员</a>';
+              setPop(p, 'VIP 资源', '该资源需要会员权限。', [{ text: '查看会员', href: '/member/vip' }]);
             } else if (!res.ok || !data.ok) {
-              p.innerHTML = '<button type="button" class="download-pop-x" aria-label="关闭">×</button><div class="download-pop-title">暂时无法下载</div><div class="download-pop-muted">' + esc(data.message || '下载链接暂未配置') + '</div>';
+              setPop(p, '暂时无法下载', data.message || '下载链接暂未配置');
             } else {
-              const rows = (data.files || []).map((f) => '<a class="download-pop-link" href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.provider || providerName(f.url)) + '</a>' + (f.pass ? '<div class="download-pop-muted">提取码：<b>' + esc(f.pass) + '</b></div>' : '')).join('');
-              p.innerHTML = '<button type="button" class="download-pop-x" aria-label="关闭">×</button><div class="download-pop-title">' + esc(data.item?.title || '资源下载') + '</div>' + rows;
+              const links = (data.files || []).map((f) => ({
+                text: f.provider || providerName(f.url),
+                href: f.url,
+                pass: f.pass || '',
+              }));
+              setPop(p, data.item?.title || '资源下载', '', links);
             }
-            p.querySelector('.download-pop-x')?.addEventListener('click', close);
           } catch {
-            p.innerHTML = '<button type="button" class="download-pop-x" aria-label="关闭">×</button><div class="download-pop-title">网络错误</div><div class="download-pop-muted">请刷新后重试。</div>';
-            p.querySelector('.download-pop-x')?.addEventListener('click', close);
+            setPop(p, '网络错误', '请刷新后重试。');
           }
         }, true);
         window.addEventListener('scroll', close, { passive: true });
@@ -602,9 +643,23 @@ const cloudWords = [
         const close = () => { modal.hidden = true; };
         document.getElementById('dlClose')?.addEventListener('click', close);
         document.getElementById('dlMask')?.addEventListener('click', close);
-        function open(html) { body.innerHTML = html; modal.hidden = false; }
+        function open(title, message) {
+          body.replaceChildren();
+          const t = document.createElement('div');
+          t.className = 'dlm-title';
+          t.textContent = title || '资源下载';
+          const s = document.createElement('div');
+          s.className = 'dlm-state';
+          const ico = document.createElement('div');
+          ico.className = 'ico';
+          ico.textContent = 'i';
+          s.appendChild(ico);
+          s.append(message || '');
+          body.append(t, s);
+          modal.hidden = false;
+        }
         async function doDownload(id, title) {
-          open('<div class="dlm-title">' + (title || '资源下载') + '</div><div class="dlm-state"><div class="ico">i</div>请在卡片右侧的小弹窗中查看网盘链接。</div>');
+          open(title || '资源下载', '请在卡片右侧的小弹窗中查看网盘链接。');
         }
         // 委托：点 .btn-dl 不跳详情，弹窗下载
         document.addEventListener('click', (e) => {
@@ -666,7 +721,6 @@ const cloudWords = [
     </script>
   </body>
 </html>
-
 
 
 

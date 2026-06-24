@@ -107,30 +107,61 @@ function priceLabel(it: DownloadItem) { return it.just_vip ? 'VIP' : it.money > 
       const btn = document.getElementById('dlBtn');
       const panel = document.getElementById('dlPanel');
       if (!btn || !panel) return;
-      const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+      const clear = () => panel.replaceChildren();
+      const addRow = (...nodes) => {
+        const row = document.createElement('div');
+        row.className = 'dl-panel-row';
+        nodes.forEach((node) => row.appendChild(node));
+        panel.appendChild(row);
+        return row;
+      };
+      const span = (text, className) => {
+        const el = document.createElement('span');
+        if (className) el.className = className;
+        el.textContent = text;
+        return el;
+      };
+      const link = (text, href, className) => {
+        const el = document.createElement('a');
+        el.className = className || 'dl-open';
+        el.href = href;
+        el.textContent = text;
+        return el;
+      };
+      const state = (text, actionText, actionHref) => {
+        clear();
+        const nodes = [span(text)];
+        if (actionText && actionHref) nodes.push(link(actionText, actionHref));
+        addRow(...nodes);
+      };
       let loaded = false;
       btn.addEventListener('click', async () => {
         if (loaded) { panel.hidden = !panel.hidden; return; }
-        panel.innerHTML = '<div class="dl-panel-row"><span>正在获取下载链接...</span></div>';
+        state('正在获取下载链接...');
         panel.hidden = false;
         try {
           const res = await fetch('/api/download/' + panel.dataset.id, { credentials: 'include' });
           const data = await res.json();
           if (res.status === 401) {
-            panel.innerHTML = '<div class="dl-panel-row"><span>请先登录后下载。</span><a class="dl-open" href="/member/login">去登录 →</a></div>';
+            state('请先登录后下载。', '去登录 →', '/member/login');
           } else if (res.status === 403) {
-            panel.innerHTML = '<div class="dl-panel-row"><span>该资源需要 VIP 会员。</span><a class="dl-open" href="/member/vip">查看会员 →</a></div>';
+            state('该资源需要 VIP 会员。', '查看会员 →', '/member/vip');
           } else if (!res.ok || !data.ok) {
-            panel.innerHTML = '<div class="dl-panel-row"><span>' + esc(data.message || '下载链接暂未配置') + '</span></div>';
+            state(data.message || '下载链接暂未配置');
           } else {
-            panel.innerHTML = (data.files || []).map((f) => {
-              const pass = f.pass ? '<span class="dl-panel-label">提取码</span><span class="dl-pass-code">' + esc(f.pass) + '</span>' : '';
-              return '<div class="dl-panel-row"><span class="dl-panel-label">网盘</span><a class="dl-open" href="' + esc(f.url) + '" target="_blank" rel="noopener">打开链接 →</a>' + pass + '</div>';
-            }).join('');
+            clear();
+            for (const f of data.files || []) {
+              const open = link('打开链接 →', f.url);
+              open.target = '_blank';
+              open.rel = 'noopener';
+              const nodes = [span('网盘', 'dl-panel-label'), open];
+              if (f.pass) nodes.push(span('提取码', 'dl-panel-label'), span(f.pass, 'dl-pass-code'));
+              addRow(...nodes);
+            }
           }
           loaded = true;
         } catch {
-          panel.innerHTML = '<div class="dl-panel-row"><span>网络错误，请刷新后重试。</span></div>';
+          state('网络错误，请刷新后重试。');
         }
         panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });

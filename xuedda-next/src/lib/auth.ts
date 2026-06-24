@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { db } from './db';
+import { secureCookieSuffix, sessionSecret } from './security';
 
 export interface AdminSession {
   id: number;
@@ -10,7 +11,7 @@ export interface AdminSession {
 export const ADMIN_COOKIE = 'xdd_admin';
 
 function secret() {
-  return import.meta.env.SESSION_SECRET || 'dev-session-secret-change-me';
+  return sessionSecret();
 }
 
 export function md5(input: string) {
@@ -55,9 +56,9 @@ export function cookieValue(headers: Headers, name: string) {
 }
 
 export function setAdminCookie(token: string) {
-  return `${ADMIN_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`;
+  return `${ADMIN_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}${secureCookieSuffix()}`;
 }
 
 export function clearAdminCookie() {
-  return `${ADMIN_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+  return `${ADMIN_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secureCookieSuffix()}`;
 }

@@ -5,7 +5,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>后台管理 — 薛大大设计网</title>
+    <title>后台管理 - 薛大大设计网</title>
     <style>
       body { margin:0; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:#f6f4ef; color:#191714; }
       .wrap { max-width:1180px; margin:0 auto; padding:30px 18px; }
@@ -24,7 +24,10 @@
   <body>
     <div class="wrap">
       <div class="top">
-        <div><h1>后台管理</h1><p class="muted">先恢复核心内容管理，复杂上传和媒体库后续继续补齐。</p></div>
+        <div>
+          <h1>后台管理</h1>
+          <p class="muted">先恢复核心内容管理，复杂上传和媒体库后续继续补齐。</p>
+        </div>
         <button id="logout" class="hide">退出</button>
       </div>
       <div id="login" class="panel">
@@ -56,6 +59,11 @@
         if (!r.ok || !j.ok) throw new Error(j.message || '请求失败');
         return j;
       }
+      function appendCell(row, value) {
+        const td = document.createElement('td');
+        td.textContent = String(value ?? '');
+        row.appendChild(td);
+      }
       async function load() {
         try {
           await api('/api/admin/me');
@@ -67,7 +75,16 @@
       }
       async function loadRows() {
         const data = await api('/api/admin/contents?q=' + encodeURIComponent($('q').value || ''));
-        $('rows').innerHTML = data.rows.map((r) => `<tr><td>${r.id}</td><td>${r.title}</td><td>${r.category_id}</td><td>${r.is_show ? '显示' : '隐藏'}</td></tr>`).join('');
+        const tbody = $('rows');
+        tbody.replaceChildren();
+        for (const r of data.rows || []) {
+          const tr = document.createElement('tr');
+          appendCell(tr, r.id);
+          appendCell(tr, r.title);
+          appendCell(tr, r.category_id);
+          appendCell(tr, r.is_show ? '显示' : '隐藏');
+          tbody.appendChild(tr);
+        }
       }
       $('loginBtn').onclick = async () => {
         try { await api('/api/admin/login', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({ username:$('u').value, password:$('p').value }) }); load(); }

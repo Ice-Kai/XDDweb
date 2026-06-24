@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { db } from './db';
 import { md5 } from './auth';
+import { secureCookieSuffix, sessionSecret } from './security';
 
 export interface MemberSession {
   id: number;
@@ -14,7 +15,7 @@ export interface MemberSession {
 export const MEMBER_COOKIE = 'xdd_member';
 
 function secret() {
-  return import.meta.env.SESSION_SECRET || 'dev-session-secret-change-me';
+  return sessionSecret();
 }
 
 function sign(payload: string) {
@@ -91,9 +92,9 @@ export function isVip(member: MemberSession | null) {
 }
 
 export function setMemberCookie(token: string) {
-  return `${MEMBER_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 30}`;
+  return `${MEMBER_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 30}${secureCookieSuffix()}`;
 }
 
 export function clearMemberCookie() {
-  return `${MEMBER_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+  return `${MEMBER_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secureCookieSuffix()}`;
 }

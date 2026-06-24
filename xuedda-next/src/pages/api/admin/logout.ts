@@ -9,5 +9,3 @@ export const POST: APIRoute = async () => {
     },
   });
 };
-
-export const GET = POST;
