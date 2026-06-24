@@ -1,0 +1,29 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="会员中心 — 薛大大设计网">
+  <section class="member-page">
+    <div class="container">
+      <div class="member-head">
+        <p class="section-label">MEMBER CENTER</p>
+        <h1>会员中心</h1>
+        <p>下载记录、收藏和会员状态会逐步补齐。目前先恢复登录状态和资源下载鉴权。</p>
+      </div>
+      <div class="member-grid">
+        <div class="member-card"><b id="mName">未登录</b><span id="mLevel">普通会员</span></div>
+        <div class="member-card"><b id="mIntegral">0</b><span>积分</span></div>
+        <div class="member-card"><b>整理中</b><span>下载记录</span></div>
+      </div>
+    </div>
+  </section>
+  <script>
+    fetch('/api/member/me', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.member) { location.href = '/member/login'; return; }
+        document.getElementById('mName')!.textContent = d.member.nickname || d.member.username;
+        document.getElementById('mLevel')!.textContent = d.isVip ? 'VIP会员' : '普通会员';
+        document.getElementById('mIntegral')!.textContent = String(d.member.integral || 0);
+      });
+  </script>
+</Base>

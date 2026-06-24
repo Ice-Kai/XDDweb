@@ -1,0 +1,28 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="AI 生图工作台 — 薛大大设计网">
+  <section class="container" style="padding:42px 0 70px;">
+    <div class="aig-static">
+      <p class="section-label">AI STUDIO</p>
+      <h1>AI 生图工作台</h1>
+      <p>静态展示版已上线。AI 生图、积分和上传功能会在正式服务器阶段恢复。</p>
+      <div class="aig-static-grid">
+        <div><b>文字生图</b><span>建筑、室内、景观提示词整理中</span></div>
+        <div><b>参考图改图</b><span>后续接入图片上传与生成接口</span></div>
+        <div><b>高清放大</b><span>正式版恢复后开放</span></div>
+      </div>
+      <a class="btn-primary" href="/c/model">先浏览资源</a>
+    </div>
+  </section>
+  <style>
+    .aig-static { min-height:520px; border:1px solid var(--border); border-radius:22px; padding:54px; background:radial-gradient(80% 90% at 50% 0%, rgba(201,150,60,.16), transparent 62%), var(--bg-card); display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:18px; }
+    .aig-static h1 { font-size:38px; font-weight:800; color:var(--text-hi); }
+    .aig-static p { max-width:620px; color:var(--text-md); line-height:1.8; }
+    .aig-static-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; width:100%; margin:16px 0; }
+    .aig-static-grid div { border:1px solid var(--border); border-radius:12px; padding:18px; background:var(--bg-elevated); }
+    .aig-static-grid b { display:block; color:var(--text-hi); margin-bottom:8px; }
+    .aig-static-grid span { color:var(--text-lo); font-size:13px; line-height:1.6; }
+    @media (max-width:760px) { .aig-static { padding:28px; } .aig-static-grid { grid-template-columns:1fr; } }
+  </style>
+</Base>

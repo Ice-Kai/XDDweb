@@ -1,0 +1,58 @@
+---
+import Base from '../layouts/Base.astro';
+import { getDownloads, coverUrl, type DownloadItem } from '../lib/content';
+
+const q = (Astro.url.searchParams.get('q') || '').trim();
+const sort = (Astro.url.searchParams.get('sort') as 'newest' | 'popular' | 'downloads') || 'newest';
+const items = q ? await getDownloads({ q, sort, limit: 40 }) : [];
+const sorts: { k: string; t: string }[] = [{ k: 'newest', t: '最新' }, { k: 'popular', t: '最热' }, { k: 'downloads', t: '下载' }];
+---
+<Base title={q ? `搜索：${q} — 薛大大设计网` : '智能搜索 — 薛大大设计网'}>
+  <div class="container ask-wrap">
+    <div class="ask-head">
+      <p class="section-label">SEARCH</p>
+      <h1 class="ask-title">搜资源</h1>
+      <p class="ask-sub">输入模型 / 贴图 / 软件 / 教程关键词，快速查找站内资源。</p>
+    </div>
+
+    <form class="ask-box" action="/ask" method="get">
+      <input name="q" value={q} placeholder="例如：新中式 茶室 / 现代别墅 / D5 教程…" autocomplete="off" autofocus />
+      {sort !== 'newest' ? <input type="hidden" name="sort" value={sort} /> : null}
+      <button type="submit" class="ask-btn">搜索</button>
+    </form>
+
+    {q && (
+      <div class="ask-bar">
+        <span class="ask-count">找到 <b>{items.length}</b> 条与“{q}”相关的资源{items.length >= 40 ? '（仅显示前 40 条）' : ''}</span>
+        <div class="sort-group">
+          {sorts.map((s) => (
+            <a href={`/ask?q=${encodeURIComponent(q)}${s.k !== 'newest' ? `&sort=${s.k}` : ''}`} class={`sort-btn ${sort === s.k ? 'active' : ''}`}>{s.t}</a>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {q && items.length === 0 ? (
+      <div class="mpage-empty">没有找到相关资源，换个关键词试试。</div>
+    ) : (
+      <div class="grid-5" style="padding:6px 0 60px;">
+        {items.map((m: DownloadItem) => (
+          <a href={`/d/${m.id}`} class="card">
+            <div class="card-img-wrap">
+              {coverUrl(m.cover) ? <img src={coverUrl(m.cover)} alt={m.title} loading="lazy" /> : null}
+              <span class="card-cat cat-arch">免费</span>
+            </div>
+            <div class="card-body">
+              <h3 class="card-title">{m.title}</h3>
+              <p class="card-desc">{m.summary || '暂无简介'}</p>
+              <div class="card-footer download-footer">
+                <span class="card-size">{m.size || '-- MB'}</span>
+                <span class="card-foot-r"><span class="card-type">{m.fileType || '资源'}</span><span class="btn-dl" data-dl role="button" tabindex="0">下载</span></span>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    )}
+  </div>
+</Base>

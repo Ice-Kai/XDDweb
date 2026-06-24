@@ -1,0 +1,24 @@
+# 本地开发数据库。重启系统让 WSL2 生效后:
+#   docker compose up -d
+# 然后导入旧数据 dump:
+#   docker exec -i xuedda-mysql mysql -uroot -pxuedda_dev_pwd < ../www_xuedda_com.sql   (旧库, 供迁移读取)
+# 新结构: docker exec -i xuedda-mysql mysql -uroot -pxuedda_dev_pwd xuedda < db/schema.sql
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: xuedda-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: xuedda_dev_pwd
+      MYSQL_DATABASE: xuedda
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - xuedda_mysql_data:/var/lib/mysql
+
+volumes:
+  xuedda_mysql_data:

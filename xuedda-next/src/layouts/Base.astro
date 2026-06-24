@@ -1,0 +1,674 @@
+﻿---
+import '../styles/global.css';
+import { getSetting } from '../lib/settings';
+
+interface Props { title?: string; description?: string; }
+const {
+  title = '薛大大设计网 — 建筑·景观·室内设计资源平台',
+  description = 'SketchUp 模型、D5/Enscape/Lumion 教程、材质贴图、软件参数一站获取，VIP 会员畅享下载。',
+} = Astro.props;
+
+// 静态发布版：关闭开场注册门槛，首页直接展示内容。
+const isHome = false;
+
+// 并行运行期：旧站入口（在 .env 设 OLD_SITE_URL=https://old.xuedda.com 即显示「旧版」切换链接；未设则不显示）
+const oldSiteUrl = (import.meta.env?.OLD_SITE_URL as string) ?? process.env.OLD_SITE_URL ?? '';
+
+// 右上角铃铛消息面板（右侧滑出，三标签）。后续可由后台/DB 提供，现为占位。
+const noticeTabs = [
+  { key: 'version', name: '版本公告', items: [
+    { title: '全新「控制台」上线，账单与数据一目了然', body: '原【消费记录】全面升级为【控制台】，账单与下载任务管理更清晰。', date: '2026-05-15' },
+    { title: '新增 MAX 模型分区与「智能分类」', body: '模型栏目新增 MAX 分区，SU 模型按智能大类归整，查找更快。', date: '2026-05-13' },
+    { title: '下载提速 & 网盘提取码自动填充', body: '详情页点击下载内联展开网盘链接，百度网盘自动带入提取码。', date: '2026-04-27' },
+  ]},
+  { key: 'official', name: '官方消息', items: [
+    { title: '年中大促 · 全新会员限时登场', body: 'VIP 年卡限时低至 5 折，全站模型 / 贴图 / 教程畅享下载。', date: '2026-06-01' },
+    { title: '材质贴图库新增 HDR 专区', body: '新增大量 4K HDR 天空 / 夜空 / 室外环境贴图，持续更新。', date: '2026-05-20' },
+  ]},
+  { key: 'interactive', name: '互动消息', items: [
+    { title: '你的反馈已回复', body: '关于「批量下载」的建议已收到，相关功能排期中，感谢支持。', date: '2026-05-18' },
+  ]},
+];
+
+// 弹窗公告(图片大弹窗，首页，可关闭，本会话一次)。图片放 public/announce.jpg，改文案改这里。
+const promo = {
+  enabled: false,
+  image: '/announce.jpg',          // 用户放真实图，缺省走渐变占位
+  title: '网站公告',
+  lines: ['静态展示版已上线', '资源下载功能整理中'],
+  cta: '立刻查看',
+  link: '/c/model',
+};
+
+// 后台可配置项：客服二维码、顶部公告。
+// AI 生图现在固定作为 belongstoai.com 的内部子页，不再读取旧的外链设置。
+interface Announce { enabled: boolean; text: string; link: string }
+const [csQr, announce] = await Promise.all([
+  getSetting<string>('cs_qr', ''),
+  getSetting<Announce>('announcement', { enabled: false, text: '', link: '' }),
+]);
+const aiImageHref = '/ai-image';
+
+// 左侧导航（站酷式：分组 + 组标题 + 缩进子项）。只重组现有功能，不新增。
+const lnavGroups = [
+  { items: [
+    { name: '首页', href: '/', icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
+  ] },
+  { title: '资源素材', icon: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z', items: [
+    { name: '模型素材', href: '/c/model', icon: 'M21 16V8l-9-5-9 5v8l9 5 9-5zM3.3 7L12 12l8.7-5M12 22V12' },
+    { name: '灯光贴图', href: '/c/texture', icon: 'M3 3h18v18H3zM3 9h18M9 21V9' },
+    { name: '软件参数', href: '/c/software', icon: 'M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8' },
+    { name: '视频教程', href: '/c/video', icon: 'M23 7l-7 5 7 5V7zM1 5h15v14H1z' },
+  ] },
+  { title: 'AI 工具', icon: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z', items: [
+    { name: '搜索', href: '/ask', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.3-4.3' },
+    { name: 'AI生图', href: aiImageHref, icon: 'M21 15l-5-5L5 21M3 3h18v18H3zM8.5 8.5h.01', hot: true, ai: true },
+    { name: 'AI问答', href: '/chat', icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z', ai: true },
+  ] },
+];
+const curPath = Astro.url.pathname;
+
+// 主导航（贴合真实一级分类）
+const navItems = [
+  { name: '首页', href: '/', active: true },
+  { name: '模型', href: '/c/model' },
+  { name: '灯光贴图', href: '/c/texture' },
+  { name: '软件参数', href: '/c/software' },
+  { name: '视频教程', href: '/c/video' },
+  { name: '其他相关', href: '/c/other' },
+  { name: 'AI生图', href: aiImageHref },
+];
+
+
+// 左侧「今日上新」自动滚动列表（DB 就绪后改为查询最新 contents）
+const newItems = [
+  { t: 'SU-25 现代别墅建筑设计', m: '05-18 · SKP' },
+  { t: 'D5 室内渲染全流程实战', m: '05-17 · 12课时' },
+  { t: 'HDR 贴图 · 夜晚星空 6', m: '05-16 · HDR' },
+  { t: 'SU-24 商业综合体外观', m: '05-15 · SKP' },
+  { t: 'Enscape 4.0 版本发布', m: '05-14 · 渲染器' },
+];
+
+// 开场动画 词云（环绕太阳，设计领域词）。x/y 为相对词云容器的百分比定位。
+const cloudWords = [
+  { w: 'SketchUp', x: 16, y: 22, s: 20, b: 700, o: 0.9, d: 0 },
+  { w: '模型', x: 50, y: 8, s: 22, b: 700, o: 0.95, d: 0.6 },
+  { w: 'Lumion', x: 82, y: 20, s: 18, b: 600, o: 0.85, d: 1.1 },
+  { w: 'Enscape', x: 30, y: 44, s: 16, b: 500, o: 0.8, d: 0.3 },
+  { w: '渲染', x: 68, y: 42, s: 19, b: 700, o: 0.9, d: 0.9 },
+  { w: 'V-Ray', x: 12, y: 58, s: 15, b: 500, o: 0.75, d: 1.4 },
+  { w: 'HDR', x: 50, y: 50, s: 17, b: 600, o: 0.85, d: 0.2 },
+  { w: '贴图', x: 88, y: 52, s: 18, b: 700, o: 0.9, d: 1.7 },
+  { w: '效果图', x: 26, y: 76, s: 16, b: 600, o: 0.8, d: 0.5 },
+  { w: 'D5', x: 60, y: 72, s: 15, b: 500, o: 0.75, d: 1.2 },
+  { w: '室内', x: 78, y: 78, s: 17, b: 600, o: 0.85, d: 0.8 },
+  { w: '建筑', x: 42, y: 90, s: 16, b: 600, o: 0.8, d: 1.5 },
+  { w: 'Rhino', x: 6, y: 38, s: 13, b: 400, o: 0.65, d: 1.0 },
+  { w: '景观', x: 94, y: 36, s: 14, b: 500, o: 0.7, d: 0.4 },
+  { w: '材质', x: 64, y: 92, s: 14, b: 500, o: 0.7, d: 1.8 },
+  { w: '参数', x: 16, y: 90, s: 13, b: 400, o: 0.65, d: 0.7 },
+];
+---
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class={isHome ? 'intro-locked' : ''}>
+    <!-- 开场动画（仅首页） -->
+    {isHome && (
+    <div class="intro" id="intro">
+      <div class="intro-sun"></div>
+      <span class="intro-spark" style="animation-delay:0s;left:49%"></span>
+      <span class="intro-spark" style="animation-delay:.8s;left:51%"></span>
+      <span class="intro-spark" style="animation-delay:1.6s;left:50%"></span>
+      <span class="intro-spark" style="animation-delay:2.4s;left:48%"></span>
+      <div class="intro-logo">x<b>Design</b></div>
+      <p class="intro-sub">薛大大设计 · XUEDDA</p>
+
+      <div class="intro-auth" id="introAuth">
+        <div class="ia-tabs">
+          <button type="button" class="ia-tab active" data-mode="register">注册</button>
+          <button type="button" class="ia-tab" data-mode="login">登录</button>
+        </div>
+        <form class="ia-form" id="introAuthForm">
+          <input class="ia-input" name="username" autocomplete="username" placeholder="用户名 / 手机号" required />
+          <input class="ia-input" name="password" type="password" autocomplete="current-password" placeholder="密码" required />
+          <input class="ia-input ia-confirm" name="confirm" type="password" placeholder="确认密码" />
+          <p class="ia-err" id="iaErr"></p>
+          <button type="submit" class="ia-submit" id="iaSubmit">注册并进入 →</button>
+        </form>
+        <!-- 微信登录：并行测试期由旧站承载，待新站接入微信后再启用 -->
+        <p class="ia-note">注册即同意《用户协议》与《隐私政策》</p>
+      </div>
+
+      <div class="intro-cloud">
+        {cloudWords.map((c) => (
+          <span class="intro-word" style={`left:${c.x}%;top:${c.y}%;font-size:${c.s}px;font-weight:${c.b};opacity:${c.o};animation-delay:${c.d}s`}>{c.w}</span>
+        ))}
+      </div>
+    </div>
+    )}
+
+    <!-- 公告：小按钮 + 弹出卡片（进站默认弹一次） -->
+    {announce.enabled && announce.text && (
+      <div class="announce-wrap" id="announceWrap" data-key={announce.text.slice(0, 60)}>
+        <button class="announce-btn" id="announceBtn" aria-label="网站公告">
+          <span class="announce-bell">📢</span><span class="announce-btn-label">公告</span>
+          <span class="announce-dot"></span>
+        </button>
+        <div class="announce-pop" id="announcePop">
+          <div class="announce-pop-head"><span>📢 网站公告</span><button id="announceClose" aria-label="关闭">✕</button></div>
+          <div class="announce-pop-body">
+            <p>{announce.text}</p>
+            {announce.link && <a href={announce.link} class="announce-pop-link" target="_blank" rel="noopener">查看详情 →</a>}
+          </div>
+        </div>
+      </div>
+    )}
+
+    <!-- 弹窗公告（首页） -->
+    {isHome && promo.enabled && (
+    <div class="promo-mask" id="promoMask" hidden>
+      <div class="promo-card">
+        <button class="promo-close" id="promoClose" type="button" aria-label="关闭">✕</button>
+        <div class="promo-media" style={`background-image:url('${promo.image}')`}>
+          <div class="promo-overlay">
+            <h3 class="promo-title">{promo.title}</h3>
+            <div class="promo-foot">
+              <div class="promo-lines">{promo.lines.map((l) => <p>{l}</p>)}</div>
+              <a class="promo-cta" href={promo.link}>{promo.cta}</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    )}
+
+    <!-- NAV -->
+    <nav class="nav">
+      <div class="container nav-inner">
+        <a href="/" class="nav-logo"><span class="nav-logo-dot"></span><span class="nav-logo-text"><b>XDesign</b><span class="nav-logo-cn">薛大大生态设计</span></span></a>
+        <ul class="nav-main" id="navMain">
+          {navItems.map((n) => <li><a href={n.href} class={n.active ? 'active' : ''} target={n.external ? '_blank' : undefined} rel={n.external ? 'noopener' : undefined}>{n.name}</a></li>)}
+        </ul>
+        <form class="nav-search" action="/ask" method="get">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input name="q" placeholder="搜索模型 / 贴图 / 软件 / 教程…" aria-label="搜索" />
+        </form>
+        <div class="nav-actions">
+          <button class="nav-burger" id="navBurger" type="button" aria-label="导航菜单">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>          <div class="nav-cats" aria-label="资源栏目">
+            <a href={aiImageHref}>AI生图</a>
+            <span aria-hidden="true"></span>
+            <a href="/c/model">模型素材</a>
+            <span aria-hidden="true"></span>
+            <a href="/c/texture">灯光贴图</a>
+            <span aria-hidden="true"></span>
+            <a href="/c/software">软件参数</a>
+            <span aria-hidden="true"></span>
+            <a href="/c/video">视频教程</a>
+          </div>
+          <a href="/search" class="nav-search-m" aria-label="搜索"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></a>
+          <button class="notice-bell" id="noticeBell" type="button" aria-label="消息公告">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="notice-bell-dot"></span>
+          </button>
+          {oldSiteUrl ? <a href={oldSiteUrl} class="site-switch" title="切换到旧版网站">旧版 ↗</a> : null}
+          <a href="/member" class="member-only" hidden>会员中心</a>
+          <a href="/member" class="member-only" hidden>下载记录</a>
+          <a href="/member/login" class="guest-only">登录</a>
+          <a href="/member/register" class="guest-only nav-register">注册</a>
+          <button type="button" class="member-only nav-logout" id="memberLogout" hidden>退出</button>
+          <a href="/feedback">反馈</a>
+          <!-- 字号调节（阅读模式滑块） -->
+          <div class="fontsize-wrap">
+            <button class="fontsize-btn" id="fontBtn" title="调整字号" aria-label="调整字号">
+              <span style="font-size:12px;font-weight:700">A</span><span style="font-size:16px;font-weight:700">A</span>
+            </button>
+            <div class="fontsize-pop" id="fontPop">
+              <div class="fontsize-pop-t">字号大小</div>
+              <div class="fontsize-row">
+                <span style="font-size:12px">A</span>
+                <input type="range" id="fontRange" min="90" max="160" step="5" value="100" />
+                <span style="font-size:18px">A</span>
+              </div>
+              <div class="fontsize-val"><span id="fontVal">100%</span><button id="fontReset" type="button">恢复默认</button></div>
+            </div>
+          </div>
+          <button class="theme-toggle" id="themeToggle" title="切换主题" aria-label="切换主题">
+            <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+
+    <!-- 左侧导航（可收起） -->
+    <aside class="lnav" id="lnav">
+      <button class="lnav-collapse" id="lnavCollapse" type="button" aria-label="收起导航" title="收起">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <nav class="lnav-items">
+        {lnavGroups.map((g) => (
+          <div class="lnav-group">
+            {g.title ? (
+              <div class="lnav-group-title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d={g.icon} /></svg>
+                <span>{g.title}</span>
+              </div>
+            ) : null}
+            {g.items.map((it) => (
+              <a href={it.href} class={`lnav-item ${g.title ? 'sub' : ''} ${it.ai ? 'ai' : ''} ${curPath === it.href ? 'active' : ''}`} {...(it.external ? { target: '_blank', rel: 'noopener' } : {})}>
+                <svg class="lnav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d={it.icon} /></svg>
+                <span class="lnav-label">{it.name}</span>
+                {it.hot ? <span class="lnav-hot">HOT</span> : null}
+              </a>
+            ))}
+          </div>
+        ))}
+      </nav>
+    </aside>
+    <button class="lnav-reopen" id="lnavReopen" type="button" aria-label="展开导航" title="展开导航">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+
+    <main>
+      <slot />
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div>
+            <div class="footer-brand-name">薛大大设计网</div>
+            <p class="footer-brand-desc">专注于建筑、景观、室内设计的资源与学习平台。SU 模型、D5 教程、材质贴图、软件工具一站获取。</p>
+          </div>
+          <div>
+            <p class="footer-links-title">资源分类</p>
+            <ul class="footer-links">
+              <li><a href="/c/model">SU模型</a></li>
+              <li><a href="/c/texture">灯光贴图</a></li>
+              <li><a href="/c/software">软件参数</a></li>
+              <li><a href="/c/video">视频教程</a></li>
+              <li><a href="/ai-image">AI生图</a></li>
+            </ul>
+          </div>
+          <div>
+            <p class="footer-links-title">关于</p>
+            <ul class="footer-links">
+              <li><a href="/feedback">意见反馈</a></li>
+              <li><a href="/c/model">资源目录</a></li>
+            </ul>
+          </div>
+          <div>
+            <p class="footer-links-title">联系</p>
+            <ul class="footer-links">
+              <li><a href="#">微信公众号</a></li>
+              <li><a href="#">客服社群</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>薛大大设计网 © xuedda.com</span>
+          <div style="display:flex;gap:16px;">
+            <a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">ICP 备案号（待填）</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- 下载弹窗（点卡片「下载」直接弹出，不进详情页） -->
+    <div class="dlm" id="dlModal" hidden>
+      <div class="dlm-mask" id="dlMask"></div>
+      <div class="dlm-card">
+        <button class="dlm-x" id="dlClose" aria-label="关闭">✕</button>
+        <div class="dlm-body" id="dlBody"></div>
+      </div>
+    </div>
+
+    <!-- 客服浮窗（右下角） -->
+    <div class="cs-float">
+      <div class="cs-panel" id="csPanel">
+        <div class="cs-panel-head">💬 联系客服</div>
+        <div class="cs-panel-body">
+          {csQr
+            ? <img src={csQr} alt="客服二维码" class="cs-qr-img" />
+            : <div class="cs-qr">微信二维码<br/>整理中</div>}
+          <p class="cs-tip"><strong>扫码联系客服</strong>工作日 9:00–18:00 在线</p>
+        </div>
+      </div>
+      <button class="cs-btn" id="csBtn" title="联系客服" aria-label="联系客服">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </button>
+    </div>
+
+    <!-- 右侧消息抽屉（铃铛点击滑出） -->
+    <div class="notice-mask" id="noticeMask" hidden></div>
+    <aside class="notice-drawer" id="noticeDrawer" aria-hidden="true">
+      <div class="notice-head">
+        <div class="notice-tabs">
+          {noticeTabs.map((t, i) => (
+            <button type="button" class={`notice-tab ${i === 0 ? 'active' : ''}`} data-tab={t.key}>{t.name}{t.items.length ? <span class="notice-tab-dot"></span> : null}</button>
+          ))}
+        </div>
+        <button class="notice-x" id="noticeClose" type="button" aria-label="关闭">✕</button>
+      </div>
+      <div class="notice-body">
+        {noticeTabs.map((t, i) => (
+          <div class={`notice-pane ${i === 0 ? 'active' : ''}`} data-pane={t.key}>
+            {t.items.length === 0 ? <div class="notice-empty">暂无消息</div> : t.items.map((it) => (
+              <div class="notice-item">
+                <span class="notice-ava">薛</span>
+                <div class="notice-it-body">
+                  <div class="notice-it-title">{it.title}</div>
+                  <div class="notice-it-text">{it.body}</div>
+                  <div class="notice-it-date">{it.date}</div>
+                </div>
+              </div>
+            ))}
+            <div class="notice-end">没有更多消息</div>
+          </div>
+        ))}
+      </div>
+    </aside>
+
+
+    <script is:inline>
+      // 卡片下载：当前页小弹窗展示网盘链接，不跳详情页
+      (function () {
+        let pop;
+        const esc = (s) => String(s || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+        const providerName = (url) => {
+          if (/pan\.baidu\.com/i.test(url)) return '百度网盘';
+          if (/aliyundrive|alipan/i.test(url)) return '阿里云盘';
+          if (/quark\.cn/i.test(url)) return '夸克网盘';
+          if (/123pan/i.test(url)) return '123网盘';
+          return '网盘链接';
+        };
+        const ensurePop = () => {
+          if (pop) return pop;
+          pop = document.createElement('div');
+          pop.className = 'download-pop';
+          pop.hidden = true;
+          document.body.appendChild(pop);
+          return pop;
+        };
+        const close = () => { if (pop) pop.hidden = true; };
+        const place = (btn) => {
+          const p = ensurePop();
+          const r = btn.getBoundingClientRect();
+          const w = 300;
+          p.style.left = Math.max(12, Math.min(window.innerWidth - w - 12, r.right - w)) + 'px';
+          p.style.top = Math.min(window.innerHeight - 180, r.bottom + 8) + 'px';
+        };
+        document.addEventListener('click', async (e) => {
+          const btn = e.target.closest('[data-dl]');
+          if (!btn) { if (pop && !e.target.closest('.download-pop')) close(); return; }
+          e.preventDefault();
+          e.stopPropagation();
+          const p = ensurePop();
+          place(btn);
+          p.hidden = false;
+          const link = btn.closest('a[href^="/d/"]');
+          const m = link && link.getAttribute('href').match(/\/d\/(\d+)/);
+          if (!m) return;
+          p.innerHTML = '<button type="button" class="download-pop-x" aria-label="关闭">×</button><div class="download-pop-title">正在获取下载链接...</div><div class="download-pop-muted">请稍等</div>';
+          p.querySelector('.download-pop-x')?.addEventListener('click', close);
+          try {
+            const res = await fetch('/api/download/' + m[1], { credentials: 'include' });
+            const data = await res.json();
+            if (res.status === 401) {
+              p.innerHTML = '<button type="button" class="download-pop-x" aria-label="关闭">×</button><div class="download-pop-title">请先登录</div><div class="download-pop-muted">登录后即可查看网盘链接。</div><a class="download-pop-link" href="/member/login">去登录</a>';
+            } else if (res.status === 403) {
+              p.innerHTML = '<button type="button" class="download-pop-x" aria-label="关闭">×</button><div class="download-pop-title">VIP 资源</div><div class="download-pop-muted">该资源需要会员权限。</div><a class="download-pop-link" href="/member/vip">查看会员</a>';
+            } else if (!res.ok || !data.ok) {
+              p.innerHTML = '<button type="button" class="download-pop-x" aria-label="关闭">×</button><div class="download-pop-title">暂时无法下载</div><div class="download-pop-muted">' + esc(data.message || '下载链接暂未配置') + '</div>';
+            } else {
+              const rows = (data.files || []).map((f) => '<a class="download-pop-link" href="' + esc(f.url) + '" target="_blank" rel="noopener">' + esc(f.provider || providerName(f.url)) + '</a>' + (f.pass ? '<div class="download-pop-muted">提取码：<b>' + esc(f.pass) + '</b></div>' : '')).join('');
+              p.innerHTML = '<button type="button" class="download-pop-x" aria-label="关闭">×</button><div class="download-pop-title">' + esc(data.item?.title || '资源下载') + '</div>' + rows;
+            }
+            p.querySelector('.download-pop-x')?.addEventListener('click', close);
+          } catch {
+            p.innerHTML = '<button type="button" class="download-pop-x" aria-label="关闭">×</button><div class="download-pop-title">网络错误</div><div class="download-pop-muted">请刷新后重试。</div>';
+            p.querySelector('.download-pop-x')?.addEventListener('click', close);
+          }
+        }, true);
+        window.addEventListener('scroll', close, { passive: true });
+        window.addEventListener('resize', close);
+      })();
+    </script>
+
+    <script is:inline>
+      // 开场页 · 注册/登录门槛（UI 阶段：前端校验 + 占位，后端随会员阶段接）
+      (function () {
+        const intro = document.getElementById('intro');
+        if (!intro) return;
+        const enter = () => {
+          intro.classList.add('hide');
+          document.body.classList.remove('intro-locked');
+          setTimeout(() => intro.remove(), 1100);
+        };
+        // 进入过一次就永久不再拦（localStorage 跨会话/标签/刷新都记住）。退出登录时清除该键即可重新展示。
+        if (localStorage.getItem('xdd-entered') === '1') { enter(); return; }
+
+        let mode = 'register';
+        const form = document.getElementById('introAuthForm');
+        const confirm = intro.querySelector('.ia-confirm');
+        const submit = document.getElementById('iaSubmit');
+        const err = document.getElementById('iaErr');
+        intro.querySelectorAll('.ia-tab').forEach((t) => {
+          t.addEventListener('click', () => {
+            intro.querySelectorAll('.ia-tab').forEach((x) => x.classList.remove('active'));
+            t.classList.add('active');
+            mode = t.dataset.mode;
+            confirm.style.display = mode === 'register' ? 'block' : 'none';
+            submit.textContent = mode === 'register' ? '注册并进入 →' : '登录并进入 →';
+            err.textContent = '';
+          });
+        });
+        form?.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const f = new FormData(form);
+          const u = (f.get('username') || '').toString().trim();
+          const p = (f.get('password') || '').toString();
+          const c = (f.get('confirm') || '').toString();
+          if (!u || !p) { err.textContent = '请输入用户名和密码'; return; }
+          if (mode === 'register' && p !== c) { err.textContent = '两次密码不一致'; return; }
+          try {
+            const res = await fetch(mode === 'register' ? '/api/member/register' : '/api/member/login', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ username: u, password: p }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok) { err.textContent = data.message || '提交失败'; return; }
+            localStorage.setItem('xdd-entered', '1');
+            enter();
+          } catch {
+            err.textContent = '网络错误，请稍后重试';
+          }
+        });
+        document.getElementById('iaWechat')?.addEventListener('click', () => {
+          localStorage.setItem('xdd-entered', '1');
+          enter();
+        });
+      })();
+
+      // 图片弹窗公告（开场页消失后再弹，可关闭，本会话一次）
+      (function () {
+        const mask = document.getElementById('promoMask');
+        if (!mask) return;
+        if (sessionStorage.getItem('xdd-promo') === '1') return;
+        const waitIntro = () => {
+          if (document.getElementById('intro')) { setTimeout(waitIntro, 400); return; }
+          setTimeout(() => { mask.hidden = false; }, 400);
+        };
+        waitIntro();
+        const close = () => { mask.hidden = true; sessionStorage.setItem('xdd-promo', '1'); };
+        document.getElementById('promoClose')?.addEventListener('click', close);
+        mask.addEventListener('click', (e) => { if (e.target === mask) close(); });
+      })();
+
+      // 客服浮窗
+      document.getElementById('csBtn')?.addEventListener('click', () => {
+        document.getElementById('csPanel')?.classList.toggle('open');
+      });
+
+      // 「公告」按钮 → 打开右侧消息抽屉（与铃铛一致），旧小弹卡停用
+      document.getElementById('announceBtn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const drawer = document.getElementById('noticeDrawer');
+        const mask = document.getElementById('noticeMask');
+        if (drawer) { drawer.classList.add('open'); if (mask) mask.hidden = false; drawer.setAttribute('aria-hidden', 'false'); }
+      });
+
+      // 移动端汉堡菜单
+      document.getElementById('navBurger')?.addEventListener('click', () => {
+        document.getElementById('navMain')?.classList.toggle('open');
+      });
+
+      // 左侧导航 收起/展开（记忆状态）
+      (function () {
+        if (localStorage.getItem('xdd-lnav') === 'collapsed') document.body.classList.add('lnav-collapsed');
+        const set = (c) => {
+          document.body.classList.toggle('lnav-collapsed', c);
+          localStorage.setItem('xdd-lnav', c ? 'collapsed' : 'open');
+        };
+        document.getElementById('lnavCollapse')?.addEventListener('click', () => set(true));
+        document.getElementById('lnavReopen')?.addEventListener('click', () => set(false));
+      })();
+
+      // 会员登录状态
+      (function () {
+        const guests = document.querySelectorAll('.guest-only');
+        const members = document.querySelectorAll('.member-only');
+        fetch('/api/member/me', { credentials: 'include' })
+          .then((r) => r.json())
+          .then((d) => {
+            const logged = !!d.member;
+            guests.forEach((el) => el.hidden = logged);
+            members.forEach((el) => el.hidden = !logged);
+          })
+          .catch(() => {});
+        document.getElementById('memberLogout')?.addEventListener('click', async () => {
+          await fetch('/api/member/logout', { method: 'POST', credentials: 'include' });
+          location.href = '/';
+        });
+      })();
+
+      // 右侧消息抽屉（铃铛）
+      (function () {
+        const bell = document.getElementById('noticeBell');
+        const drawer = document.getElementById('noticeDrawer');
+        const mask = document.getElementById('noticeMask');
+        if (!bell || !drawer || !mask) return;
+        const open = () => { drawer.classList.add('open'); mask.hidden = false; drawer.setAttribute('aria-hidden', 'false'); bell.querySelector('.notice-bell-dot')?.classList.add('hide'); };
+        const close = () => { drawer.classList.remove('open'); mask.hidden = true; drawer.setAttribute('aria-hidden', 'true'); };
+        bell.addEventListener('click', () => drawer.classList.contains('open') ? close() : open());
+        document.getElementById('noticeClose')?.addEventListener('click', close);
+        mask.addEventListener('click', close);
+        drawer.querySelectorAll('.notice-tab').forEach((tab) => {
+          tab.addEventListener('click', () => {
+            const k = tab.dataset.tab;
+            drawer.querySelectorAll('.notice-tab').forEach((x) => x.classList.toggle('active', x === tab));
+            drawer.querySelectorAll('.notice-pane').forEach((p) => p.classList.toggle('active', p.dataset.pane === k));
+          });
+        });
+      })();
+      // 字号调节（阅读模式）：缩放 main 内容，记忆到 localStorage
+      (function () {
+        const main = document.querySelector('main');
+        const apply = (v) => { if (main) main.style.zoom = (v / 100).toString(); const fv = document.getElementById('fontVal'); if (fv) fv.textContent = v + '%'; const fr = document.getElementById('fontRange'); if (fr) fr.value = v; };
+        apply(parseInt(localStorage.getItem('xdd-fontsize') || '100', 10));
+        const btn = document.getElementById('fontBtn'), pop = document.getElementById('fontPop'), range = document.getElementById('fontRange');
+        btn?.addEventListener('click', (e) => { e.stopPropagation(); pop.classList.toggle('open'); });
+        document.addEventListener('click', (e) => { if (pop && !pop.contains(e.target) && e.target !== btn && !btn.contains(e.target)) pop.classList.remove('open'); });
+        range?.addEventListener('input', () => { apply(+range.value); localStorage.setItem('xdd-fontsize', range.value); });
+        document.getElementById('fontReset')?.addEventListener('click', () => { apply(100); localStorage.setItem('xdd-fontsize', '100'); });
+      })();
+
+      // 下载弹窗：拦截卡片「下载」按钮，弹出网盘链接（不跳详情页）
+      (function () {
+        const modal = document.getElementById('dlModal'), body = document.getElementById('dlBody');
+        const close = () => { modal.hidden = true; };
+        document.getElementById('dlClose')?.addEventListener('click', close);
+        document.getElementById('dlMask')?.addEventListener('click', close);
+        function open(html) { body.innerHTML = html; modal.hidden = false; }
+        async function doDownload(id, title) {
+          open('<div class="dlm-title">' + (title || '资源下载') + '</div><div class="dlm-state"><div class="ico">i</div>请在卡片右侧的小弹窗中查看网盘链接。</div>');
+        }
+        // 委托：点 .btn-dl 不跳详情，弹窗下载
+        document.addEventListener('click', (e) => {
+          const btn = e.target.closest('.btn-dl');
+          if (!btn || !/下载/.test(btn.textContent)) return;
+          const card = btn.closest('a[href^="/d/"]');
+          const m = card && card.getAttribute('href').match(/\/d\/(\d+)/);
+          if (!m) return;
+          e.preventDefault(); e.stopPropagation();
+          const title = card.querySelector('.card-title')?.textContent || '';
+          doDownload(m[1], title);
+        }, true);
+      })();
+
+      // 主题切换（默认深色，记忆到 localStorage）
+      const root = document.documentElement;
+      root.setAttribute('data-theme', localStorage.getItem('xdd-theme') || 'dark');
+      document.getElementById('themeToggle')?.addEventListener('click', () => {
+        const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        root.setAttribute('data-theme', next);
+        localStorage.setItem('xdd-theme', next);
+      });
+
+      // 左侧侧栏 收起/展开
+      const panel = document.getElementById('sidebarPanel');
+      document.getElementById('sidebarToggle')?.addEventListener('click', () => panel?.classList.toggle('open'));
+
+      // Hero 轮播
+      const slides = document.querySelectorAll('.hero-slide');
+      const dots = document.querySelectorAll('.hero-dot');
+      if (slides.length > 1) {
+        let cur = 0, tmr;
+        const goTo = (n) => {
+          slides[cur].classList.remove('active'); dots[cur]?.classList.remove('active');
+          cur = (n + slides.length) % slides.length;
+          slides[cur].classList.add('active'); dots[cur]?.classList.add('active');
+        };
+        const start = () => { clearInterval(tmr); tmr = setInterval(() => goTo(cur + 1), 5000); };
+        dots.forEach((d, i) => d.addEventListener('click', () => { goTo(i); start(); }));
+        start();
+      }
+
+      // 滚动揭示 + 导航阴影
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (!e.isIntersecting) return;
+          const p = e.target.closest('.grid-5,.grid-4,.grid-sw,.grid-3');
+          const delay = p ? Array.from(p.children).indexOf(e.target) * 60 : 0;
+          setTimeout(() => e.target.classList.add('visible'), delay);
+          io.unobserve(e.target);
+        });
+      }, { threshold: 0.08, rootMargin: '0px 0px -28px 0px' });
+      document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+
+      const nav = document.querySelector('.nav');
+      window.addEventListener('scroll', () => {
+        if (nav) nav.style.boxShadow = window.scrollY > 50 ? '0 2px 18px rgba(0,0,0,.1)' : '';
+      }, { passive: true });
+    </script>
+  </body>
+</html>
+
+
+
+
+
+

@@ -1,0 +1,122 @@
+﻿---
+import Base from '../../layouts/Base.astro';
+import { getCategoryTree, getDownloads, coverUrl, SECTIONS, type CatNode, type DownloadItem } from '../../lib/content';
+
+const slug = Astro.params.slug as string;
+const section = SECTIONS[slug];
+if (!section) return Astro.redirect('/');
+
+const sp = Astro.url.searchParams;
+const category = Number(sp.get('category')) || 0;
+const sort = (sp.get('sort') as 'newest' | 'popular' | 'downloads') || 'newest';
+const q = sp.get('q') || '';
+
+const [tree, items] = await Promise.all([
+  getCategoryTree(section.id),
+  getDownloads({
+    categoryId: category || undefined,
+    rootCategoryId: category ? undefined : section.id,
+    q, sort, limit: 30,
+  }),
+]);
+
+function findName(nodes: CatNode[], id: number): string {
+  for (const n of nodes) { if (n.id === id) return n.name; const r = findName(n.children, id); if (r) return r; }
+  return '';
+}
+const activeName = category ? findName(tree, category) : `全部${section.name}`;
+const base = `/c/${slug}`;
+const qs = (over: Record<string, string | number | undefined>) => {
+  const u = new URLSearchParams();
+  const cat = over.category ?? (category || undefined);
+  const s = over.sort ?? sort;
+  const query = over.q ?? (q || undefined);
+  if (cat) u.set('category', String(cat));
+  if (s && s !== 'newest') u.set('sort', String(s));
+  if (query) u.set('q', String(query));
+  const str = u.toString();
+  return base + (str ? `?${str}` : '');
+};
+function priceLabel(_it: DownloadItem) {
+  // 全站资源统一标记为免费
+  return '免费';
+}
+const isCourse = section.type === 'course';
+const catClass = isCourse ? 'cat-d5' : section.id === 91 ? 'cat-mat' : section.id === 88 ? 'cat-inter' : 'cat-arch';
+const sorts: { k: 'newest' | 'popular' | 'downloads'; t: string }[] = [
+  { k: 'newest', t: '最新' }, { k: 'popular', t: '最热' }, { k: 'downloads', t: '下载' },
+];
+---
+<Base title={`${section.name} — 薛大大设计网`}>
+  <div class="container">
+    <div class="mpage-bc" style="padding-top:18px;">
+      <a href="/">首页</a> <span>/</span> <b>{section.name}{category ? ` · ${activeName}` : ''}</b>
+    </div>
+
+    <div class="mpage">
+      <aside class="filter-side">
+        <div class="filter-card">
+          <div class="filter-head">
+            <span class="fi"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg></span>
+            <div><strong>{section.name}分类</strong><span>按类别筛选</span></div>
+          </div>
+          <nav class="filter-nav">
+            <a href={qs({ category: '' })} class={`filter-link ${!category ? 'active' : ''}`}>全部{section.name}</a>
+            {tree.map((top) => (
+              <div class="filter-group">
+                <a href={qs({ category: top.id })} class={`filter-link ${category === top.id ? 'active' : ''}`}>
+                  {top.name}{top.children.length ? <span style="font-size:11px;color:var(--text-lo)">{top.children.length}</span> : null}
+                </a>
+                {top.children.length > 0 && (
+                  <div class="filter-children">
+                    {top.children.map((c) => (
+                      <a href={qs({ category: c.id })} class={`filter-link ${category === c.id ? 'active' : ''}`}>{c.name}</a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </nav>
+        </div>
+      </aside>
+
+      <div class="mpage-main">
+        <div class="toolbar">
+          <form action={base} method="get">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-lo)"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input name="q" value={q} placeholder={`搜索${section.name}…`} />
+            {category ? <input type="hidden" name="category" value={category} /> : null}
+            {sort !== 'newest' ? <input type="hidden" name="sort" value={sort} /> : null}
+          </form>
+          <div class="sort-group">
+            {sorts.map((s) => (<a href={qs({ sort: s.k })} class={`sort-btn ${sort === s.k ? 'active' : ''}`}>{s.t}</a>))}
+          </div>
+        </div>
+
+        {items.length === 0 ? (
+          <div class="mpage-empty">该分类暂无资源{q ? `（搜索：${q}）` : ''}</div>
+        ) : (
+          <div class="grid-5">
+            {items.map((m) => (
+              <a href={`/d/${m.id}`} class="card reveal visible">
+                <div class="card-img-wrap">
+                  {coverUrl(m.cover) ? <img src={coverUrl(m.cover)} alt={m.title} loading="lazy" /> : null}
+                  <span class={`card-cat ${catClass}`}>{priceLabel(m)}</span>
+                  {isCourse && <div class="course-play"><div class="play-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="#0d0900"><polygon points="5 3 19 12 5 21 5 3"/></svg></div></div>}
+                </div>
+                <div class="card-body">
+                  <h3 class="card-title">{m.title}</h3>
+                  <p class="card-desc">{m.summary || '暂无简介'}</p>
+                  <div class="card-footer download-footer">
+                    <span class="card-size">{m.size || '-- MB'}</span>
+                    <span class="card-foot-r"><span class="card-type">{m.fileType || section.name}</span><span class="btn-dl" data-dl role="button" tabindex="0">下载</span></span>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</Base>

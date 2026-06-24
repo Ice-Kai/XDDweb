@@ -1,0 +1,139 @@
+﻿---
+import Base from '../../layouts/Base.astro';
+import { getDownloadById, getRelated, getCategoryName, getRootCategory, coverUrl, sanitizeHtml, type DownloadItem } from '../../lib/content';
+
+const id = Number(Astro.params.id);
+const item = id ? await getDownloadById(id) : null;
+if (!item) return Astro.redirect('/');
+
+const [related, catName, root] = await Promise.all([
+  getRelated(item.category_id, item.id, 6),
+  getCategoryName(item.category_id),
+  getRootCategory(item.category_id),
+]);
+const secName = root?.name || '资源';
+const secHref = root?.slug ? `/c/${root.slug}` : '/';
+const priceText = '免费';
+function priceLabel(it: DownloadItem) { return it.just_vip ? 'VIP' : it.money > 0 ? `¥${it.money}` : '免费'; }
+---
+<Base title={`${item.title} — 薛大大设计网`} description={item.description || item.title}>
+  <div class="container">
+    <div style="display:flex;align-items:center;gap:14px;padding-top:18px;">
+      <button type="button" id="backBtn" class="back-btn">← 返回</button>
+      <div class="mpage-bc" style="padding-top:0;">
+        <a href="/">首页</a> <span>/</span> <a href={secHref}>{secName}</a> {catName ? <Fragment><span>/</span> <span>{catName}</span></Fragment> : null} <span>/</span> <b>{item.title}</b>
+      </div>
+    </div>
+
+    <div class="detail">
+      <div class="detail-media">
+        {coverUrl(item.cover) ? <img src={coverUrl(item.cover)} alt={item.title} /> : null}
+      </div>
+      <div>
+        <h1 class="detail-title">{item.title}</h1>
+        <div class="detail-meta">
+          <span>📅 {item.created_at}</span>
+          {item.size ? <span>📦 {item.size}</span> : null}
+          {catName ? <span>📁 {catName}</span> : null}
+        </div>
+        <div class="detail-price">
+          <span class="p">{priceText}</span>
+        </div>
+        <div class="detail-actions">
+          <button class="dl-main" type="button" id="dlBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            立即下载
+          </button>
+        </div>
+
+        <div class="dl-panel" id="dlPanel" hidden data-id={item.id}></div>
+        <p class="detail-note">资源仅供学习交流，请遵守原作者授权与平台规则。</p>
+      </div>
+    </div>
+
+    {(item.content || item.description) && (
+      <div class="detail-body">
+        <h2>资源详情</h2>
+        {item.content
+          ? <div class="rich" set:html={sanitizeHtml(item.content)} />
+          : <p class="rich">{item.description}</p>}
+      </div>
+    )}
+
+    {related.length > 0 && (
+      <section class="section" style="border-top:1px solid var(--border);">
+        <div class="section-head"><div><p class="section-label">RELATED</p><h2 class="section-title">相关推荐</h2></div></div>
+        <div class="grid-5">
+          {related.map((m) => (
+            <a href={`/d/${m.id}`} class="card">
+              <div class="card-img-wrap">
+                {coverUrl(m.cover) ? <img src={coverUrl(m.cover)} alt={m.title} loading="lazy" /> : null}
+                <span class="card-cat cat-arch">{priceLabel(m)}</span>
+              </div>
+              <div class="card-body">
+                <h3 class="card-title">{m.title}</h3>
+                <p class="card-desc">{m.summary || '暂无简介'}</p>
+                <div class="card-footer download-footer">
+                  <span class="card-size">{m.size || '-- MB'}</span>
+                  <span class="card-foot-r"><span class="card-type">{m.fileType || secName}</span><span class="btn-dl" data-dl role="button" tabindex="0">下载</span></span>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+  </div>
+
+  <style>
+    .back-btn { flex-shrink:0; padding:7px 16px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg-card); color:var(--text-md); font-size:13px; font-weight:600; cursor:pointer; transition:all .15s; }
+    .back-btn:hover { border-color:var(--gold); color:var(--gold); }
+    .dl-panel { margin:14px 0 6px; padding:14px 16px; border:1px solid var(--gold-border); border-radius:var(--radius); background:var(--gold-pale); display:flex; flex-direction:column; gap:10px; }
+    .dl-panel-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .dl-panel-label { font-size:12px; color:var(--text-lo); min-width:56px; }
+    .dl-open { font-weight:700; color:var(--gold); font-size:14px; }
+    .dl-open:hover { text-decoration:underline; }
+    .dl-pass-code { font-family:var(--font-mono); font-size:15px; font-weight:700; color:var(--gold); background:var(--bg-elevated); border:1px solid var(--border); border-radius:6px; padding:3px 12px; letter-spacing:.1em; }
+    .dl-copy { font-size:12px; padding:4px 12px; border-radius:6px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-md); cursor:pointer; }
+    .dl-copy:hover { border-color:var(--gold); color:var(--gold); }
+    .dl-auto { font-size:11px; color:#1f9d57; }
+  </style>
+  <script is:inline>
+    (function () {
+      const back = document.getElementById('backBtn');
+      back?.addEventListener('click', () => {
+        if (history.length > 1) history.back(); else location.href = '/c/model';
+      });
+      const btn = document.getElementById('dlBtn');
+      const panel = document.getElementById('dlPanel');
+      if (!btn || !panel) return;
+      const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+      let loaded = false;
+      btn.addEventListener('click', async () => {
+        if (loaded) { panel.hidden = !panel.hidden; return; }
+        panel.innerHTML = '<div class="dl-panel-row"><span>正在获取下载链接...</span></div>';
+        panel.hidden = false;
+        try {
+          const res = await fetch('/api/download/' + panel.dataset.id, { credentials: 'include' });
+          const data = await res.json();
+          if (res.status === 401) {
+            panel.innerHTML = '<div class="dl-panel-row"><span>请先登录后下载。</span><a class="dl-open" href="/member/login">去登录 →</a></div>';
+          } else if (res.status === 403) {
+            panel.innerHTML = '<div class="dl-panel-row"><span>该资源需要 VIP 会员。</span><a class="dl-open" href="/member/vip">查看会员 →</a></div>';
+          } else if (!res.ok || !data.ok) {
+            panel.innerHTML = '<div class="dl-panel-row"><span>' + esc(data.message || '下载链接暂未配置') + '</span></div>';
+          } else {
+            panel.innerHTML = (data.files || []).map((f) => {
+              const pass = f.pass ? '<span class="dl-panel-label">提取码</span><span class="dl-pass-code">' + esc(f.pass) + '</span>' : '';
+              return '<div class="dl-panel-row"><span class="dl-panel-label">网盘</span><a class="dl-open" href="' + esc(f.url) + '" target="_blank" rel="noopener">打开链接 →</a>' + pass + '</div>';
+            }).join('');
+          }
+          loaded = true;
+        } catch {
+          panel.innerHTML = '<div class="dl-panel-row"><span>网络错误，请刷新后重试。</span></div>';
+        }
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    })();
+  </script>
+</Base>

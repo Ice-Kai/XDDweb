@@ -1,0 +1,34 @@
+# Cloudflare Tunnel config for belongstoai.com
+#
+# Target:
+# - https://belongstoai.com/          -> Astro homepage
+# - https://belongstoai.com/ai-image  -> AI image workspace subpage
+#
+# Before running the tunnel, make sure the Astro app is listening on 127.0.0.1:4321:
+#   cd /d/aliyun-site/xuedda-next
+#   npm run build
+#   node ./dist/server/entry.mjs
+#   # or: pm2 start deploy/ecosystem.config.cjs
+#
+# Setup:
+#   cloudflared tunnel login
+#   cloudflared tunnel create belongstoai
+#   cloudflared tunnel route dns belongstoai belongstoai.com
+#   cloudflared tunnel route dns belongstoai www.belongstoai.com
+#   cloudflared tunnel --config deploy/cloudflared-config.yml run
+
+tunnel: <TUNNEL_ID>
+credentials-file: C:\Users\Administrator\.cloudflared\<TUNNEL_ID>.json
+
+ingress:
+  - hostname: belongstoai.com
+    service: http://localhost:4321
+  - hostname: www.belongstoai.com
+    service: http://localhost:4321
+  - service: http_status:404
+
+# Notes:
+# - Do not bind a separate ai.belongstoai.com project for the old image site.
+# - The image page is served by this same Astro app at /ai-image.
+# - If Cloudflare still has old DNS/custom-domain records pointing root/www to another
+#   Pages or Vercel project, remove those conflicting records before routing the tunnel.

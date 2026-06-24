@@ -1,0 +1,237 @@
+﻿---
+import Base from '../layouts/Base.astro';
+import { getLatestDownloads, getHotDownloads, coverUrl, TOP_CATEGORY, type DownloadItem } from '../lib/content';
+import { getSetting, DEFAULT_HERO, type HeroData } from '../lib/settings';
+
+// 首页 Hero：后台可自定义（settings.home_hero），未设置则用默认
+const hero = (await getSetting<HeroData>('home_hero', DEFAULT_HERO)) || DEFAULT_HERO;
+const heroSlides = hero.slides?.length ? hero.slides : DEFAULT_HERO.slides;
+
+// 静态发布版：首页各版块从本地内容数组读取。
+const [models, courses, materials, software, hot] = await Promise.all([
+  getLatestDownloads({ rootCategoryId: TOP_CATEGORY.model, limit: 5 }),
+  getLatestDownloads({ rootCategoryId: TOP_CATEGORY.video, limit: 5 }),
+  getLatestDownloads({ rootCategoryId: TOP_CATEGORY.texture, limit: 5 }),
+  getLatestDownloads({ rootCategoryId: TOP_CATEGORY.software, limit: 5 }),
+  getHotDownloads(8),
+]);
+
+const quickTools = [
+  { name: 'SU模型', logo: '/logos/su.png', href: '/c/model' },
+  { name: 'D5教程', logo: '/logos/d5.png', href: '/c/video' },
+  { name: 'Enscape', logo: '/logos/enscape.png', href: '/c/software' },
+  { name: 'Lumion', logo: '/logos/lumion.png', href: '/c/software' },
+  { name: 'Photoshop', logo: '/logos/ps.png', href: '/c/software' },
+  { name: 'V-Ray', logo: '/logos/vray.png', href: '/c/software' },
+  { name: 'Rhino', logo: '/logos/rhino.png', href: '/c/software' },
+  { name: 'C4D', logo: '/logos/c4d.png', href: '/c/software' },
+  { name: '3ds Max', logo: '/logos/max.png', href: '/c/model?type=max' },
+  { name: 'AutoCAD', logo: '/logos/cad.png', href: '/c/software' },
+];
+
+function priceLabel(_it: DownloadItem) {
+  // 全站资源统一标记为免费
+  return '免费';
+}
+function sizeLabel(it: DownloadItem) {
+  const raw = String(it.size || '').trim();
+  if (!raw) return '— MB';
+  if (/gb/i.test(raw)) return raw.replace(/gb/i, 'GB');
+  if (/mb/i.test(raw)) return raw.replace(/mb/i, 'MB');
+  if (/kb/i.test(raw)) return raw.replace(/kb/i, 'KB');
+  const n = Number(raw.replace(/[^0-9.]/g, ''));
+  if (!Number.isFinite(n) || n <= 0) return raw;
+  if (n > 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + 'MB';
+  return n + 'MB';
+}
+const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+---
+<Base>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-slides">
+      {heroSlides.map((src, i) => (
+        <div class={`hero-slide ${i === 0 ? 'active' : ''}`} style={`background-image:url('${src}')`}></div>
+      ))}
+    </div>
+    <div class="hero-overlay"></div>
+    <div class="container hero-content">
+      <p class="hero-tag">{hero.tag}</p>
+      <h1 class="hero-title">{hero.titleL1}<br>{hero.titleL2}</h1>
+      <p class="hero-sub">{hero.sub}</p>
+      <div class="hero-cta">
+        <a href={hero.btn1.href} class="btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg>
+          {hero.btn1.text}
+        </a>
+        <a href={hero.btn2.href} class="btn-secondary">{hero.btn2.text} <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+      </div>
+    </div>
+    <div class="hero-dots">{heroSlides.map((_, i) => <div class={`hero-dot ${i === 0 ? 'active' : ''}`}></div>)}</div>
+  </section>
+
+  <!-- 软件快捷入口（真实 logo） -->
+  <div class="quick-nav">
+    <div class="container">
+      <div class="quick-nav-head">
+        <span class="quick-nav-title">常用设计工具与资源入口</span>
+        <span class="quick-nav-sub">快速进入模型、教程与软件专区</span>
+      </div>
+      <div class="quick-nav-inner">
+        {quickTools.map((t) => (
+          <a href={t.href} class="quick-item"><img src={t.logo} alt={t.name} class="qi-logo" />{t.name}</a>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <!-- 网站公告（常用工具 与 每日上传 之间） -->
+  <section class="section" style="padding:26px 0 0;">
+    <div class="container">
+      <div class="cta-banner reveal">
+        <div class="cta-content">
+          <p class="cta-badge">网站公告</p>
+          <h2 class="cta-title">网站公告</h2>
+          <p class="cta-desc">资源库持续整理更新中，模型、贴图、软件参数与视频教程会陆续补全。下载或访问遇到问题，可通过反馈入口告诉我们。</p>
+        </div>
+        <div class="cta-actions">
+          <a href="/feedback" class="btn-primary" style="padding:13px 30px;">提交反馈</a>
+          <a href="/c/model" class="btn-outline" style="display:inline-flex;align-items:center;padding:12px 24px;border:1px solid var(--border);border-radius:var(--radius);color:var(--text-hi);background:var(--bg-elevated);">查看资源</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 热门排行（置于最新上传之上） -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head reveal">
+        <div><p class="section-label">HOT RANKING</p><h2 class="section-title">热门下载榜</h2><p class="section-desc">最受设计师欢迎的资源，按浏览量排序。</p></div>
+      </div>
+      <div class="rank-grid reveal">
+        {hot.map((h, i) => (
+          <a href={`/d/${h.id}`} class="rank-item">
+            <span class="rank-no">{i + 1}</span>
+            <span class="rank-title">{h.title}</span>
+            <span class="rank-hits">👁 {h.hits}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- SU模型精选（最新上传） -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head reveal">
+        <div><p class="section-label">SU MODEL</p><h2 class="section-title">每日最近上传</h2><p class="section-desc">每次新上传的 SU 模型自动置顶展示，建筑、工装、家装、园林持续更新。</p></div>
+        <a href="/c/model" class="section-more">查看全部 <Fragment set:html={arrow} /></a>
+      </div>
+      <div class="grid-5">
+        {models.map((m) => (
+          <a href={`/d/${m.id}`} class="card reveal">
+            <div class="card-img-wrap">
+              {coverUrl(m.cover) ? <img src={coverUrl(m.cover)} alt={m.title} loading="lazy" /> : null}
+              <span class="card-cat cat-arch">{priceLabel(m)}</span>
+            </div>
+            <div class="card-body">
+              <h3 class="card-title">{m.title}</h3>
+              <p class="card-desc">{m.summary || '暂无简介'}</p>
+              <div class="card-footer download-footer">
+                <span class="card-size">{m.size || '-- MB'}</span>
+                <span class="card-foot-r"><span class="card-type">{m.fileType || 'SKP 模型'}</span><span class="btn-dl" data-dl role="button" tabindex="0">下载</span></span>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- 薛大大教学（视频教程 最新） -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head reveal">
+        <div><p class="section-label">COURSE</p><h2 class="section-title">薛大大教学</h2><p class="section-desc">D5、Layout、SU 等系统教程，最新更新。</p></div>
+        <a href="/c/video" class="section-more">查看全部 <Fragment set:html={arrow} /></a>
+      </div>
+      <div class="grid-5">
+        {courses.map((c) => (
+          <a href={`/d/${c.id}`} class="card course-card reveal">
+            <div class="card-img-wrap">
+              {coverUrl(c.cover) ? <img src={coverUrl(c.cover)} alt={c.title} loading="lazy" /> : null}
+              <span class="card-cat cat-d5">{priceLabel(c)}</span>
+              <div class="course-play"><div class="play-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="#0d0900"><polygon points="5 3 19 12 5 21 5 3"/></svg></div></div>
+            </div>
+            <div class="card-body">
+              <h3 class="card-title">{c.title}</h3>
+              <div class="course-lessons">⏱ {c.created_at}</div>
+              <div class="card-footer" style="margin-top:11px;"><span style="font-size:11px;color:var(--text-lo)">👁 {c.hits} 观看</span><span class="btn-watch">观看</span></div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- 材质贴图（最新上传） -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head reveal">
+        <div><p class="section-label">MATERIAL</p><h2 class="section-title">材质贴图</h2><p class="section-desc">PBR 贴图、HDR 环境贴图、D5 材质库持续更新。</p></div>
+        <a href="/c/texture" class="section-more">更多贴图 <Fragment set:html={arrow} /></a>
+      </div>
+      <div class="grid-5">
+        {materials.map((m) => (
+          <a href={`/d/${m.id}`} class="card reveal">
+            <div class="card-img-wrap">
+              {coverUrl(m.cover) ? <img src={coverUrl(m.cover)} alt={m.title} loading="lazy" /> : null}
+              <span class="card-cat cat-mat">{priceLabel(m)}</span>
+            </div>
+            <div class="card-body">
+              <h3 class="card-title">{m.title}</h3>
+              <p class="card-desc">{m.summary || '暂无简介'}</p>
+              <div class="card-footer download-footer">
+                <span class="card-size">{m.size || '-- MB'}</span>
+                <span class="card-foot-r"><span class="card-type">{m.fileType || '贴图素材'}</span><span class="btn-dl" data-dl role="button" tabindex="0">下载</span></span>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+
+  <!-- 软件资源（最新上传） -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head reveal">
+        <div><p class="section-label">SOFTWARE</p><h2 class="section-title">软件资源</h2><p class="section-desc">SketchUp、Enscape、插件等设计软件安装包及参数资源。</p></div>
+        <a href="/c/software" class="section-more">更多软件 <Fragment set:html={arrow} /></a>
+      </div>
+      <div class="grid-5">
+        {software.map((s) => (
+          <a href={`/d/${s.id}`} class="card reveal">
+            <div class="card-img-wrap">
+              {coverUrl(s.cover) ? <img src={coverUrl(s.cover)} alt={s.title} loading="lazy" /> : null}
+              <span class="card-cat cat-inter">{priceLabel(s)}</span>
+            </div>
+            <div class="card-body">
+              <h3 class="card-title">{s.title}</h3>
+              <p class="card-desc">{s.summary || '暂无简介'}</p>
+              <div class="card-footer download-footer">
+                <span class="card-size">{s.size || '-- MB'}</span>
+                <span class="card-foot-r"><span class="card-type">{s.fileType || '软件 · 参数'}</span><span class="btn-dl" data-dl role="button" tabindex="0">下载</span></span>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</Base>
+
+
+
+

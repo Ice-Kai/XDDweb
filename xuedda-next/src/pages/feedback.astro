@@ -1,0 +1,36 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="意见反馈 — 薛大大设计网">
+  <div class="container authpage">
+    <h1>意见反馈</h1>
+    <p class="sub">资源需求、访问问题、下载诉求都可以先记录在这里。</p>
+    <div class="authcard">
+      <form id="feedbackForm">
+        <div class="field"><label>标题</label><input name="title" placeholder="一句话说明" required /></div>
+        <div class="field"><label>内容</label><textarea name="content" rows="5" placeholder="详细描述你的需求或问题" required style="padding:12px 14px;border:1px solid var(--border);border-radius:9px;background:var(--bg-base);color:var(--text-hi);font-size:14px;outline:none;font-family:var(--font-base);resize:vertical;"></textarea></div>
+        <p id="fbMsg" class="auth-error"></p>
+        <button class="full" type="submit">提交反馈</button>
+      </form>
+    </div>
+  </div>
+  <script>
+    document.getElementById('feedbackForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.currentTarget as HTMLFormElement;
+      const msg = document.getElementById('fbMsg');
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(Object.fromEntries(new FormData(form).entries())),
+      });
+      const data = await res.json();
+      if (msg) {
+        msg.textContent = data.ok ? '已提交，我们会尽快处理。' : (data.message || '提交失败');
+        msg.style.color = data.ok ? '#1f9d57' : '#d84b40';
+      }
+      if (data.ok) form.reset();
+    });
+  </script>
+</Base>

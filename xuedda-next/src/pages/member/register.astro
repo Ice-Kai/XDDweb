@@ -1,0 +1,28 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="会员注册 — 薛大大设计网">
+  <section class="auth-page">
+    <form class="auth-card" id="registerForm">
+      <p class="section-label">MEMBER</p>
+      <h1>注册会员</h1>
+      <input name="username" placeholder="用户名 / 邮箱" autocomplete="username" required />
+      <input name="password" type="password" placeholder="密码至少 6 位" autocomplete="new-password" required />
+      <p class="auth-error" id="err"></p>
+      <button class="btn-primary" type="submit">注册</button>
+      <a href="/member/login">已有账号？去登录</a>
+    </form>
+  </section>
+  <script>
+    document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.currentTarget as HTMLFormElement;
+      const err = document.getElementById('err');
+      const data = Object.fromEntries(new FormData(form).entries());
+      const res = await fetch('/api/member/register', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'include', body: JSON.stringify(data) });
+      const json = await res.json();
+      if (!res.ok || !json.ok) { if (err) err.textContent = json.message || '注册失败'; return; }
+      location.href = '/member';
+    });
+  </script>
+</Base>
