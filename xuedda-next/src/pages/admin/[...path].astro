@@ -5,94 +5,484 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>后台管理 - 薛大大设计网</title>
+    <title>后台管理 - 薛大大生态设计</title>
     <style>
-      body { margin:0; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:#f6f4ef; color:#191714; }
-      .wrap { max-width:1180px; margin:0 auto; padding:30px 18px; }
-      .top { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; }
-      .panel { background:#fff; border:1px solid #e4ded2; border-radius:10px; padding:20px; box-shadow:0 12px 30px rgba(50,35,10,.06); }
-      input,textarea,select { width:100%; box-sizing:border-box; border:1px solid #ddd5c8; border-radius:8px; padding:10px 12px; font:inherit; margin:6px 0 12px; background:#fff; }
-      button { border:0; border-radius:8px; padding:10px 16px; background:#c9963c; color:#100b02; font-weight:700; cursor:pointer; }
-      table { width:100%; border-collapse:collapse; margin-top:12px; font-size:14px; }
-      th,td { border-bottom:1px solid #eee8dc; padding:10px; text-align:left; }
-      .muted { color:#776f64; font-size:13px; }
-      .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
-      .stat b { display:block; font-size:28px; }
-      .hide { display:none; }
+      :root {
+        --bg:#f5f3ee;
+        --panel:#fffdfa;
+        --line:#e7dfd1;
+        --line-strong:#d7c8ad;
+        --text:#191714;
+        --muted:#766d60;
+        --gold:#c99535;
+        --gold-soft:#f5ead6;
+        --danger:#b42318;
+        --ok:#11845b;
+        --shadow:0 16px 38px rgba(62,43,12,.08);
+      }
+      * { box-sizing:border-box; }
+      body { margin:0; font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--text); }
+      button,input,textarea,select { font:inherit; }
+      button { border:0; border-radius:9px; padding:10px 14px; background:var(--gold); color:#130d02; font-weight:800; cursor:pointer; }
+      button.secondary { background:#f0ece5; color:var(--text); border:1px solid var(--line); }
+      button.ghost { background:transparent; color:var(--muted); border:1px solid var(--line); }
+      button.danger { background:#fae6e3; color:var(--danger); border:1px solid #efc6bf; }
+      input,textarea,select { width:100%; border:1px solid var(--line); border-radius:9px; padding:10px 12px; background:#fff; color:var(--text); outline:none; }
+      textarea { min-height:92px; resize:vertical; }
+      input:focus,textarea:focus,select:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,149,53,.14); }
+      .login-shell { min-height:100vh; display:grid; place-items:center; padding:24px; }
+      .login-panel { width:min(420px,100%); background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:28px; box-shadow:var(--shadow); }
+      .login-panel h1 { margin:0 0 8px; font-size:28px; }
+      .login-panel p { margin:0 0 22px; color:var(--muted); }
+      .field { display:grid; gap:7px; margin-bottom:14px; }
+      .field span { font-size:13px; font-weight:800; color:#4e473e; }
+      .app-shell { min-height:100vh; display:grid; grid-template-columns:230px minmax(0,1fr); }
+      .side { background:#141413; color:#fff; padding:20px 14px; position:sticky; top:0; height:100vh; }
+      .brand { padding:8px 10px 18px; border-bottom:1px solid rgba(255,255,255,.12); margin-bottom:12px; }
+      .brand b { display:block; font-size:17px; }
+      .brand span { display:block; margin-top:4px; font-size:12px; color:rgba(255,255,255,.58); }
+      .nav { display:grid; gap:6px; }
+      .nav button { width:100%; display:flex; justify-content:space-between; align-items:center; background:transparent; color:rgba(255,255,255,.72); border:0; padding:11px 10px; text-align:left; border-radius:9px; }
+      .nav button.active { color:#fff; background:rgba(201,149,53,.18); }
+      .nav small { color:rgba(255,255,255,.48); }
+      .main { min-width:0; padding:22px; }
+      .topbar { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:18px; }
+      .topbar h1 { margin:0; font-size:26px; }
+      .topbar p { margin:5px 0 0; color:var(--muted); }
+      .admin-name { color:var(--muted); font-size:13px; }
+      .grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
+      .card,.panel { background:var(--panel); border:1px solid var(--line); border-radius:13px; box-shadow:var(--shadow); }
+      .card { padding:16px; }
+      .card span { display:block; color:var(--muted); font-size:13px; }
+      .card b { display:block; margin-top:8px; font-size:28px; }
+      .panel { padding:16px; margin-bottom:16px; }
+      .panel-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+      .panel-head h2 { margin:0; font-size:18px; }
+      .tools { display:grid; grid-template-columns:minmax(180px,1fr) 160px auto auto; gap:10px; align-items:center; margin-bottom:12px; }
+      table { width:100%; border-collapse:collapse; font-size:14px; }
+      th,td { padding:11px 9px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+      th { color:#5d5348; font-size:12px; letter-spacing:.02em; background:#fbf7ef; }
+      tr:hover td { background:#fffaf1; }
+      .title-cell { max-width:390px; }
+      .title-cell b { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .title-cell span { display:block; margin-top:3px; color:var(--muted); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .pill { display:inline-flex; align-items:center; min-height:24px; padding:3px 8px; border-radius:999px; font-size:12px; font-weight:800; background:#eee9df; color:#51483d; }
+      .pill.ok { background:#e2f3ea; color:var(--ok); }
+      .pill.warn { background:#f9ecd1; color:#8a5a07; }
+      .pill.off { background:#eee; color:#777; }
+      .actions { display:flex; gap:7px; flex-wrap:wrap; }
+      .actions button { padding:7px 9px; font-size:12px; }
+      .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+      .form-grid .wide { grid-column:1 / -1; }
+      .drawer { border-top:1px solid var(--line); margin-top:14px; padding-top:14px; }
+      .hide { display:none !important; }
+      .muted { color:var(--muted); font-size:13px; }
+      .message { min-height:20px; color:var(--muted); font-size:13px; }
+      .message.error { color:var(--danger); }
+      .message.ok { color:var(--ok); }
+      .feedback-card { border:1px solid var(--line); border-radius:12px; padding:13px; background:#fff; display:grid; gap:9px; margin-bottom:10px; }
+      .feedback-card h3 { margin:0; font-size:16px; }
+      .feedback-meta { color:var(--muted); font-size:12px; display:flex; gap:8px; flex-wrap:wrap; }
+      .feedback-body,.feedback-reply { white-space:pre-wrap; line-height:1.7; font-size:14px; }
+      .feedback-reply { background:var(--gold-soft); border:1px solid #ead7b4; border-radius:10px; padding:10px; }
+      @media (max-width:980px) {
+        .app-shell { grid-template-columns:1fr; }
+        .side { position:static; height:auto; }
+        .grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        .tools,.form-grid { grid-template-columns:1fr; }
+        table { min-width:820px; }
+        .table-wrap { overflow:auto; }
+      }
+      @media (max-width:560px) {
+        .main { padding:14px; }
+        .topbar { align-items:flex-start; flex-direction:column; }
+        .grid { grid-template-columns:1fr; }
+      }
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <div class="top">
-        <div>
-          <h1>后台管理</h1>
-          <p class="muted">先恢复核心内容管理，复杂上传和媒体库后续继续补齐。</p>
-        </div>
-        <button id="logout" class="hide">退出</button>
-      </div>
-      <div id="login" class="panel">
-        <h2>管理员登录</h2>
-        <input id="u" placeholder="账号" />
-        <input id="p" type="password" placeholder="密码" />
-        <p id="err" class="muted"></p>
-        <button id="loginBtn">登录</button>
-      </div>
-      <div id="app" class="hide">
-        <div class="grid">
-          <div class="panel stat"><b id="sResources">-</b><span>资源</span></div>
-          <div class="panel stat"><b id="sCategories">-</b><span>分类</span></div>
-          <div class="panel stat"><b id="sMembers">-</b><span>会员</span></div>
-        </div>
-        <div class="panel">
-          <h2>资源列表</h2>
-          <input id="q" placeholder="搜索标题" />
-          <button id="search">搜索</button>
-          <table><thead><tr><th>ID</th><th>标题</th><th>分类</th><th>状态</th></tr></thead><tbody id="rows"></tbody></table>
-        </div>
-      </div>
+    <div id="login" class="login-shell">
+      <form id="loginForm" class="login-panel">
+        <h1>后台管理</h1>
+        <p>管理资源、反馈和站点基础数据。</p>
+        <label class="field"><span>账号</span><input id="loginUser" autocomplete="username" /></label>
+        <label class="field"><span>密码</span><input id="loginPass" type="password" autocomplete="current-password" /></label>
+        <p id="loginMsg" class="message"></p>
+        <button type="submit">登录后台</button>
+      </form>
     </div>
+
+    <div id="app" class="app-shell hide">
+      <aside class="side">
+        <div class="brand">
+          <b>XD 后台</b>
+          <span>薛大大生态设计资源站</span>
+        </div>
+        <nav class="nav">
+          <button data-view="dashboard" class="active">工作台 <small>Overview</small></button>
+          <button data-view="contents">资源管理 <small>Content</small></button>
+          <button data-view="feedback">反馈管理 <small>Feedback</small></button>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h1 id="pageTitle">工作台</h1>
+            <p id="pageHint">检查站点数据状态，快速进入管理动作。</p>
+          </div>
+          <div class="actions">
+            <span id="adminName" class="admin-name"></span>
+            <button id="logout" class="secondary" type="button">退出</button>
+          </div>
+        </header>
+
+        <section id="dashboardView">
+          <div class="grid">
+            <div class="card"><span>资源</span><b id="sResources">-</b></div>
+            <div class="card"><span>分类</span><b id="sCategories">-</b></div>
+            <div class="card"><span>会员</span><b id="sMembers">-</b></div>
+            <div class="card"><span>反馈</span><b id="sFeedback">-</b></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <h2>今日处理建议</h2>
+              <button id="refreshAll" class="ghost" type="button">刷新</button>
+            </div>
+            <p class="muted">先保持资源可编辑、反馈可回复，会员、支付、上传和数据库后台后续再逐块补齐。</p>
+          </div>
+        </section>
+
+        <section id="contentsView" class="hide">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>资源列表</h2>
+              <button id="newContent" type="button">新增资源</button>
+            </div>
+            <div class="tools">
+              <input id="contentQ" placeholder="搜索标题、摘要、关键词" />
+              <select id="contentLimit"><option value="20">每页 20 条</option><option value="50">每页 50 条</option></select>
+              <button id="contentSearch" class="secondary" type="button">搜索</button>
+              <button id="contentReset" class="ghost" type="button">重置</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>ID</th><th>资源</th><th>分类</th><th>类型/大小</th><th>数据</th><th>状态</th><th>操作</th></tr></thead>
+                <tbody id="contentRows"></tbody>
+              </table>
+            </div>
+            <p id="contentMsg" class="message"></p>
+            <div id="contentEditor" class="drawer hide">
+              <div class="panel-head"><h2 id="editorTitle">编辑资源</h2><button id="closeEditor" class="ghost" type="button">收起</button></div>
+              <form id="contentForm" class="form-grid">
+                <input id="contentId" type="hidden" />
+                <label class="field wide"><span>标题</span><input id="fTitle" required /></label>
+                <label class="field"><span>分类</span><select id="fCategory"></select></label>
+                <label class="field"><span>关键词</span><input id="fKeywords" /></label>
+                <label class="field wide"><span>摘要</span><textarea id="fSummary"></textarea></label>
+                <label class="field"><span>封面 URL</span><input id="fCover" /></label>
+                <label class="field"><span>网盘/下载链接</span><input id="fFileUrl" /></label>
+                <label class="field"><span>提取码</span><input id="fPass" /></label>
+                <label class="field"><span>资源类型</span><input id="fFileType" placeholder="SKP 模型 / 贴图 / 教程" /></label>
+                <label class="field"><span>文件大小</span><input id="fSize" placeholder="128 MB" /></label>
+                <label class="field"><span>价格</span><input id="fPrice" type="number" step="0.01" /></label>
+                <label class="field"><span>是否 VIP</span><select id="fVip"><option value="0">普通资源</option><option value="1">VIP 资源</option></select></label>
+                <label class="field"><span>显示状态</span><select id="fShow"><option value="1">显示</option><option value="0">隐藏</option></select></label>
+                <label class="field wide"><span>正文</span><textarea id="fBody"></textarea></label>
+                <div class="wide actions">
+                  <button type="submit">保存资源</button>
+                  <button id="hideContent" class="danger" type="button">隐藏资源</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <section id="feedbackView" class="hide">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>反馈管理</h2>
+              <button id="feedbackRefresh" class="ghost" type="button">刷新</button>
+            </div>
+            <div class="tools">
+              <input id="feedbackQ" placeholder="搜索反馈标题、内容、回复" />
+              <select id="feedbackStatus"><option value="all">全部反馈</option><option value="open">未回复</option><option value="replied">已回复</option></select>
+              <button id="feedbackSearch" class="secondary" type="button">搜索</button>
+              <button id="feedbackReset" class="ghost" type="button">重置</button>
+            </div>
+            <div id="feedbackRows"></div>
+            <p id="feedbackMsg" class="message"></p>
+          </div>
+        </section>
+      </main>
+    </div>
+
     <script>
       const $ = (id) => document.getElementById(id);
-      async function api(url, opts) {
-        const r = await fetch(url, { credentials:'include', ...opts });
-        const j = await r.json();
-        if (!r.ok || !j.ok) throw new Error(j.message || '请求失败');
-        return j;
+      const state = { admin:null, stats:null, categories:[], contentPage:1, feedbackPage:1 };
+
+      function text(value) { return String(value ?? ''); }
+      function parseMeta(value) {
+        try { return typeof value === 'string' ? JSON.parse(value || '{}') : (value || {}); } catch { return {}; }
       }
-      function appendCell(row, value) {
-        const td = document.createElement('td');
-        td.textContent = String(value ?? '');
-        row.appendChild(td);
+      function el(tag, className, value) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (value != null) node.textContent = text(value);
+        return node;
       }
-      async function load() {
-        try {
-          await api('/api/admin/me');
-          $('login').classList.add('hide'); $('app').classList.remove('hide'); $('logout').classList.remove('hide');
-          const stats = await api('/api/admin/stats');
-          $('sResources').textContent = stats.stats.resources; $('sCategories').textContent = stats.stats.categories; $('sMembers').textContent = stats.stats.members;
-          await loadRows();
-        } catch { $('login').classList.remove('hide'); $('app').classList.add('hide'); }
+      async function api(url, opts = {}) {
+        const res = await fetch(url, { credentials:'include', ...opts });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.message || '请求失败');
+        return data;
       }
-      async function loadRows() {
-        const data = await api('/api/admin/contents?q=' + encodeURIComponent($('q').value || ''));
-        const tbody = $('rows');
-        tbody.replaceChildren();
-        for (const r of data.rows || []) {
-          const tr = document.createElement('tr');
-          appendCell(tr, r.id);
-          appendCell(tr, r.title);
-          appendCell(tr, r.category_id);
-          appendCell(tr, r.is_show ? '显示' : '隐藏');
-          tbody.appendChild(tr);
+      function json(method, body) {
+        return { method, headers:{ 'content-type':'application/json' }, body:JSON.stringify(body) };
+      }
+      function setMsg(id, value, kind = '') {
+        const node = $(id);
+        if (!node) return;
+        node.textContent = value || '';
+        node.className = `message ${kind}`.trim();
+      }
+      function switchView(name) {
+        const titles = {
+          dashboard:['工作台','检查站点数据状态，快速进入管理动作。'],
+          contents:['资源管理','新增、编辑、隐藏设计资源和下载链接。'],
+          feedback:['反馈管理','查看用户反馈，并记录后台回复。'],
+        };
+        for (const view of ['dashboard','contents','feedback']) {
+          $(`${view}View`).classList.toggle('hide', view !== name);
+        }
+        document.querySelectorAll('.nav button').forEach((button) => button.classList.toggle('active', button.dataset.view === name));
+        $('pageTitle').textContent = titles[name][0];
+        $('pageHint').textContent = titles[name][1];
+        if (name === 'contents') loadContents();
+        if (name === 'feedback') loadFeedback();
+      }
+      function fillSelect(select, rows) {
+        select.replaceChildren();
+        const empty = document.createElement('option');
+        empty.value = '0';
+        empty.textContent = '未分类';
+        select.appendChild(empty);
+        for (const row of rows) {
+          const option = document.createElement('option');
+          option.value = row.id;
+          option.textContent = `${row.parent_id ? '  - ' : ''}${row.name}`;
+          select.appendChild(option);
         }
       }
-      $('loginBtn').onclick = async () => {
-        try { await api('/api/admin/login', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({ username:$('u').value, password:$('p').value }) }); load(); }
-        catch(e) { $('err').textContent = e.message; }
+      async function bootstrap() {
+        try {
+          const me = await api('/api/admin/me');
+          state.admin = me.admin;
+          $('login').classList.add('hide');
+          $('app').classList.remove('hide');
+          $('adminName').textContent = me.admin?.name ? `当前：${me.admin.name}` : '';
+          await Promise.all([loadStats(), loadCategories()]);
+          switchView('dashboard');
+        } catch {
+          $('login').classList.remove('hide');
+          $('app').classList.add('hide');
+        }
+      }
+      async function loadStats() {
+        const stats = await api('/api/admin/stats');
+        state.stats = stats.stats || {};
+        $('sResources').textContent = text(state.stats.resources ?? '-');
+        $('sCategories').textContent = text(state.stats.categories ?? '-');
+        $('sMembers').textContent = text(state.stats.members ?? '-');
+        $('sFeedback').textContent = text(state.stats.feedback ?? '-');
+      }
+      async function loadCategories() {
+        const data = await api('/api/admin/categories');
+        state.categories = data.rows || [];
+        fillSelect($('fCategory'), state.categories);
+      }
+      async function loadContents() {
+        setMsg('contentMsg', '读取中...');
+        const q = encodeURIComponent($('contentQ').value || '');
+        const limit = encodeURIComponent($('contentLimit').value || '20');
+        const data = await api(`/api/admin/contents?q=${q}&limit=${limit}&page=${state.contentPage}`);
+        const tbody = $('contentRows');
+        tbody.replaceChildren();
+        for (const row of data.rows || []) tbody.appendChild(contentRow(row));
+        setMsg('contentMsg', `共 ${data.total || 0} 条资源`, 'ok');
+      }
+      function contentRow(row) {
+        const meta = parseMeta(row.meta);
+        const tr = document.createElement('tr');
+        tr.appendChild(el('td', '', row.id));
+
+        const title = el('td', 'title-cell');
+        title.appendChild(el('b', '', row.title));
+        title.appendChild(el('span', '', row.summary || row.file_url || ''));
+        tr.appendChild(title);
+
+        tr.appendChild(el('td', '', row.category_name || row.category_id || '未分类'));
+        tr.appendChild(el('td', '', `${meta.file_type || '资源'} / ${meta.file_size || '-'}`));
+        tr.appendChild(el('td', '', `浏览 ${row.hits || 0} / 下载 ${row.download_num || 0}`));
+
+        const status = el('td');
+        status.appendChild(el('span', `pill ${row.is_show ? 'ok' : 'off'}`, row.is_show ? '显示' : '隐藏'));
+        if (row.just_vip) status.appendChild(el('span', 'pill warn', 'VIP'));
+        tr.appendChild(status);
+
+        const actions = el('td', 'actions');
+        const edit = el('button', 'secondary', '编辑');
+        edit.type = 'button';
+        edit.onclick = () => openContent(row.id);
+        actions.appendChild(edit);
+        const view = el('button', 'ghost', '前台');
+        view.type = 'button';
+        view.onclick = () => window.open(`/d/${row.id}`, '_blank', 'noopener');
+        actions.appendChild(view);
+        tr.appendChild(actions);
+        return tr;
+      }
+      function resetContentForm() {
+        $('contentId').value = '';
+        for (const id of ['fTitle','fKeywords','fSummary','fCover','fFileUrl','fPass','fFileType','fSize','fPrice','fBody']) $(id).value = '';
+        $('fCategory').value = '0';
+        $('fVip').value = '0';
+        $('fShow').value = '1';
+        $('hideContent').classList.add('hide');
+      }
+      async function openContent(id) {
+        setMsg('contentMsg', '读取资源详情...');
+        const data = await api(`/api/admin/content/${id}`);
+        const row = data.content;
+        const meta = parseMeta(row.meta);
+        $('editorTitle').textContent = `编辑资源 #${row.id}`;
+        $('contentId').value = row.id;
+        $('fTitle').value = row.title || '';
+        $('fCategory').value = String(row.category_id || 0);
+        $('fKeywords').value = row.keywords || '';
+        $('fSummary').value = row.summary || '';
+        $('fCover').value = row.cover_url || '';
+        $('fFileUrl').value = row.file_url || '';
+        $('fPass').value = row.extract_pass || '';
+        $('fFileType').value = meta.file_type || '';
+        $('fSize').value = meta.file_size || '';
+        $('fPrice').value = row.price_money || 0;
+        $('fVip').value = row.just_vip ? '1' : '0';
+        $('fShow').value = row.is_show ? '1' : '0';
+        $('fBody').value = row.body || '';
+        $('hideContent').classList.remove('hide');
+        $('contentEditor').classList.remove('hide');
+        setMsg('contentMsg', '');
+      }
+      function formPayload() {
+        return {
+          title:$('fTitle').value,
+          category_id:Number($('fCategory').value || 0),
+          keywords:$('fKeywords').value,
+          summary:$('fSummary').value,
+          cover_url:$('fCover').value,
+          file_url:$('fFileUrl').value,
+          extract_pass:$('fPass').value,
+          fileType:$('fFileType').value,
+          size:$('fSize').value,
+          price_money:Number($('fPrice').value || 0),
+          just_vip:Number($('fVip').value || 0),
+          is_show:Number($('fShow').value || 0),
+          body:$('fBody').value,
+        };
+      }
+      async function saveContent(event) {
+        event.preventDefault();
+        const id = $('contentId').value;
+        const url = id ? `/api/admin/content/${id}` : '/api/admin/contents';
+        const method = id ? 'PATCH' : 'POST';
+        await api(url, json(method, formPayload()));
+        setMsg('contentMsg', '保存成功', 'ok');
+        $('contentEditor').classList.add('hide');
+        await Promise.all([loadContents(), loadStats()]);
+      }
+      async function hideCurrentContent() {
+        const id = $('contentId').value;
+        if (!id || !confirm('确定隐藏这个资源吗？')) return;
+        await api(`/api/admin/content/${id}`, { method:'DELETE' });
+        setMsg('contentMsg', '已隐藏资源', 'ok');
+        $('contentEditor').classList.add('hide');
+        await Promise.all([loadContents(), loadStats()]);
+      }
+      async function loadFeedback() {
+        setMsg('feedbackMsg', '读取中...');
+        const q = encodeURIComponent($('feedbackQ').value || '');
+        const status = encodeURIComponent($('feedbackStatus').value || 'all');
+        const data = await api(`/api/admin/feedback?q=${q}&status=${status}&page=${state.feedbackPage}`);
+        const wrap = $('feedbackRows');
+        wrap.replaceChildren();
+        for (const row of data.rows || []) wrap.appendChild(feedbackCard(row));
+        setMsg('feedbackMsg', `共 ${data.total || 0} 条反馈`, 'ok');
+      }
+      function feedbackCard(row) {
+        const card = el('article', 'feedback-card');
+        card.appendChild(el('h3', '', row.title || `反馈 #${row.id}`));
+        const meta = el('div', 'feedback-meta');
+        meta.appendChild(el('span', '', `#${row.id}`));
+        meta.appendChild(el('span', '', row.member_nickname || row.member_username || `会员 ${row.member_id || 0}`));
+        meta.appendChild(el('span', '', text(row.created_at).slice(0, 19).replace('T', ' ')));
+        meta.appendChild(el('span', `pill ${row.reply ? 'ok' : 'warn'}`, row.reply ? '已回复' : '未回复'));
+        card.appendChild(meta);
+        card.appendChild(el('div', 'feedback-body', row.content || ''));
+        if (row.reply) card.appendChild(el('div', 'feedback-reply', row.reply));
+        const reply = el('textarea');
+        reply.value = row.reply || '';
+        reply.placeholder = '输入后台回复';
+        card.appendChild(reply);
+        const actions = el('div', 'actions');
+        const save = el('button', '', '保存回复');
+        save.type = 'button';
+        save.onclick = async () => {
+          await api(`/api/admin/feedback/${row.id}`, json('PATCH', { reply:reply.value }));
+          await loadFeedback();
+        };
+        actions.appendChild(save);
+        const clear = el('button', 'ghost', '清空回复');
+        clear.type = 'button';
+        clear.onclick = async () => {
+          if (!confirm('确定清空这条回复吗？')) return;
+          await api(`/api/admin/feedback/${row.id}`, { method:'DELETE' });
+          await loadFeedback();
+        };
+        actions.appendChild(clear);
+        card.appendChild(actions);
+        return card;
+      }
+
+      $('loginForm').onsubmit = async (event) => {
+        event.preventDefault();
+        setMsg('loginMsg', '登录中...');
+        try {
+          await api('/api/admin/login', json('POST', { username:$('loginUser').value, password:$('loginPass').value }));
+          setMsg('loginMsg', '');
+          await bootstrap();
+        } catch (error) {
+          setMsg('loginMsg', error.message, 'error');
+        }
       };
       $('logout').onclick = async () => { await fetch('/api/admin/logout', { method:'POST', credentials:'include' }); location.reload(); };
-      $('search').onclick = loadRows;
-      load();
+      $('refreshAll').onclick = () => Promise.all([loadStats(), loadCategories()]);
+      $('newContent').onclick = () => {
+        resetContentForm();
+        $('editorTitle').textContent = '新增资源';
+        $('contentEditor').classList.remove('hide');
+      };
+      $('closeEditor').onclick = () => $('contentEditor').classList.add('hide');
+      $('contentSearch').onclick = () => { state.contentPage = 1; loadContents(); };
+      $('contentReset').onclick = () => { $('contentQ').value = ''; state.contentPage = 1; loadContents(); };
+      $('contentForm').onsubmit = saveContent;
+      $('hideContent').onclick = hideCurrentContent;
+      $('feedbackSearch').onclick = () => { state.feedbackPage = 1; loadFeedback(); };
+      $('feedbackRefresh').onclick = loadFeedback;
+      $('feedbackReset').onclick = () => { $('feedbackQ').value = ''; $('feedbackStatus').value = 'all'; state.feedbackPage = 1; loadFeedback(); };
+      document.querySelectorAll('.nav button').forEach((button) => button.addEventListener('click', () => switchView(button.dataset.view)));
+
+      bootstrap();
     </script>
   </body>
 </html>

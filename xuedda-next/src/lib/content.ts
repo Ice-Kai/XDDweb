@@ -230,11 +230,13 @@ export async function getSiteStats() {
   const [[today]] = await db.query<any[]>('SELECT COUNT(*) n FROM xuedda.contents WHERE DATE(created_at)=CURDATE() AND is_show = 1');
   const [[categories]] = await db.query<any[]>('SELECT COUNT(*) n FROM legacy.lz_category');
   const [[members]] = await db.query<any[]>('SELECT COUNT(*) n FROM legacy.lz_member');
+  const [[feedback]] = await db.query<any[]>('SELECT COUNT(*) n FROM xuedda.feedback');
   return {
     resources: Number(resources?.n || 0),
     today: Number(today?.n || 0),
     categories: Number(categories?.n || 0),
     members: Number(members?.n || 0),
+    feedback: Number(feedback?.n || 0),
   };
 }
 
