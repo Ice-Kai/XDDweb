@@ -49,24 +49,29 @@ const [csQr, announce] = await Promise.all([
 ]);
 const aiImageHref = '/ai-image';
 
-// 左侧导航（站酷式：分组 + 组标题 + 缩进子项）。只重组现有功能，不新增。
+// 左侧导航：把现有功能重组为更像专业素材站的工作台入口。
 const lnavGroups = [
-  { items: [
-    { name: '首页', href: '/', icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
+  { label: '入口', items: [
+    { name: '首页', desc: '推荐 / 最新', href: '/', icon: 'M3 12l9-9 9 9M5 10v10h14V10', badge: 'NEW' },
+    { name: '发布需求', desc: '反馈与投稿', href: '/feedback', icon: 'M12 5v14M5 12h14' },
   ] },
-  { title: '资源素材', icon: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z', items: [
-    { name: '模型素材', href: '/c/model', icon: 'M21 16V8l-9-5-9 5v8l9 5 9-5zM3.3 7L12 12l8.7-5M12 22V12' },
-    { name: '灯光贴图', href: '/c/texture', icon: 'M3 3h18v18H3zM3 9h18M9 21V9' },
-    { name: '软件参数', href: '/c/software', icon: 'M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8' },
-    { name: '视频教程', href: '/c/video', icon: 'M23 7l-7 5 7 5V7zM1 5h15v14H1z' },
+  { label: '看点高级的', icon: 'M12 3l2.2 5.8L20 9l-4.5 3.8 1.5 5.9L12 15.4 7 18.7l1.5-5.9L4 9l5.8-.2L12 3z', items: [
+    { name: '模型素材', desc: 'SU / MAX / 文案', href: '/c/model', icon: 'M21 16V8l-9-5-9 5v8l9 5 9-5zM3.3 7L12 12l8.7-5M12 22V12' },
+    { name: '灯光和贴图', desc: 'HDRI / 材质 / 光影', href: '/c/texture', icon: 'M3 3h18v18H3zM3 9h18M9 21V9' },
+    { name: '软件和参数', desc: '插件 / 预设 / 配置', href: '/c/software', icon: 'M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8' },
   ] },
-  { title: 'AI 工具', icon: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z', items: [
-    { name: '搜索', href: '/ask', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.3-4.3' },
-    { name: 'AI生图', href: aiImageHref, icon: 'M21 15l-5-5L5 21M3 3h18v18H3zM8.5 8.5h.01', hot: true, ai: true },
-    { name: 'AI问答', href: '/chat', icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z', ai: true },
+  { label: '拿点有用的', icon: 'M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4v14h16V7zM8 7h8', items: [
+    { name: 'AI 智能搜索', desc: '模型 / 贴图 / 教程', href: '/ask', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.3-4.3', ai: true },
+    { name: 'AI 生图', desc: '灵感草图与效果图', href: aiImageHref, icon: 'M21 15l-5-5L5 21M3 3h18v18H3zM8.5 8.5h.01', hot: true, ai: true },
+    { name: 'AI 问答', desc: '设计问题快速问', href: '/chat', icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z', ai: true },
+  ] },
+  { label: '学点真干货', icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z', items: [
+    { name: '视频教程', desc: '渲染 / 建模 / 实战', href: '/c/video', icon: 'M23 7l-7 5 7 5V7zM1 5h15v14H1z' },
+    { name: '资源目录', desc: '按栏目浏览全站', href: '/c/model', icon: 'M3 6h18M3 12h18M3 18h18' },
   ] },
 ];
 const curPath = Astro.url.pathname;
+const isLnavActive = (href: string) => href === '/' ? curPath === '/' : curPath === href || curPath.startsWith(`${href}/`);
 
 // 主导航（贴合真实一级分类）
 const navItems = [
@@ -252,22 +257,33 @@ const cloudWords = [
 
     <!-- 左侧导航（可收起） -->
     <aside class="lnav" id="lnav">
-      <button class="lnav-collapse" id="lnavCollapse" type="button" aria-label="收起导航" title="收起">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-      </button>
+      <div class="lnav-head">
+        <div class="lnav-mark">XD</div>
+        <div class="lnav-head-copy">
+          <strong>资源工作台</strong>
+          <span>Design Assets</span>
+        </div>
+        <button class="lnav-collapse" id="lnavCollapse" type="button" aria-label="收起导航" title="收起">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+      </div>
       <nav class="lnav-items">
         {lnavGroups.map((g) => (
           <div class="lnav-group">
-            {g.title ? (
+            {g.label ? (
               <div class="lnav-group-title">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d={g.icon} /></svg>
-                <span>{g.title}</span>
+                {g.icon ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d={g.icon} /></svg> : null}
+                <span>{g.label}</span>
               </div>
             ) : null}
             {g.items.map((it) => (
-              <a href={it.href} class={`lnav-item ${g.title ? 'sub' : ''} ${it.ai ? 'ai' : ''} ${curPath === it.href ? 'active' : ''}`} {...(it.external ? { target: '_blank', rel: 'noopener' } : {})}>
+              <a href={it.href} class={`lnav-item ${g.label !== '入口' ? 'sub' : ''} ${it.ai ? 'ai' : ''} ${isLnavActive(it.href) ? 'active' : ''}`} {...(it.external ? { target: '_blank', rel: 'noopener' } : {})}>
                 <svg class="lnav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d={it.icon} /></svg>
-                <span class="lnav-label">{it.name}</span>
+                <span class="lnav-copy">
+                  <span class="lnav-label">{it.name}</span>
+                  {it.desc ? <span class="lnav-desc">{it.desc}</span> : null}
+                </span>
+                {it.badge ? <span class="lnav-badge">{it.badge}</span> : null}
                 {it.hot ? <span class="lnav-hot">HOT</span> : null}
               </a>
             ))}
@@ -579,7 +595,10 @@ const cloudWords = [
 
       // 左侧导航 收起/展开（记忆状态）
       (function () {
-        if (localStorage.getItem('xdd-lnav') === 'collapsed') document.body.classList.add('lnav-collapsed');
+        const saved = localStorage.getItem('xdd-lnav');
+        if (saved === 'collapsed' || (!saved && window.matchMedia('(max-width: 900px)').matches)) {
+          document.body.classList.add('lnav-collapsed');
+        }
         const set = (c) => {
           document.body.classList.toggle('lnav-collapsed', c);
           localStorage.setItem('xdd-lnav', c ? 'collapsed' : 'open');
@@ -721,8 +740,6 @@ const cloudWords = [
     </script>
   </body>
 </html>
-
-
 
 
 
