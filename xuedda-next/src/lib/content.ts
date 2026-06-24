@@ -244,6 +244,52 @@ export async function getDownloadById(id: number) {
   return rows[0] ? toDownload(rows[0]) : null;
 }
 
+export async function recordMemberDownload(memberId: number, item: Pick<DownloadItem, 'id' | 'title'>) {
+  const id = Number(item.id);
+  const uid = Number(memberId);
+  if (!Number.isInteger(id) || !Number.isInteger(uid) || id <= 0 || uid <= 0) return;
+  await db.query(
+    'INSERT INTO xuedda.logs (kind,member_id,content_type,content_id,remark,created_at) VALUES (?,?,?,?,?,NOW())',
+    ['download', uid, 'download', id, String(item.title || '').slice(0, 255)],
+  );
+  await db.query('UPDATE xuedda.contents SET download_num = download_num + 1 WHERE id = ?', [id]);
+}
+
+export async function getMemberDownloadLogs(memberId: number, limit = 20) {
+  const uid = Number(memberId);
+  if (!Number.isInteger(uid) || uid <= 0) return [];
+  const cappedLimit = Math.max(1, Math.min(50, Number(limit) || 20));
+  const [rows] = await db.query<any[]>(
+    `SELECT
+       l.id,
+       l.content_id,
+       l.remark,
+       l.created_at,
+       c.title,
+       c.cover_url,
+       c.meta
+     FROM xuedda.logs l
+     LEFT JOIN xuedda.contents c ON c.id = l.content_id
+     WHERE l.kind = 'download' AND l.member_id = ?
+     ORDER BY l.id DESC
+     LIMIT ?`,
+    [uid, cappedLimit],
+  );
+  return rows.map((row) => {
+    const meta = parseMeta(row.meta);
+    return {
+      id: Number(row.id),
+      contentId: Number(row.content_id || 0),
+      title: String(row.title || row.remark || '资源已下架'),
+      cover: coverUrl(String(row.cover_url || '')),
+      fileType: normalFileType(row, meta),
+      fileSize: normalSize(meta),
+      downloadedAt: row.created_at ? String(row.created_at).slice(0, 19).replace('T', ' ') : '',
+      available: Boolean(row.title),
+    };
+  });
+}
+
 export async function getRelated(categoryId: number, excludeId: number, limit = 6) {
   const items = await getDownloads({ categoryId, limit: limit + 1 });
   return items.filter((it) => it.id !== excludeId).slice(0, limit);

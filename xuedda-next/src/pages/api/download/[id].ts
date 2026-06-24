@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { cookieValue } from '../../../lib/auth';
-import { getDownloadById } from '../../../lib/content';
+import { getDownloadById, recordMemberDownload } from '../../../lib/content';
 import { getMemberById, isVip, MEMBER_COOKIE, verifyMemberToken } from '../../../lib/member';
 import { fail, ok } from '../../../lib/api';
 import { clientIp, rateLimit } from '../../../lib/ratelimit';
@@ -27,5 +27,12 @@ export const GET: APIRoute = async ({ params, request }) => {
 
   const safeFiles = sanitizeDownloadFiles(files);
   if (!safeFiles.length) return fail('该资源暂未配置可信下载链接', 404);
+
+  try {
+    await recordMemberDownload(member.id, item);
+  } catch (error) {
+    console.warn('record download failed', error);
+  }
+
   return ok({ item: { id: item.id, title: item.title }, files: safeFiles });
 };

@@ -1,29 +1,112 @@
 ---
 import Base from '../../layouts/Base.astro';
 ---
-<Base title="会员中心 — 薛大大设计网">
+<Base title="会员中心 - 薛大大设计网">
   <section class="member-page">
     <div class="container">
       <div class="member-head">
         <p class="section-label">MEMBER CENTER</p>
         <h1>会员中心</h1>
-        <p>下载记录、收藏和会员状态会逐步补齐。目前先恢复登录状态和资源下载鉴权。</p>
+        <p>查看账号状态、积分和最近下载记录。</p>
       </div>
       <div class="member-grid">
         <div class="member-card"><b id="mName">未登录</b><span id="mLevel">普通会员</span></div>
         <div class="member-card"><b id="mIntegral">0</b><span>积分</span></div>
-        <div class="member-card"><b>整理中</b><span>下载记录</span></div>
+        <div class="member-card"><b id="mDownloadCount">0</b><span>最近下载</span></div>
+      </div>
+
+      <div class="member-card member-downloads">
+        <div class="member-section-head">
+          <div>
+            <p class="section-label">DOWNLOADS</p>
+            <h2>下载记录</h2>
+          </div>
+        </div>
+        <div id="downloadList" class="member-download-list">
+          <p class="member-empty">正在读取下载记录...</p>
+        </div>
       </div>
     </div>
   </section>
+
+  <style>
+    .member-downloads { margin-top:18px; }
+    .member-section-head { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:12px; }
+    .member-section-head h2 { margin:0; font-size:20px; color:var(--text-hi); }
+    .member-download-list { display:flex; flex-direction:column; gap:10px; }
+    .member-download-item { display:grid; grid-template-columns:54px minmax(0,1fr) auto; align-items:center; gap:12px; padding:10px; border:1px solid var(--border); border-radius:10px; background:var(--bg-elevated); }
+    .member-download-cover { width:54px; height:42px; border-radius:7px; background:var(--bg-card); object-fit:cover; border:1px solid var(--border); }
+    .member-download-fallback { width:54px; height:42px; border-radius:7px; display:grid; place-items:center; background:var(--gold-pale); color:var(--gold); font-size:11px; font-weight:800; border:1px solid var(--gold-border); }
+    .member-download-title { font-size:14px; font-weight:700; color:var(--text-hi); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .member-download-meta { margin-top:4px; font-size:12px; color:var(--text-lo); display:flex; gap:8px; flex-wrap:wrap; }
+    .member-download-open { font-size:12px; font-weight:800; color:#0d0900; background:var(--gold); border-radius:8px; padding:8px 12px; white-space:nowrap; }
+    .member-empty { color:var(--text-lo); font-size:14px; padding:12px 0; }
+    @media (max-width:640px) {
+      .member-download-item { grid-template-columns:44px minmax(0,1fr); }
+      .member-download-cover, .member-download-fallback { width:44px; height:38px; }
+      .member-download-open { grid-column:2; width:max-content; }
+    }
+  </style>
+
   <script>
-    fetch('/api/member/me', { credentials: 'include' })
-      .then((r) => r.json())
-      .then((d) => {
-        if (!d.member) { location.href = '/member/login'; return; }
-        document.getElementById('mName')!.textContent = d.member.nickname || d.member.username;
-        document.getElementById('mLevel')!.textContent = d.isVip ? 'VIP会员' : '普通会员';
-        document.getElementById('mIntegral')!.textContent = String(d.member.integral || 0);
-      });
+    const list = document.getElementById('downloadList');
+    const text = (value) => String(value ?? '');
+    function el(tag, className, value) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (value != null) node.textContent = text(value);
+      return node;
+    }
+    function renderDownloads(rows) {
+      if (!list) return;
+      list.replaceChildren();
+      const countNode = document.getElementById('mDownloadCount');
+      if (countNode) countNode.textContent = String(rows.length);
+      if (!rows.length) {
+        list.appendChild(el('p', 'member-empty', '还没有下载记录。'));
+        return;
+      }
+      for (const row of rows) {
+        const item = el('div', 'member-download-item');
+        if (row.cover) {
+          const img = el('img', 'member-download-cover');
+          img.src = row.cover;
+          img.alt = row.title || '资源封面';
+          item.appendChild(img);
+        } else {
+          item.appendChild(el('div', 'member-download-fallback', 'XD'));
+        }
+
+        const info = el('div');
+        info.appendChild(el('div', 'member-download-title', row.title || '资源已下架'));
+        const meta = el('div', 'member-download-meta');
+        meta.appendChild(el('span', '', row.downloadedAt || ''));
+        meta.appendChild(el('span', '', row.fileType || '资源'));
+        if (row.fileSize) meta.appendChild(el('span', '', row.fileSize));
+        info.appendChild(meta);
+        item.appendChild(info);
+
+        const open = el('a', 'member-download-open', row.available ? '查看' : '已下架');
+        open.href = row.available && row.contentId ? `/d/${row.contentId}` : '#';
+        item.appendChild(open);
+        list.appendChild(item);
+      }
+    }
+
+    Promise.all([
+      fetch('/api/member/me', { credentials: 'include' }).then((r) => r.json()),
+      fetch('/api/member/downloads', { credentials: 'include' }).then((r) => r.json()),
+    ]).then(([me, downloads]) => {
+      if (!me.member) { location.href = '/member/login'; return; }
+      document.getElementById('mName').textContent = me.member.nickname || me.member.username;
+      document.getElementById('mLevel').textContent = me.isVip ? 'VIP会员' : '普通会员';
+      document.getElementById('mIntegral').textContent = String(me.member.integral || 0);
+      renderDownloads(downloads.rows || []);
+    }).catch(() => {
+      if (list) {
+        list.replaceChildren();
+        list.appendChild(el('p', 'member-empty', '下载记录读取失败，请刷新后重试。'));
+      }
+    });
   </script>
 </Base>
