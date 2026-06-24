@@ -110,7 +110,7 @@ const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" strok
       </div>
       <div class="rank-grid reveal">
         {hot.map((h, i) => (
-          <a href={`/d/${h.id}`} class="rank-item">
+          <a href="#" data-card-id={h.id} class="rank-item">
             <span class="rank-no">{i + 1}</span>
             <span class="rank-title">{h.title}</span>
             <span class="rank-hits">👁 {h.hits}</span>
@@ -129,7 +129,7 @@ const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" strok
       </div>
       <div class="grid-5">
         {models.map((m) => (
-          <a href={`/d/${m.id}`} class="card reveal">
+          <a href="#" data-card-id={m.id} class="card reveal">
             <div class="card-img-wrap">
               {coverUrl(m.cover) ? <img src={coverUrl(m.cover)} alt={m.title} loading="lazy" /> : null}
               <span class="card-cat cat-arch">{priceLabel(m)}</span>
@@ -139,7 +139,7 @@ const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" strok
               <p class="card-desc">{m.summary || '暂无简介'}</p>
               <div class="card-footer download-footer">
                 <span class="card-size">{m.size || '-- MB'}</span>
-                <span class="card-foot-r"><span class="card-type">{m.fileType || 'SKP 模型'}</span><span class="btn-dl" data-dl role="button" tabindex="0">下载</span></span>
+                <span class="card-foot-r"><span class="card-type">{m.fileType || 'SKP 模型'}</span><span class="btn-dl" data-dl data-download-id={m.id} role="button" tabindex="0">下载</span></span>
               </div>
             </div>
           </a>
@@ -157,7 +157,7 @@ const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" strok
       </div>
       <div class="grid-5">
         {courses.map((c) => (
-          <a href={`/d/${c.id}`} class="card course-card reveal">
+          <a href="#" data-card-id={c.id} class="card course-card reveal">
             <div class="card-img-wrap">
               {coverUrl(c.cover) ? <img src={coverUrl(c.cover)} alt={c.title} loading="lazy" /> : null}
               <span class="card-cat cat-d5">{priceLabel(c)}</span>
@@ -183,7 +183,7 @@ const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" strok
       </div>
       <div class="grid-5">
         {materials.map((m) => (
-          <a href={`/d/${m.id}`} class="card reveal">
+          <a href="#" data-card-id={m.id} class="card reveal">
             <div class="card-img-wrap">
               {coverUrl(m.cover) ? <img src={coverUrl(m.cover)} alt={m.title} loading="lazy" /> : null}
               <span class="card-cat cat-mat">{priceLabel(m)}</span>
@@ -193,7 +193,7 @@ const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" strok
               <p class="card-desc">{m.summary || '暂无简介'}</p>
               <div class="card-footer download-footer">
                 <span class="card-size">{m.size || '-- MB'}</span>
-                <span class="card-foot-r"><span class="card-type">{m.fileType || '贴图素材'}</span><span class="btn-dl" data-dl role="button" tabindex="0">下载</span></span>
+                <span class="card-foot-r"><span class="card-type">{m.fileType || '贴图素材'}</span><span class="btn-dl" data-dl data-download-id={m.id} role="button" tabindex="0">下载</span></span>
               </div>
             </div>
           </a>
@@ -212,7 +212,7 @@ const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" strok
       </div>
       <div class="grid-5">
         {software.map((s) => (
-          <a href={`/d/${s.id}`} class="card reveal">
+          <a href="#" data-card-id={s.id} class="card reveal">
             <div class="card-img-wrap">
               {coverUrl(s.cover) ? <img src={coverUrl(s.cover)} alt={s.title} loading="lazy" /> : null}
               <span class="card-cat cat-inter">{priceLabel(s)}</span>
@@ -222,7 +222,7 @@ const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" strok
               <p class="card-desc">{s.summary || '暂无简介'}</p>
               <div class="card-footer download-footer">
                 <span class="card-size">{s.size || '-- MB'}</span>
-                <span class="card-foot-r"><span class="card-type">{s.fileType || '软件 · 参数'}</span><span class="btn-dl" data-dl role="button" tabindex="0">下载</span></span>
+                <span class="card-foot-r"><span class="card-type">{s.fileType || '软件 · 参数'}</span><span class="btn-dl" data-dl data-download-id={s.id} role="button" tabindex="0">下载</span></span>
               </div>
             </div>
           </a>
@@ -231,7 +231,5 @@ const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" strok
     </div>
   </section>
 </Base>
-
-
 
 

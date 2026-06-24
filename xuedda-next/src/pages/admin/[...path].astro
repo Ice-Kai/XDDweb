@@ -36,6 +36,12 @@
       .login-panel p { margin:0 0 22px; color:var(--muted); }
       .field { display:grid; gap:7px; margin-bottom:14px; }
       .field span { font-size:13px; font-weight:800; color:#4e473e; }
+      .field small { color:var(--muted); font-size:12px; line-height:1.5; }
+      .upload-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:center; }
+      .upload-btn { position:relative; display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:0 13px; border-radius:9px; border:1px solid var(--line); background:#f2ede4; color:#201810; font-size:13px; font-weight:800; cursor:pointer; white-space:nowrap; }
+      .upload-btn input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+      .upload-btn:hover { border-color:var(--gold); color:#0d0900; background:var(--gold-soft); }
+      .upload-method { margin:0 0 14px; padding:12px 14px; border:1px solid rgba(201,149,53,.28); border-radius:12px; background:linear-gradient(135deg,#fffaf1,#f4ead8); color:#4d3a1b; font-size:13px; line-height:1.7; }
       .app-shell { min-height:100vh; display:grid; grid-template-columns:230px minmax(0,1fr); }
       .side { background:#141413; color:#fff; padding:20px 14px; position:sticky; top:0; height:100vh; }
       .brand { padding:8px 10px 18px; border-bottom:1px solid rgba(255,255,255,.12); margin-bottom:12px; }
@@ -174,14 +180,15 @@
             <p id="contentMsg" class="message"></p>
             <div id="contentEditor" class="drawer hide">
               <div class="panel-head"><h2 id="editorTitle">编辑资源</h2><button id="closeEditor" class="ghost" type="button">收起</button></div>
+              <p class="upload-method">上传策略：封面图可以直接上传到本地测试目录；大型 SU/MAX/贴图包先填百度网盘、阿里云盘等链接，正式迁移阿里云后再切 OSS。</p>
               <form id="contentForm" class="form-grid">
                 <input id="contentId" type="hidden" />
                 <label class="field wide"><span>标题</span><input id="fTitle" required /></label>
                 <label class="field"><span>分类</span><select id="fCategory"></select></label>
                 <label class="field"><span>关键词</span><input id="fKeywords" /></label>
                 <label class="field wide"><span>摘要</span><textarea id="fSummary"></textarea></label>
-                <label class="field"><span>封面 URL</span><input id="fCover" /></label>
-                <label class="field"><span>网盘/下载链接</span><input id="fFileUrl" /></label>
+                <label class="field"><span>封面 URL</span><div class="upload-row"><input id="fCover" /><label class="upload-btn">上传封面<input id="coverUpload" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></label></div><small>支持 JPG / PNG / WebP / GIF，最大 8MB。</small></label>
+                <label class="field"><span>网盘/下载链接</span><div class="upload-row"><input id="fFileUrl" /><label class="upload-btn">上传附件<input id="resourceUpload" type="file" accept=".zip,.rar,.7z,.skp,.max,.dwg,.dxf,.fbx,.obj,.pdf" /></label></div><small>大文件建议填网盘链接；本地测试附件最大 80MB。</small></label>
                 <label class="field"><span>提取码</span><input id="fPass" /></label>
                 <label class="field"><span>资源类型</span><input id="fFileType" placeholder="SKP 模型 / 贴图 / 教程" /></label>
                 <label class="field"><span>文件大小</span><input id="fSize" placeholder="128 MB" /></label>
@@ -239,6 +246,12 @@
       }
       function json(method, body) {
         return { method, headers:{ 'content-type':'application/json' }, body:JSON.stringify(body) };
+      }
+      async function uploadFile(kind, file) {
+        const form = new FormData();
+        form.append('kind', kind);
+        form.append('file', file);
+        return api('/api/admin/upload', { method:'POST', body:form });
       }
       function setMsg(id, value, kind = '') {
         const node = $(id);
@@ -335,9 +348,12 @@
         edit.type = 'button';
         edit.onclick = () => openContent(row.id);
         actions.appendChild(edit);
-        const view = el('button', 'ghost', '前台');
+        const view = el('button', 'ghost', '复制链接');
         view.type = 'button';
-        view.onclick = () => window.open(`/d/${row.id}`, '_blank', 'noopener');
+        view.onclick = async () => {
+          await navigator.clipboard?.writeText(row.file_url || '');
+          setMsg('contentMsg', row.file_url ? '已复制资源链接' : '该资源还没有下载链接', row.file_url ? 'ok' : 'error');
+        };
         actions.appendChild(view);
         tr.appendChild(actions);
         return tr;
@@ -409,6 +425,23 @@
         $('contentEditor').classList.add('hide');
         await Promise.all([loadContents(), loadStats()]);
       }
+      async function handleUpload(input, kind, targetId) {
+        const file = input.files?.[0];
+        if (!file) return;
+        setMsg('contentMsg', kind === 'cover' ? '正在上传封面...' : '正在上传测试附件...');
+        try {
+          const data = await uploadFile(kind, file);
+          $(targetId).value = data.url || '';
+          if (kind === 'resource' && !$('fSize').value) {
+            $('fSize').value = `${Math.max(1, Math.round((data.size || file.size) / 1024 / 1024))} MB`;
+          }
+          setMsg('contentMsg', '上传成功，已自动填入链接', 'ok');
+        } catch (error) {
+          setMsg('contentMsg', error.message || '上传失败', 'error');
+        } finally {
+          input.value = '';
+        }
+      }
       async function loadFeedback() {
         setMsg('feedbackMsg', '读取中...');
         const q = encodeURIComponent($('feedbackQ').value || '');
@@ -477,6 +510,8 @@
       $('contentReset').onclick = () => { $('contentQ').value = ''; state.contentPage = 1; loadContents(); };
       $('contentForm').onsubmit = saveContent;
       $('hideContent').onclick = hideCurrentContent;
+      $('coverUpload').onchange = (event) => handleUpload(event.currentTarget, 'cover', 'fCover');
+      $('resourceUpload').onchange = (event) => handleUpload(event.currentTarget, 'resource', 'fFileUrl');
       $('feedbackSearch').onclick = () => { state.feedbackPage = 1; loadFeedback(); };
       $('feedbackRefresh').onclick = loadFeedback;
       $('feedbackReset').onclick = () => { $('feedbackQ').value = ''; $('feedbackStatus').value = 'all'; state.feedbackPage = 1; loadFeedback(); };

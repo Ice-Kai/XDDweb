@@ -58,6 +58,9 @@ function allowedHost(hostname: string) {
 
 export function safeDownloadUrl(raw: unknown) {
   const text = String(raw || '').trim();
+  if (/^\/uploads\/admin\/[A-Za-z0-9][A-Za-z0-9/_\-.]*$/i.test(text) && !text.includes('..')) {
+    return text;
+  }
   const match = text.match(/https:\/\/[^\s"'<>]+/i);
   if (!match) return '';
   try {

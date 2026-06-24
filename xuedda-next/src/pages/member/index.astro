@@ -86,8 +86,10 @@ import Base from '../../layouts/Base.astro';
         info.appendChild(meta);
         item.appendChild(info);
 
-        const open = el('a', 'member-download-open', row.available ? '查看' : '已下架');
-        open.href = row.available && row.contentId ? `/d/${row.contentId}` : '#';
+        const open = el('a', 'member-download-open btn-dl', row.available ? '下载' : '已下架');
+        open.href = '#';
+        if (row.available && row.contentId) open.dataset.downloadId = row.contentId;
+        open.dataset.title = row.title || '资源下载';
         item.appendChild(open);
         list.appendChild(item);
       }

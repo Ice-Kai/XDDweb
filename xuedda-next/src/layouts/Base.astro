@@ -400,6 +400,7 @@ const cloudWords = [
     <script is:inline>
       // 卡片下载：当前页小弹窗展示网盘链接，不跳详情页
       (function () {
+        return;
         let pop;
         const esc = (s) => String(s || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
         const providerName = (url) => {
@@ -659,14 +660,25 @@ const cloudWords = [
       // 下载弹窗：拦截卡片「下载」按钮，弹出网盘链接（不跳详情页）
       (function () {
         const modal = document.getElementById('dlModal'), body = document.getElementById('dlBody');
+        if (!modal || !body) return;
         const close = () => { modal.hidden = true; };
         document.getElementById('dlClose')?.addEventListener('click', close);
         document.getElementById('dlMask')?.addEventListener('click', close);
-        function open(title, message) {
+        function providerName(url) {
+          if (/pan\.baidu\.com/i.test(url)) return '百度网盘';
+          if (/aliyundrive|alipan/i.test(url)) return '阿里云盘';
+          if (/quark\.cn/i.test(url)) return '夸克网盘';
+          if (/123pan/i.test(url)) return '123 网盘';
+          return '网盘链接';
+        }
+        function openState(title, message, action) {
           body.replaceChildren();
           const t = document.createElement('div');
           t.className = 'dlm-title';
           t.textContent = title || '资源下载';
+          const sub = document.createElement('div');
+          sub.className = 'dlm-sub';
+          sub.textContent = '下载链接不会在页面源码里暴露，登录后由接口临时读取。';
           const s = document.createElement('div');
           s.className = 'dlm-state';
           const ico = document.createElement('div');
@@ -674,23 +686,110 @@ const cloudWords = [
           ico.textContent = 'i';
           s.appendChild(ico);
           s.append(message || '');
-          body.append(t, s);
+          if (action) {
+            const a = document.createElement('a');
+            a.className = 'btn';
+            a.href = action.href;
+            a.textContent = action.text;
+            s.appendChild(a);
+          }
+          body.append(t, sub, s);
+          modal.hidden = false;
+        }
+        function openLoading(title) {
+          body.replaceChildren();
+          const t = document.createElement('div');
+          t.className = 'dlm-title';
+          t.textContent = title || '正在获取下载链接';
+          const sub = document.createElement('div');
+          sub.className = 'dlm-sub';
+          sub.textContent = '正在读取网盘地址，请稍等。';
+          const s = document.createElement('div');
+          s.className = 'dlm-state';
+          s.appendChild(Object.assign(document.createElement('div'), { className:'dlm-spin' }));
+          body.append(t, sub, s);
+          modal.hidden = false;
+        }
+        function openLinks(title, files) {
+          body.replaceChildren();
+          const t = document.createElement('div');
+          t.className = 'dlm-title';
+          t.textContent = title || '资源下载';
+          const sub = document.createElement('div');
+          sub.className = 'dlm-sub';
+          sub.textContent = '请使用下方网盘链接打开，提取码可一键复制。';
+          body.append(t, sub);
+          for (const file of files || []) {
+            const row = document.createElement('div');
+            row.className = 'dlm-row';
+            const k = document.createElement('span');
+            k.className = 'k';
+            k.textContent = file.provider || providerName(file.url);
+            const link = document.createElement('div');
+            link.className = 'dlm-link';
+            const a = document.createElement('a');
+            a.className = 'dlm-open';
+            a.href = file.url;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            a.textContent = '打开链接';
+            link.appendChild(a);
+            row.append(k, link);
+            body.appendChild(row);
+            if (file.pass) {
+              const passRow = document.createElement('div');
+              passRow.className = 'dlm-row';
+              const passK = document.createElement('span');
+              passK.className = 'k';
+              passK.textContent = '提取码';
+              const code = document.createElement('code');
+              code.className = 'dlm-pass';
+              code.textContent = file.pass;
+              const copy = document.createElement('button');
+              copy.type = 'button';
+              copy.className = 'dlm-copy';
+              copy.textContent = '复制';
+              copy.addEventListener('click', async () => {
+                await navigator.clipboard?.writeText(file.pass);
+                copy.textContent = '已复制';
+                setTimeout(() => { copy.textContent = '复制'; }, 1200);
+              });
+              passRow.append(passK, code, copy);
+              body.appendChild(passRow);
+            }
+          }
           modal.hidden = false;
         }
         async function doDownload(id, title) {
-          open(title || '资源下载', '请在卡片右侧的小弹窗中查看网盘链接。');
+          openLoading(title);
+          try {
+            const res = await fetch('/api/download/' + encodeURIComponent(id), { credentials:'include' });
+            const data = await res.json().catch(() => ({}));
+            if (res.status === 401) return openState('请先登录', '登录后即可查看网盘链接。', { text:'去登录', href:'/member/login' });
+            if (res.status === 403) return openState('VIP 资源', '该资源需要会员权限。', { text:'查看会员', href:'/member/vip' });
+            if (!res.ok || !data.ok) return openState('暂时无法下载', data.message || '下载链接暂未配置');
+            openLinks(data.item?.title || title || '资源下载', data.files || []);
+          } catch {
+            openState('网络错误', '请刷新后重试。');
+          }
         }
-        // 委托：点 .btn-dl 不跳详情，弹窗下载
+        // 委托：资源卡片和「下载」按钮都不进入详情页，直接弹出下载链接
         document.addEventListener('click', (e) => {
-          const btn = e.target.closest('.btn-dl');
-          if (!btn || !/下载/.test(btn.textContent)) return;
-          const card = btn.closest('a[href^="/d/"]');
-          const m = card && card.getAttribute('href').match(/\/d\/(\d+)/);
-          if (!m) return;
+          const trigger = e.target.closest('.btn-dl, a[data-card-id], a[href^="/d/"]');
+          if (!trigger) return;
+          const card = trigger.closest('[data-card-id], a[href^="/d/"]');
+          const href = trigger.matches?.('a[href^="/d/"]') ? trigger.getAttribute('href') : (card?.getAttribute?.('href') || '');
+          const m = href.match(/\/d\/(\d+)/);
+          const id = trigger.dataset?.downloadId || card?.dataset?.cardId || m?.[1];
+          if (!id) return;
           e.preventDefault(); e.stopPropagation();
-          const title = card.querySelector('.card-title')?.textContent || '';
-          doDownload(m[1], title);
+          const title = card?.querySelector?.('.card-title,.rank-title')?.textContent || trigger.dataset?.title || trigger.textContent || '';
+          doDownload(id, title);
         }, true);
+        const initialDownload = new URLSearchParams(window.location.search).get('download');
+        if (initialDownload) {
+          setTimeout(() => doDownload(initialDownload, '资源下载'), 120);
+        }
       })();
 
       // 主题切换（默认深色，记忆到 localStorage）
@@ -740,6 +839,3 @@ const cloudWords = [
     </script>
   </body>
 </html>
-
-
-

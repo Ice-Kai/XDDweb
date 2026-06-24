@@ -7,7 +7,7 @@ const sort = (Astro.url.searchParams.get('sort') as 'newest' | 'popular' | 'down
 const items = q ? await getDownloads({ q, sort, limit: 40 }) : [];
 const sorts: { k: string; t: string }[] = [{ k: 'newest', t: '最新' }, { k: 'popular', t: '最热' }, { k: 'downloads', t: '下载' }];
 ---
-<Base title={q ? `搜索：${q} — 薛大大设计网` : '智能搜索 — 薛大大设计网'}>
+<Base title={q ? `智能搜索：${q} - 薛大大生态设计` : '智能搜索 - 薛大大生态设计'}>
   <div class="container ask-wrap">
     <div class="ask-head">
       <p class="section-label">SEARCH</p>
@@ -16,7 +16,7 @@ const sorts: { k: string; t: string }[] = [{ k: 'newest', t: '最新' }, { k: 'p
     </div>
 
     <form class="ask-box" action="/ask" method="get">
-      <input name="q" value={q} placeholder="例如：新中式 茶室 / 现代别墅 / D5 教程…" autocomplete="off" autofocus />
+      <input name="q" value={q} placeholder="例如：新中式茶室 / 现代别墅 / D5 教程..." autocomplete="off" autofocus />
       {sort !== 'newest' ? <input type="hidden" name="sort" value={sort} /> : null}
       <button type="submit" class="ask-btn">搜索</button>
     </form>
@@ -37,7 +37,7 @@ const sorts: { k: string; t: string }[] = [{ k: 'newest', t: '最新' }, { k: 'p
     ) : (
       <div class="grid-5" style="padding:6px 0 60px;">
         {items.map((m: DownloadItem) => (
-          <a href={`/d/${m.id}`} class="card">
+          <a href="#" data-card-id={m.id} class="card">
             <div class="card-img-wrap">
               {coverUrl(m.cover) ? <img src={coverUrl(m.cover)} alt={m.title} loading="lazy" /> : null}
               <span class="card-cat cat-arch">免费</span>
@@ -47,7 +47,7 @@ const sorts: { k: string; t: string }[] = [{ k: 'newest', t: '最新' }, { k: 'p
               <p class="card-desc">{m.summary || '暂无简介'}</p>
               <div class="card-footer download-footer">
                 <span class="card-size">{m.size || '-- MB'}</span>
-                <span class="card-foot-r"><span class="card-type">{m.fileType || '资源'}</span><span class="btn-dl" data-dl role="button" tabindex="0">下载</span></span>
+                <span class="card-foot-r"><span class="card-type">{m.fileType || '资源'}</span><span class="btn-dl" data-dl data-download-id={m.id} role="button" tabindex="0">下载</span></span>
               </div>
             </div>
           </a>
