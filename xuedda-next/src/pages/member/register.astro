@@ -1,57 +1,17 @@
 ---
 import Base from '../../layouts/Base.astro';
 ---
-<Base title="会员注册 - 薛大大生态设计">
-  <section class="auth-showcase auth-register">
-    <div class="auth-shell">
-      <header class="auth-showcase-head">
-        <a class="auth-mark" href="/">
-          <b>XDesign</b>
-          <span>薛大大生态设计</span>
-        </a>
-        <nav class="auth-switch" aria-label="会员入口">
-          <a href="/member/login">登录</a>
-          <a class="active" href="/member/register">注册</a>
-        </nav>
-      </header>
-
-      <div class="auth-copy">
-        <p>DESIGN RESOURCE LIBRARY</p>
-        <h1>把常用<em>素材</em>、案例和课程放进灵感库</h1>
-        <div class="auth-tabs" aria-label="资源方向">
-          <span>每日新传</span>
-          <span>模型素材</span>
-          <span>资源收藏</span>
-        </div>
-      </div>
-
-      <form class="auth-panel" id="registerForm">
-        <p class="section-label">CREATE ACCOUNT</p>
-        <h2>创建会员账号</h2>
-        <label>
-          <span>账号</span>
-          <input name="username" placeholder="用户名 / 邮箱" autocomplete="username" required />
-        </label>
-        <label>
-          <span>密码</span>
-          <input name="password" type="password" placeholder="密码至少 6 位" autocomplete="new-password" required />
-        </label>
-        <p class="auth-error" id="err"></p>
-        <button class="btn-primary" type="submit">注册并进入</button>
-        <a class="auth-alt" href="/member/login">已有账号？去登录</a>
-      </form>
-
-      <div class="auth-gallery" aria-hidden="true">
-        <figure class="tile tall"><img src="/img/m3.jpg" alt="" /><figcaption>SU MODEL</figcaption></figure>
-        <figure class="tile"><img src="/img/t2.jpg" alt="" /><figcaption>MAPS</figcaption></figure>
-        <figure class="tile mid"><img src="/img/c2.jpg" alt="" /><figcaption>COURSE</figcaption></figure>
-        <figure class="tile tall"><img src="/hero/hero-1.jpg" alt="" /><figcaption>PROJECT</figcaption></figure>
-        <figure class="tile"><img src="/img/t4.jpg" alt="" /><figcaption>V-RAY</figcaption></figure>
-        <figure class="tile mid"><img src="/img/c4.jpg" alt="" /><figcaption>WORKFLOW</figcaption></figure>
-        <figure class="tile"><img src="/img/m5.jpg" alt="" /><figcaption>SCENE</figcaption></figure>
-        <figure class="tile tall"><img src="/hero/hero-3.jpg" alt="" /><figcaption>INSPIRATION</figcaption></figure>
-      </div>
-    </div>
+<Base title="会员注册 — 薛大大设计网">
+  <section class="auth-page">
+    <form class="auth-card" id="registerForm">
+      <p class="section-label">MEMBER</p>
+      <h1>注册会员</h1>
+      <input name="username" placeholder="用户名 / 邮箱" autocomplete="username" required />
+      <input name="password" type="password" placeholder="密码至少 6 位" autocomplete="new-password" required />
+      <p class="auth-error" id="err"></p>
+      <button class="btn-primary" type="submit">注册</button>
+      <a href="/member/login">已有账号？去登录</a>
+    </form>
   </section>
   <script>
     document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
