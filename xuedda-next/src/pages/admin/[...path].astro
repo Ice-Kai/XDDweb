@@ -8,24 +8,20 @@
     <title>后台管理 - 薛大大生态设计</title>
     <style>
       :root {
-        --ink:#15120d;
-        --muted:#756d60;
-        --paper:#f6f2ea;
-        --paper-2:#eee7dc;
+        --ink:#18130b;
+        --muted:#736a5d;
+        --paper:#f6f1e8;
         --panel:#fffdf8;
-        --panel-2:#fbf6ee;
-        --line:#e2d8c8;
-        --line-strong:#d0b98f;
-        --gold:#c9963c;
-        --gold-2:#e2b45a;
-        --gold-soft:#f7ecd8;
-        --dark:#11100f;
-        --dark-2:#1d1b18;
+        --panel-2:#fbf5ea;
+        --line:#e2d6c4;
+        --gold:#c99534;
+        --gold-2:#e3b65e;
+        --dark:#11100e;
+        --dark-2:#1d1a15;
         --danger:#b42318;
-        --ok:#14845f;
+        --ok:#147a57;
         --warn:#9a6509;
-        --shadow:0 18px 50px rgba(44,30,10,.10);
-        --radius:8px;
+        --shadow:0 18px 50px rgba(50,33,9,.10);
       }
       * { box-sizing:border-box; }
       html,body { min-height:100%; }
@@ -33,11 +29,10 @@
         margin:0;
         color:var(--ink);
         background:
-          linear-gradient(90deg,rgba(17,16,15,.04) 1px,transparent 1px) 0 0/32px 32px,
-          linear-gradient(180deg,#faf7f0 0%,var(--paper) 48%,#eee9df 100%);
+          linear-gradient(90deg,rgba(30,22,12,.04) 1px,transparent 1px) 0 0/32px 32px,
+          linear-gradient(180deg,#fbf8f1 0%,var(--paper) 100%);
         font-family:"Microsoft YaHei","PingFang SC",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
         font-size:14px;
-        line-height:1.6;
       }
       button,input,textarea,select { font:inherit; }
       button { border:0; cursor:pointer; }
@@ -45,27 +40,16 @@
       .hide { display:none !important; }
 
       .login-shell { min-height:100vh; display:grid; place-items:center; padding:26px; }
-      .login-panel {
-        width:min(440px,100%);
-        border:1px solid var(--line);
-        border-radius:14px;
-        background:linear-gradient(180deg,#fffdf8,#f7efe2);
-        box-shadow:var(--shadow);
-        padding:28px;
-      }
+      .login-panel { width:min(440px,100%); border:1px solid var(--line); border-radius:14px; background:linear-gradient(180deg,#fffdf8,#f7efe2); box-shadow:var(--shadow); padding:28px; }
       .login-kicker { color:var(--gold); font-size:11px; font-weight:900; letter-spacing:.18em; text-transform:uppercase; }
       .login-panel h1 { margin:6px 0 8px; font-size:30px; line-height:1.15; }
       .login-panel p { margin:0 0 22px; color:var(--muted); }
 
-      .shell { min-height:100vh; display:grid; grid-template-columns:248px minmax(0,1fr); }
+      .shell { min-height:100vh; display:grid; grid-template-columns:250px minmax(0,1fr); }
       .side {
-        position:sticky; top:0; height:100vh; overflow:auto;
-        background:
-          linear-gradient(180deg,rgba(201,150,60,.16),transparent 32%),
-          linear-gradient(180deg,var(--dark),#171512);
-        color:#f7efe4;
-        border-right:1px solid rgba(255,255,255,.08);
-        padding:18px 14px;
+        position:sticky; top:0; height:100vh; overflow:auto; padding:18px 14px;
+        background:linear-gradient(180deg,rgba(201,149,52,.16),transparent 32%),linear-gradient(180deg,var(--dark),#171511);
+        color:#f7efe4; border-right:1px solid rgba(255,255,255,.08);
       }
       .brand { display:flex; align-items:center; gap:12px; padding:8px 8px 18px; border-bottom:1px solid rgba(255,255,255,.10); margin-bottom:14px; }
       .brand-mark { width:38px; height:38px; display:grid; place-items:center; border-radius:10px; background:var(--gold); color:#140e02; font-weight:1000; letter-spacing:.04em; }
@@ -73,37 +57,25 @@
       .brand span { display:block; margin-top:2px; font-size:11px; letter-spacing:.12em; color:rgba(255,255,255,.48); text-transform:uppercase; }
       .side-section { margin:18px 8px 7px; font-size:10px; letter-spacing:.16em; color:rgba(255,255,255,.38); text-transform:uppercase; }
       .nav { display:grid; gap:5px; }
-      .nav-btn {
-        min-height:42px; width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px;
-        border-radius:9px; padding:10px 11px; background:transparent; color:rgba(255,255,255,.72);
-        transition:background .18s,color .18s,transform .18s;
-      }
+      .nav-btn { min-height:42px; width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; border-radius:9px; padding:10px 11px; background:transparent; color:rgba(255,255,255,.72); transition:background .18s,color .18s,transform .18s; }
       .nav-btn:hover { color:#fff; background:rgba(255,255,255,.07); transform:translateX(2px); }
-      .nav-btn.active { color:#fff; background:rgba(201,150,60,.20); box-shadow:inset 3px 0 0 var(--gold); }
+      .nav-btn.active { color:#fff; background:rgba(201,149,52,.20); box-shadow:inset 3px 0 0 var(--gold); }
       .nav-left { display:flex; align-items:center; gap:10px; min-width:0; }
       .nav-ico { width:22px; height:22px; display:grid; place-items:center; border-radius:7px; background:rgba(255,255,255,.08); color:var(--gold-2); font-size:11px; font-weight:900; }
-      .nav-text { display:block; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-weight:800; }
+      .nav-text { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-weight:800; }
       .nav-count { min-width:22px; padding:2px 7px; border-radius:999px; background:rgba(255,255,255,.08); color:rgba(255,255,255,.62); font-size:11px; font-weight:900; }
-      .side-note { margin:20px 6px 0; padding:12px; border:1px solid rgba(201,150,60,.22); border-radius:10px; background:rgba(201,150,60,.08); color:rgba(255,255,255,.68); font-size:12px; }
+      .side-note { margin:20px 6px 0; padding:12px; border:1px solid rgba(201,149,52,.22); border-radius:10px; background:rgba(201,149,52,.08); color:rgba(255,255,255,.68); font-size:12px; line-height:1.7; }
 
       .main { min-width:0; padding:18px; }
-      .topbar {
-        position:sticky; top:0; z-index:20; margin:-18px -18px 18px; padding:14px 18px;
-        display:flex; align-items:center; justify-content:space-between; gap:16px;
-        background:rgba(246,242,234,.86); backdrop-filter:blur(18px); border-bottom:1px solid rgba(226,216,200,.72);
-      }
+      .topbar { position:sticky; top:0; z-index:20; margin:-18px -18px 18px; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:16px; background:rgba(246,241,232,.88); backdrop-filter:blur(18px); border-bottom:1px solid rgba(226,214,196,.72); }
       .page-title { display:flex; align-items:baseline; gap:12px; }
       .page-title h1 { margin:0; font-size:24px; line-height:1.2; }
       .page-title span { color:var(--muted); font-size:13px; }
       .top-actions { display:flex; align-items:center; gap:8px; }
-      .admin-pill { color:var(--muted); font-size:12px; padding:8px 10px; border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.55); }
+      .admin-pill { color:var(--muted); font-size:12px; padding:8px 10px; border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.58); }
 
-      .btn {
-        display:inline-flex; align-items:center; justify-content:center; gap:7px;
-        min-height:38px; padding:0 13px; border-radius:8px; background:var(--gold); color:#130d02; font-weight:900;
-        transition:transform .15s,box-shadow .15s,background .15s;
-      }
-      .btn:hover { transform:translateY(-1px); box-shadow:0 10px 20px rgba(201,150,60,.24); }
+      .btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:38px; padding:0 13px; border-radius:8px; background:var(--gold); color:#130d02; font-weight:900; white-space:nowrap; transition:transform .15s,box-shadow .15s,background .15s; }
+      .btn:hover { transform:translateY(-1px); box-shadow:0 10px 20px rgba(201,149,52,.24); }
       .btn.secondary { background:#f1ece3; color:var(--ink); border:1px solid var(--line); box-shadow:none; }
       .btn.ghost { background:transparent; color:var(--muted); border:1px solid var(--line); box-shadow:none; }
       .btn.danger { background:#fae5df; color:var(--danger); border:1px solid #efc5b9; box-shadow:none; }
@@ -112,50 +84,38 @@
       .view { display:none; }
       .view.active { display:block; }
       .dash-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
-      .stat-card {
-        position:relative; min-height:118px; overflow:hidden; padding:18px; border:1px solid var(--line); border-radius:12px;
-        background:linear-gradient(140deg,#fffdf8,#f4eadb); box-shadow:var(--shadow);
-      }
-      .stat-card::after { content:''; position:absolute; right:-34px; top:-48px; width:110px; height:110px; border-radius:50%; border:18px solid rgba(201,150,60,.10); }
+      .stat-card { position:relative; min-height:118px; overflow:hidden; padding:18px; border:1px solid var(--line); border-radius:12px; background:linear-gradient(140deg,#fffdf8,#f4eadb); box-shadow:var(--shadow); }
+      .stat-card::after { content:''; position:absolute; right:-34px; top:-48px; width:110px; height:110px; border-radius:50%; border:18px solid rgba(201,149,52,.10); }
       .stat-card span { display:block; color:var(--muted); font-size:13px; font-weight:800; }
       .stat-card b { display:block; margin-top:10px; font-size:34px; line-height:1; }
       .stat-card small { display:block; margin-top:10px; color:var(--muted); font-size:12px; }
 
-      .board { display:grid; grid-template-columns:minmax(0,1fr) 370px; gap:14px; align-items:start; }
-      .panel {
-        border:1px solid var(--line); border-radius:12px; background:rgba(255,253,248,.94); box-shadow:var(--shadow); overflow:hidden;
-      }
+      .board { display:grid; grid-template-columns:minmax(0,1fr) 390px; gap:14px; align-items:start; }
+      .board.wide-left { grid-template-columns:320px minmax(0,1fr) 390px; }
+      .panel { border:1px solid var(--line); border-radius:12px; background:rgba(255,253,248,.95); box-shadow:var(--shadow); overflow:hidden; }
       .panel-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line); background:linear-gradient(180deg,#fffaf2,#f8f1e7); }
-      .panel-title { display:flex; align-items:center; gap:10px; }
       .panel-title h2 { margin:0; font-size:17px; }
       .panel-title p { margin:2px 0 0; color:var(--muted); font-size:12px; }
       .panel-body { padding:14px; }
-
-      .toolbar { display:grid; grid-template-columns:minmax(240px,1fr) 132px 132px auto auto; gap:9px; padding:12px 14px; border-bottom:1px solid var(--line); background:#fffdf8; }
-      .input,.select,.textarea {
-        width:100%; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink);
-        outline:none; padding:9px 11px; min-height:38px;
-      }
+      .toolbar { display:grid; grid-template-columns:minmax(220px,1fr) 150px 132px 132px auto auto; gap:9px; padding:12px 14px; border-bottom:1px solid var(--line); background:#fffdf8; }
+      .batchbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 14px; border-bottom:1px solid var(--line); background:#fbf7ef; }
+      .input,.select,.textarea { width:100%; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink); outline:none; padding:9px 11px; min-height:38px; }
       .textarea { min-height:88px; resize:vertical; }
-      .input:focus,.select:focus,.textarea:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,150,60,.13); }
-      .seg { display:flex; gap:6px; flex-wrap:wrap; }
-      .seg button { min-height:32px; padding:0 10px; border-radius:999px; background:#f1ece3; color:var(--muted); font-weight:900; }
-      .seg button.active { background:var(--gold-soft); color:#7d5110; box-shadow:inset 0 0 0 1px rgba(201,150,60,.24); }
-
-      .table-wrap { overflow:auto; }
+      .input:focus,.select:focus,.textarea:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,149,52,.13); }
+      .table-wrap { overflow:auto; max-height:calc(100vh - 250px); }
       table { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; }
       th { position:sticky; top:0; z-index:1; background:#f7efe3; color:#625746; font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
-      th,td { padding:11px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle; }
-      tr { cursor:pointer; }
-      tr:hover td { background:#fff8eb; }
+      th,td { padding:10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle; }
+      tr.clickable { cursor:pointer; }
+      tr.clickable:hover td { background:#fff8eb; }
       tr.selected td { background:#f7ecd7; }
       .thumb { width:54px; height:42px; border-radius:7px; object-fit:cover; background:#ece3d5; border:1px solid var(--line); }
       .fallback-thumb { width:54px; height:42px; display:grid; place-items:center; border-radius:7px; background:var(--dark); color:var(--gold); font-size:11px; font-weight:1000; }
-      .resource-cell { display:grid; grid-template-columns:54px minmax(0,1fr); gap:10px; align-items:center; min-width:260px; }
+      .resource-cell { display:grid; grid-template-columns:54px minmax(0,1fr); gap:10px; align-items:center; min-width:250px; }
       .resource-title { font-weight:900; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
       .resource-sub { margin-top:3px; color:var(--muted); font-size:12px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
       .mono { font-variant-numeric:tabular-nums; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; }
-      .pill { display:inline-flex; align-items:center; min-height:24px; padding:3px 8px; border-radius:999px; background:#ece6dc; color:#554a3d; font-size:12px; font-weight:900; }
+      .pill { display:inline-flex; align-items:center; min-height:24px; margin:1px 3px 1px 0; padding:3px 8px; border-radius:999px; background:#ece6dc; color:#554a3d; font-size:12px; font-weight:900; }
       .pill.ok { background:#def3e9; color:var(--ok); }
       .pill.off { background:#ececec; color:#777; }
       .pill.warn { background:#f8e9cb; color:var(--warn); }
@@ -164,9 +124,7 @@
       .message { min-height:20px; margin:10px 2px 0; color:var(--muted); font-size:12px; }
       .message.ok { color:var(--ok); }
       .message.error { color:var(--danger); }
-
       .editor { position:sticky; top:76px; max-height:calc(100vh - 94px); overflow:auto; }
-      .editor-empty { padding:24px; color:var(--muted); }
       .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
       .field { display:grid; gap:6px; }
       .field.wide { grid-column:1 / -1; }
@@ -175,29 +133,32 @@
       .upload-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; }
       .upload-btn { position:relative; display:inline-flex; align-items:center; justify-content:center; min-height:38px; padding:0 12px; border-radius:8px; border:1px solid var(--line); background:#f1ece3; color:#24190b; font-weight:900; white-space:nowrap; cursor:pointer; }
       .upload-btn input { position:absolute; inset:0; opacity:0; cursor:pointer; }
-      .method-note { margin:0 0 14px; padding:12px 13px; border:1px solid rgba(201,149,53,.30); border-radius:10px; background:linear-gradient(135deg,#fff8e9,#f5ead8); color:#554018; font-size:12px; line-height:1.7; }
       .drawer-actions { grid-column:1 / -1; display:flex; gap:8px; flex-wrap:wrap; padding-top:2px; }
-
+      .category-tree { display:grid; gap:5px; max-height:calc(100vh - 250px); overflow:auto; padding:10px; }
+      .cat-node { width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:34px; border-radius:8px; padding:6px 8px; background:transparent; color:var(--ink); }
+      .cat-node:hover,.cat-node.active { background:#f3eadb; }
+      .cat-name { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+      .sort-input { width:72px; min-height:30px; padding:5px 7px; }
       .feedback-list { display:grid; gap:10px; }
       .feedback-card { border:1px solid var(--line); border-radius:10px; background:#fff; padding:13px; display:grid; gap:9px; }
       .feedback-card h3 { margin:0; font-size:15px; }
       .feedback-meta { display:flex; gap:8px; flex-wrap:wrap; color:var(--muted); font-size:12px; }
       .feedback-body,.feedback-reply { white-space:pre-wrap; line-height:1.7; }
-      .feedback-reply { border:1px solid rgba(201,149,53,.25); border-radius:8px; background:var(--gold-soft); padding:10px; }
+      .feedback-reply { border:1px solid rgba(201,149,53,.25); border-radius:8px; background:#fff6e6; padding:10px; }
 
-      @media (max-width:1180px) {
+      @media (max-width:1280px) {
+        .board,.board.wide-left { grid-template-columns:1fr; }
+        .editor { position:static; max-height:none; }
+        .table-wrap,.category-tree { max-height:none; }
+      }
+      @media (max-width:820px) {
         .shell { grid-template-columns:1fr; }
         .side { position:static; height:auto; }
-        .board { grid-template-columns:1fr; }
-        .editor { position:static; max-height:none; }
-      }
-      @media (max-width:780px) {
         .main { padding:12px; }
         .topbar { margin:-12px -12px 12px; flex-direction:column; align-items:flex-start; }
         .dash-grid { grid-template-columns:1fr 1fr; }
         .toolbar { grid-template-columns:1fr; }
         .form-grid { grid-template-columns:1fr; }
-        .resource-cell { min-width:220px; }
       }
     </style>
   </head>
@@ -206,7 +167,7 @@
       <form id="loginForm" class="login-panel">
         <div class="login-kicker">XDesign Admin</div>
         <h1>后台管理</h1>
-        <p>登录后管理资源、反馈、封面与下载链接。</p>
+        <p>登录后管理栏目、分类上传、资源链接、封面和用户反馈。</p>
         <label class="field"><span>账号</span><input id="loginUser" class="input" autocomplete="username" /></label>
         <label class="field"><span>密码</span><input id="loginPass" class="input" type="password" autocomplete="current-password" /></label>
         <p id="loginMsg" class="message"></p>
@@ -216,17 +177,15 @@
 
     <div id="app" class="shell hide">
       <aside class="side">
-        <div class="brand">
-          <div class="brand-mark">XD</div>
-          <div><b>薛大大生态设计</b><span>asset control</span></div>
-        </div>
+        <div class="brand"><div class="brand-mark">XD</div><div><b>薛大大生态设计</b><span>asset control</span></div></div>
         <div class="side-section">Manage</div>
         <nav class="nav">
           <button class="nav-btn active" data-view="dashboard" type="button"><span class="nav-left"><span class="nav-ico">01</span><span class="nav-text">工作台</span></span><span class="nav-count" id="navDashCount">-</span></button>
-          <button class="nav-btn" data-view="contents" type="button"><span class="nav-left"><span class="nav-ico">02</span><span class="nav-text">资源管理</span></span><span class="nav-count" id="navResourceCount">-</span></button>
-          <button class="nav-btn" data-view="feedback" type="button"><span class="nav-left"><span class="nav-ico">03</span><span class="nav-text">反馈管理</span></span><span class="nav-count" id="navFeedbackCount">-</span></button>
+          <button class="nav-btn" data-view="categories" type="button"><span class="nav-left"><span class="nav-ico">02</span><span class="nav-text">栏目管理</span></span><span class="nav-count" id="navCategoryCount">-</span></button>
+          <button class="nav-btn" data-view="contents" type="button"><span class="nav-left"><span class="nav-ico">03</span><span class="nav-text">资源管理</span></span><span class="nav-count" id="navResourceCount">-</span></button>
+          <button class="nav-btn" data-view="feedback" type="button"><span class="nav-left"><span class="nav-ico">04</span><span class="nav-text">反馈管理</span></span><span class="nav-count" id="navFeedbackCount">-</span></button>
         </nav>
-        <div class="side-note">资源先以网盘链接为主，封面可本地上传；后续迁移阿里云时把上传接口切到 OSS。</div>
+        <div class="side-note">现在按旧 PHP 流程：先维护栏目树，再在指定栏目下新增/编辑资源，支持排序、显示状态、批量移动和分类上传。</div>
       </aside>
 
       <main class="main">
@@ -237,17 +196,16 @@
 
         <section id="dashboardView" class="view active">
           <div class="dash-grid">
-            <div class="stat-card"><span>资源总数</span><b id="sResources">-</b><small>前台可下载内容</small></div>
-            <div class="stat-card"><span>分类节点</span><b id="sCategories">-</b><small>旧站分类树</small></div>
+            <div class="stat-card"><span>资源总数</span><b id="sResources">-</b><small>新资源表 contents</small></div>
+            <div class="stat-card"><span>栏目节点</span><b id="sCategories">-</b><small>旧栏目树 lz_category</small></div>
             <div class="stat-card"><span>会员数量</span><b id="sMembers">-</b><small>legacy 会员表</small></div>
             <div class="stat-card"><span>反馈记录</span><b id="sFeedback">-</b><small>待回复与已回复</small></div>
           </div>
           <div class="board">
             <div class="panel">
-              <div class="panel-head"><div class="panel-title"><h2>今日建议</h2><p>按管理优先级推进</p></div><button id="refreshAll" class="btn ghost" type="button">刷新</button></div>
+              <div class="panel-head"><div class="panel-title"><h2>管理流程</h2><p>对齐旧版 PHP 后台</p></div><button id="refreshAll" class="btn ghost" type="button">刷新</button></div>
               <div class="panel-body">
-                <p class="method-note">当前后台优先解决资源上架、封面上传、下载链接维护、用户反馈回复。会员、支付、批量导入和 OSS 会作为后续模块补齐。</p>
-                <div class="seg"><button class="active" type="button">资源可编辑</button><button class="active" type="button">反馈可回复</button><button type="button">OSS 待接入</button></div>
+                <p class="message">栏目管理负责新增、删减、导航显示和排序；资源管理负责按栏目上传封面/附件、维护网盘链接、排序、推荐、置顶、显示状态和批量移动。</p>
               </div>
             </div>
             <div class="panel">
@@ -255,7 +213,8 @@
               <div class="panel-body">
                 <div class="row-actions">
                   <button class="btn" id="quickNew" type="button">新增资源</button>
-                  <button class="btn secondary" id="quickFeedback" type="button">处理反馈</button>
+                  <button class="btn secondary" id="quickCategory" type="button">新增栏目</button>
+                  <button class="btn ghost" id="quickFeedback" type="button">处理反馈</button>
                   <a class="btn ghost" href="/" target="_blank" rel="noopener">打开前台</a>
                 </div>
               </div>
@@ -263,54 +222,102 @@
           </div>
         </section>
 
-        <section id="contentsView" class="view">
+        <section id="categoriesView" class="view">
           <div class="board">
             <div class="panel">
               <div class="panel-head">
-                <div class="panel-title"><h2>资源库</h2><p>搜索、筛选、编辑和隐藏资源</p></div>
+                <div class="panel-title"><h2>栏目树</h2><p>新增、编辑、删除、排序和导航显示</p></div>
+                <div class="row-actions"><button id="newRootCategory" class="btn" type="button">新增一级栏目</button><button id="saveCategorySort" class="btn secondary" type="button">保存排序</button></div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th style="width:70px">排序</th><th>ID</th><th>栏目名称</th><th>模型</th><th>导航</th><th>资源</th><th>操作</th></tr></thead>
+                  <tbody id="categoryRows"></tbody>
+                </table>
+              </div>
+              <div class="panel-body"><p id="categoryMsg" class="message"></p></div>
+            </div>
+            <aside class="panel editor">
+              <div class="panel-head"><div class="panel-title"><h2 id="categoryEditorTitle">新增栏目</h2><p id="categoryEditorHint">可创建父子栏目</p></div><button id="resetCategory" class="btn ghost small" type="button">清空</button></div>
+              <div class="panel-body">
+                <form id="categoryForm" class="form-grid">
+                  <input id="catId" type="hidden" />
+                  <label class="field wide"><span>栏目名称</span><input id="catName" class="input" required /></label>
+                  <label class="field"><span>上级栏目</span><select id="catParent" class="select"></select></label>
+                  <label class="field"><span>内容模型</span><select id="catType" class="select"><option value="download">下载资源</option><option value="course">课程</option><option value="article">文章</option><option value="picture">图集</option><option value="mp4">视频</option><option value="question">问答</option><option value="page">单页</option><option value="link">链接</option></select></label>
+                  <label class="field"><span>排序</span><input id="catSort" class="input" type="number" value="20" /></label>
+                  <label class="field"><span>导航显示</span><select id="catMenu" class="select"><option value="1">显示</option><option value="0">隐藏</option></select></label>
+                  <label class="field wide"><span>封面 URL</span><div class="upload-row"><input id="catCover" class="input" /><label class="upload-btn">上传封面<input id="catCoverUpload" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></label></div></label>
+                  <label class="field wide"><span>关键词</span><input id="catKeywords" class="input" /></label>
+                  <label class="field wide"><span>栏目链接/别名</span><input id="catUrl" class="input" /></label>
+                  <label class="field wide"><span>描述</span><textarea id="catDescription" class="textarea"></textarea></label>
+                  <div class="drawer-actions"><button class="btn" type="submit">保存栏目</button><button id="deleteCategory" class="btn danger" type="button">删除栏目</button><button id="newChildCategory" class="btn secondary" type="button">给当前栏目加子栏目</button></div>
+                </form>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="contentsView" class="view">
+          <div class="board wide-left">
+            <aside class="panel">
+              <div class="panel-head"><div class="panel-title"><h2>分类上传</h2><p>先选栏目，再新增资源</p></div></div>
+              <div id="categoryTree" class="category-tree"></div>
+            </aside>
+            <div class="panel">
+              <div class="panel-head">
+                <div class="panel-title"><h2>资源库</h2><p>搜索、筛选、批量移动和编辑资源</p></div>
                 <button id="newContent" class="btn" type="button">新增资源</button>
               </div>
               <div class="toolbar">
                 <input id="contentQ" class="input" placeholder="搜索标题、摘要、关键词" />
-                <select id="contentStatus" class="select"><option value="all">全部状态</option><option value="show">显示中</option><option value="hidden">已隐藏</option><option value="vip">VIP</option></select>
-                <select id="contentLimit" class="select"><option value="20">每页 20</option><option value="50">每页 50</option></select>
+                <select id="contentCategory" class="select"></select>
+                <select id="contentStatus" class="select"><option value="all">全部状态</option><option value="show">显示中</option><option value="hidden">已隐藏</option><option value="vip">VIP</option><option value="recommend">推荐</option><option value="top">置顶</option></select>
+                <select id="contentOrder" class="select"><option value="newest">最新</option><option value="sort">排序优先</option><option value="hits">浏览量</option><option value="downloads">下载量</option><option value="oldest">最早</option></select>
+                <select id="contentLimit" class="select"><option>20</option><option>50</option><option>100</option></select>
                 <button id="contentSearch" class="btn secondary" type="button">搜索</button>
                 <button id="contentReset" class="btn ghost" type="button">重置</button>
               </div>
+              <div class="batchbar">
+                <span id="selectedCount" class="pill">已选 0</span>
+                <select id="batchMoveCategory" class="select" style="max-width:220px"></select>
+                <button id="batchMove" class="btn secondary small" type="button">批量移动</button>
+                <button id="batchShow" class="btn ghost small" type="button">显示</button>
+                <button id="batchHide" class="btn danger small" type="button">隐藏</button>
+              </div>
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th>资源</th><th>分类</th><th>类型</th><th>数据</th><th>状态</th><th>操作</th></tr></thead>
+                  <thead><tr><th style="width:38px"><input id="checkAllContents" type="checkbox" /></th><th>资源</th><th>栏目</th><th>类型/大小</th><th>排序</th><th>状态</th><th>数据</th><th>操作</th></tr></thead>
                   <tbody id="contentRows"></tbody>
                 </table>
               </div>
-              <p id="contentMsg" class="message"></p>
+              <div class="panel-body"><p id="contentMsg" class="message"></p></div>
             </div>
-
-            <aside class="panel editor" id="contentEditor">
-              <div class="panel-head"><div class="panel-title"><h2 id="editorTitle">资源编辑</h2><p id="editorHint">选择左侧资源或新建</p></div><button id="closeEditor" class="btn ghost small" type="button">清空</button></div>
+            <aside class="panel editor">
+              <div class="panel-head"><div class="panel-title"><h2 id="editorTitle">新增资源</h2><p id="editorHint">填写后保存到资源库</p></div><button id="closeEditor" class="btn ghost small" type="button">清空</button></div>
               <div class="panel-body">
-                <p class="method-note">封面可直接上传到本地测试目录；大型模型、贴图包建议填写百度网盘/阿里云盘链接，正式部署后再切换 OSS。</p>
                 <form id="contentForm" class="form-grid">
                   <input id="contentId" type="hidden" />
                   <label class="field wide"><span>标题</span><input id="fTitle" class="input" required /></label>
-                  <label class="field"><span>分类</span><select id="fCategory" class="select"></select></label>
-                  <label class="field"><span>关键词</span><input id="fKeywords" class="input" /></label>
+                  <label class="field"><span>所属栏目</span><select id="fCategory" class="select"></select></label>
+                  <label class="field"><span>排序</span><input id="fSort" class="input" type="number" value="0" /></label>
+                  <label class="field wide"><span>关键词</span><input id="fKeywords" class="input" /></label>
                   <label class="field wide"><span>摘要</span><textarea id="fSummary" class="textarea"></textarea></label>
                   <label class="field wide"><span>封面 URL</span><div class="upload-row"><input id="fCover" class="input" /><label class="upload-btn">上传封面<input id="coverUpload" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></label></div><small>支持 JPG / PNG / WebP / GIF，最大 8MB。</small></label>
-                  <label class="field wide"><span>网盘或下载链接</span><div class="upload-row"><input id="fFileUrl" class="input" /><label class="upload-btn">上传附件<input id="resourceUpload" type="file" accept=".zip,.rar,.7z,.skp,.max,.dwg,.dxf,.fbx,.obj,.pdf" /></label></div><small>大文件优先填网盘链接；本地测试附件最大 80MB。</small></label>
+                  <label class="field wide"><span>网盘或下载链接</span><div class="upload-row"><input id="fFileUrl" class="input" /><label class="upload-btn">上传附件<input id="resourceUpload" type="file" accept=".zip,.rar,.7z,.skp,.max,.dwg,.dxf,.fbx,.obj,.pdf" /></label></div><small>正式资源建议填百度网盘/夸克等链接；本地附件用于测试。</small></label>
                   <label class="field"><span>提取码</span><input id="fPass" class="input" /></label>
-                  <label class="field"><span>资源类型</span><input id="fFileType" class="input" placeholder="SKP 模型 / 贴图 / 教程" /></label>
+                  <label class="field"><span>资源类型</span><input id="fFileType" class="input" list="fileTypes" placeholder="SKP 模型" /></label>
                   <label class="field"><span>文件大小</span><input id="fSize" class="input" placeholder="128 MB" /></label>
-                  <label class="field"><span>价格</span><input id="fPrice" class="input" type="number" step="0.01" /></label>
-                  <label class="field"><span>会员限制</span><select id="fVip" class="select"><option value="0">普通资源</option><option value="1">VIP 资源</option></select></label>
+                  <label class="field"><span>价格</span><input id="fPrice" class="input" type="number" step="0.01" value="0" /></label>
+                  <label class="field"><span>积分</span><input id="fIntegral" class="input" type="number" value="0" /></label>
+                  <label class="field"><span>会员限制</span><select id="fVip" class="select"><option value="0">普通资源</option><option value="1">仅会员</option></select></label>
                   <label class="field"><span>显示状态</span><select id="fShow" class="select"><option value="1">显示</option><option value="0">隐藏</option></select></label>
+                  <label class="field"><span>推荐</span><select id="fRecommend" class="select"><option value="0">否</option><option value="1">是</option></select></label>
+                  <label class="field"><span>置顶</span><select id="fTop" class="select"><option value="0">否</option><option value="1">是</option></select></label>
                   <label class="field wide"><span>正文</span><textarea id="fBody" class="textarea"></textarea></label>
-                  <div class="drawer-actions">
-                    <button class="btn" type="submit">保存资源</button>
-                    <button id="hideContent" class="btn danger" type="button">隐藏资源</button>
-                    <button id="copyResourceUrl" class="btn ghost" type="button">复制下载链接</button>
-                  </div>
+                  <div class="drawer-actions"><button class="btn" type="submit">保存资源</button><button id="hideContent" class="btn danger" type="button">隐藏资源</button><button id="copyResourceUrl" class="btn ghost" type="button">复制下载链接</button></div>
                 </form>
+                <datalist id="fileTypes"><option value="SKP 模型"></option><option value="MAX 模型"></option><option value="D5 教程"></option><option value="贴图素材"></option><option value="SU 模型"></option><option value="CAD 图纸"></option><option value="PS 素材"></option></datalist>
               </div>
             </aside>
           </div>
@@ -322,7 +329,7 @@
             <div class="toolbar">
               <input id="feedbackQ" class="input" placeholder="搜索反馈标题、内容、回复" />
               <select id="feedbackStatus" class="select"><option value="all">全部反馈</option><option value="open">未回复</option><option value="replied">已回复</option></select>
-              <span></span>
+              <span></span><span></span>
               <button id="feedbackSearch" class="btn secondary" type="button">搜索</button>
               <button id="feedbackReset" class="btn ghost" type="button">重置</button>
             </div>
@@ -334,37 +341,52 @@
 
     <script>
       const $ = (id) => document.getElementById(id);
-      const state = { admin:null, stats:{}, categories:[], contentRows:[], contentPage:1, feedbackPage:1, currentView:'dashboard' };
+      const state = { admin:null, stats:{}, categories:[], contentRows:[], selectedContentIds:new Set(), contentPage:1, feedbackPage:1, currentView:'dashboard', activeCategoryId:0 };
       const viewCopy = {
         dashboard:['工作台','站点数据与近期维护动作'],
-        contents:['资源管理','搜索、筛选、编辑和上传资源'],
+        categories:['栏目管理','新增、删减、排序和管理分类树'],
+        contents:['资源管理','按栏目上传、筛选、移动和维护资源'],
         feedback:['反馈管理','处理用户反馈与下载诉求'],
       };
+      const modelNames = { download:'下载资源', course:'课程', article:'文章', picture:'图集', link:'链接', video:'观看', mp4:'视频', question:'问答', page:'单页' };
 
       function text(value) { return String(value ?? ''); }
-      function parseMeta(value) {
-        try { return typeof value === 'string' ? JSON.parse(value || '{}') : (value || {}); } catch { return {}; }
+      function parseMeta(value) { try { return typeof value === 'string' ? JSON.parse(value || '{}') : (value || {}); } catch { return {}; } }
+      function el(tag, className, value) { const node = document.createElement(tag); if (className) node.className = className; if (value != null) node.textContent = text(value); return node; }
+      async function api(url, opts = {}) { const res = await fetch(url, { credentials:'include', ...opts }); const data = await res.json().catch(() => ({})); if (!res.ok || !data.ok) throw new Error(data.message || '请求失败'); return data; }
+      function json(method, body) { return { method, headers:{ 'content-type':'application/json' }, body:JSON.stringify(body) }; }
+      function setMsg(id, value, kind = '') { const node = $(id); if (!node) return; node.textContent = value || ''; node.className = `message ${kind}`.trim(); }
+      function byParent() {
+        const map = new Map();
+        for (const row of state.categories) {
+          const pid = Number(row.parent_id || 0);
+          if (!map.has(pid)) map.set(pid, []);
+          map.get(pid).push(row);
+        }
+        for (const rows of map.values()) rows.sort((a,b) => Number(a.sort || 0) - Number(b.sort || 0) || Number(a.id) - Number(b.id));
+        return map;
       }
-      function el(tag, className, value) {
-        const node = document.createElement(tag);
-        if (className) node.className = className;
-        if (value != null) node.textContent = text(value);
-        return node;
+      function flatCategories() {
+        const map = byParent();
+        const result = [];
+        const walk = (pid, depth) => {
+          for (const row of map.get(pid) || []) {
+            result.push({ ...row, depth });
+            walk(Number(row.id), depth + 1);
+          }
+        };
+        walk(0, 0);
+        return result;
       }
-      async function api(url, opts = {}) {
-        const res = await fetch(url, { credentials:'include', ...opts });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.ok) throw new Error(data.message || '请求失败');
-        return data;
-      }
-      function json(method, body) {
-        return { method, headers:{ 'content-type':'application/json' }, body:JSON.stringify(body) };
-      }
-      function setMsg(id, value, kind = '') {
-        const node = $(id);
-        if (!node) return;
-        node.textContent = value || '';
-        node.className = `message ${kind}`.trim();
+      function fillCategorySelect(select, opts = {}) {
+        select.replaceChildren();
+        if (opts.all) select.appendChild(Object.assign(document.createElement('option'), { value:'0', textContent:opts.all }));
+        for (const row of flatCategories()) {
+          const option = document.createElement('option');
+          option.value = row.id;
+          option.textContent = `${'　'.repeat(row.depth)}${row.depth ? '└ ' : ''}${row.name}`;
+          select.appendChild(option);
+        }
       }
       function setView(name) {
         state.currentView = name;
@@ -372,11 +394,13 @@
         document.querySelectorAll('.nav-btn').forEach((button) => button.classList.toggle('active', button.dataset.view === name));
         $('pageTitle').textContent = viewCopy[name][0];
         $('pageHint').textContent = viewCopy[name][1];
+        if (name === 'categories') renderCategories();
         if (name === 'contents') loadContents();
         if (name === 'feedback') loadFeedback();
       }
       function updateCounts() {
         $('navDashCount').textContent = '4';
+        $('navCategoryCount').textContent = text(state.stats.categories ?? state.categories.length ?? '-');
         $('navResourceCount').textContent = text(state.stats.resources ?? '-');
         $('navFeedbackCount').textContent = text(state.stats.feedback ?? '-');
       }
@@ -406,104 +430,231 @@
       async function loadCategories() {
         const data = await api('/api/admin/categories');
         state.categories = data.rows || [];
-        const select = $('fCategory');
-        select.replaceChildren();
-        select.appendChild(Object.assign(document.createElement('option'), { value:'0', textContent:'未分类' }));
-        for (const row of state.categories) {
-          const option = document.createElement('option');
-          option.value = row.id;
-          option.textContent = `${row.parent_id ? '  - ' : ''}${row.name}`;
-          select.appendChild(option);
+        for (const id of ['fCategory','contentCategory','batchMoveCategory','catParent']) fillCategorySelect($(id), { all:id === 'contentCategory' ? '全部栏目' : id === 'catParent' ? '作为一级栏目' : id === 'batchMoveCategory' ? '选择目标栏目' : '未分类' });
+        renderCategoryTree();
+        if (state.currentView === 'categories') renderCategories();
+        updateCounts();
+      }
+      function renderCategoryTree() {
+        const wrap = $('categoryTree');
+        wrap.replaceChildren();
+        const all = document.createElement('button');
+        all.className = `cat-node ${state.activeCategoryId === 0 ? 'active' : ''}`;
+        all.type = 'button';
+        all.appendChild(el('span', 'cat-name', '全部资源'));
+        all.appendChild(el('span', 'pill', state.stats.resources ?? '-'));
+        all.onclick = () => selectCategoryFilter(0);
+        wrap.appendChild(all);
+        for (const row of flatCategories()) {
+          const button = document.createElement('button');
+          button.className = `cat-node ${state.activeCategoryId === Number(row.id) ? 'active' : ''}`;
+          button.type = 'button';
+          button.style.paddingLeft = `${8 + row.depth * 16}px`;
+          button.appendChild(el('span', 'cat-name', `${row.depth ? '└ ' : ''}${row.name}`));
+          button.appendChild(el('span', 'pill', row.content_count || 0));
+          button.onclick = () => selectCategoryFilter(Number(row.id));
+          wrap.appendChild(button);
         }
+      }
+      function selectCategoryFilter(id) {
+        state.activeCategoryId = Number(id || 0);
+        $('contentCategory').value = String(state.activeCategoryId);
+        $('fCategory').value = String(state.activeCategoryId);
+        renderCategoryTree();
+        state.contentPage = 1;
+        loadContents();
+      }
+      function renderCategories() {
+        const tbody = $('categoryRows');
+        tbody.replaceChildren();
+        const rows = flatCategories();
+        if (!rows.length) {
+          const tr = document.createElement('tr');
+          const td = el('td', 'empty', '暂无栏目');
+          td.colSpan = 7;
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+          return;
+        }
+        for (const row of rows) {
+          const tr = document.createElement('tr');
+          tr.className = 'clickable';
+          tr.dataset.id = row.id;
+          tr.onclick = () => openCategory(row.id);
+          const sort = el('td');
+          const sortInput = el('input', 'input sort-input');
+          sortInput.value = row.sort ?? 20;
+          sortInput.dataset.id = row.id;
+          sortInput.onclick = (event) => event.stopPropagation();
+          sort.appendChild(sortInput);
+          tr.appendChild(sort);
+          tr.appendChild(el('td', 'mono', row.id));
+          tr.appendChild(el('td', '', `${'　'.repeat(row.depth)}${row.depth ? '└ ' : ''}${row.name}`));
+          tr.appendChild(el('td', '', row.model_name || modelNames[row.content_type] || row.content_type || '-'));
+          tr.appendChild(el('td', '', row.is_menu ? '显示' : '隐藏'));
+          tr.appendChild(el('td', 'mono', row.content_count || 0));
+          const actions = el('td', 'row-actions');
+          const child = el('button', 'btn secondary small', '加子栏目');
+          child.type = 'button';
+          child.onclick = (event) => { event.stopPropagation(); resetCategoryForm(Number(row.id)); };
+          actions.appendChild(child);
+          tr.appendChild(actions);
+          tbody.appendChild(tr);
+        }
+      }
+      function resetCategoryForm(parentId = 0) {
+        $('catId').value = '';
+        $('catName').value = '';
+        $('catParent').value = String(parentId || 0);
+        $('catType').value = 'download';
+        $('catSort').value = '20';
+        $('catMenu').value = '1';
+        $('catCover').value = '';
+        $('catKeywords').value = '';
+        $('catUrl').value = '';
+        $('catDescription').value = '';
+        $('categoryEditorTitle').textContent = parentId ? '新增子栏目' : '新增栏目';
+        $('categoryEditorHint').textContent = parentId ? `父栏目 #${parentId}` : '可创建父子栏目';
+      }
+      function openCategory(id) {
+        const row = state.categories.find((item) => Number(item.id) === Number(id));
+        if (!row) return;
+        $('catId').value = row.id;
+        $('catName').value = row.name || '';
+        $('catParent').value = String(row.parent_id || 0);
+        $('catType').value = row.content_type || 'download';
+        $('catSort').value = row.sort ?? 20;
+        $('catMenu').value = row.is_menu ? '1' : '0';
+        $('catCover').value = row.image_url || '';
+        $('catKeywords').value = row.meta_keywords || '';
+        $('catUrl').value = row.url || '';
+        $('catDescription').value = row.description || '';
+        $('categoryEditorTitle').textContent = `编辑栏目 #${row.id}`;
+        $('categoryEditorHint').textContent = row.name || '';
+        document.querySelectorAll('#categoryRows tr').forEach((tr) => tr.classList.toggle('selected', tr.dataset.id === String(id)));
+      }
+      function categoryPayload() {
+        return {
+          id:Number($('catId').value || 0),
+          name:$('catName').value,
+          parent_id:Number($('catParent').value || 0),
+          content_type:$('catType').value,
+          sort:Number($('catSort').value || 20),
+          is_menu:Number($('catMenu').value || 0),
+          image_url:$('catCover').value,
+          keywords:$('catKeywords').value,
+          url:$('catUrl').value,
+          description:$('catDescription').value,
+        };
+      }
+      async function saveCategory(event) {
+        event.preventDefault();
+        const payload = categoryPayload();
+        await api('/api/admin/categories', json(payload.id ? 'PATCH' : 'POST', payload));
+        setMsg('categoryMsg', '栏目保存成功', 'ok');
+        await Promise.all([loadCategories(), loadStats()]);
+        resetCategoryForm();
+      }
+      async function deleteCategory() {
+        const id = Number($('catId').value || 0);
+        if (!id || !confirm('确定删除这个栏目吗？栏目下有子栏目或资源时不会删除。')) return;
+        await api('/api/admin/categories', json('DELETE', { id }));
+        setMsg('categoryMsg', '栏目已删除', 'ok');
+        await Promise.all([loadCategories(), loadStats()]);
+        resetCategoryForm();
+      }
+      async function saveCategorySort() {
+        const sorts = Array.from(document.querySelectorAll('#categoryRows .sort-input')).map((input) => ({ id:Number(input.dataset.id), sort:Number(input.value || 20) }));
+        await api('/api/admin/categories', json('PATCH', { sorts }));
+        setMsg('categoryMsg', '排序已保存', 'ok');
+        await loadCategories();
       }
       async function loadContents() {
         setMsg('contentMsg', '正在读取资源...');
         const q = encodeURIComponent($('contentQ').value || '');
         const limit = encodeURIComponent($('contentLimit').value || '20');
-        const data = await api(`/api/admin/contents?q=${q}&limit=${limit}&page=${state.contentPage}`);
+        const category = encodeURIComponent($('contentCategory').value || '0');
+        const status = encodeURIComponent($('contentStatus').value || 'all');
+        const order = encodeURIComponent($('contentOrder').value || 'newest');
+        const data = await api(`/api/admin/contents?q=${q}&category_id=${category}&status=${status}&order=${order}&limit=${limit}&page=${state.contentPage}`);
         state.contentRows = data.rows || [];
+        state.selectedContentIds.clear();
+        $('checkAllContents').checked = false;
         renderContentRows();
         setMsg('contentMsg', `共 ${data.total || 0} 条资源`, 'ok');
       }
-      function filteredContents() {
-        const status = $('contentStatus').value;
-        return state.contentRows.filter((row) => {
-          if (status === 'show') return Number(row.is_show) === 1;
-          if (status === 'hidden') return Number(row.is_show) === 0;
-          if (status === 'vip') return Number(row.just_vip) === 1;
-          return true;
-        });
+      function updateSelectedCount() {
+        $('selectedCount').textContent = `已选 ${state.selectedContentIds.size}`;
       }
       function renderContentRows() {
         const tbody = $('contentRows');
         tbody.replaceChildren();
-        const rows = filteredContents();
-        if (!rows.length) {
+        updateSelectedCount();
+        if (!state.contentRows.length) {
           const tr = document.createElement('tr');
           const td = el('td', 'empty', '没有符合条件的资源');
-          td.colSpan = 6;
+          td.colSpan = 8;
           tr.appendChild(td);
           tbody.appendChild(tr);
           return;
         }
-        for (const row of rows) tbody.appendChild(contentRow(row));
+        for (const row of state.contentRows) tbody.appendChild(contentRow(row));
       }
       function contentRow(row) {
         const meta = parseMeta(row.meta);
         const tr = document.createElement('tr');
+        tr.className = 'clickable';
         tr.dataset.id = row.id;
-        tr.addEventListener('click', () => openContent(row.id));
-
+        tr.onclick = () => openContent(row.id);
+        const checkCell = el('td');
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.checked = state.selectedContentIds.has(Number(row.id));
+        check.onclick = (event) => { event.stopPropagation(); check.checked ? state.selectedContentIds.add(Number(row.id)) : state.selectedContentIds.delete(Number(row.id)); updateSelectedCount(); };
+        checkCell.appendChild(check);
+        tr.appendChild(checkCell);
         const title = el('td');
         const box = el('div', 'resource-cell');
-        if (row.cover_url) {
-          const img = el('img', 'thumb');
-          img.src = row.cover_url;
-          img.alt = row.title || '封面';
-          box.appendChild(img);
-        } else {
-          box.appendChild(el('div', 'fallback-thumb', 'XD'));
-        }
+        if (row.cover_url) { const img = el('img', 'thumb'); img.src = row.cover_url; img.alt = row.title || '封面'; box.appendChild(img); } else { box.appendChild(el('div', 'fallback-thumb', 'XD')); }
         const info = el('div');
         info.appendChild(el('div', 'resource-title', row.title || `资源 #${row.id}`));
         info.appendChild(el('div', 'resource-sub', row.summary || row.file_url || '暂无摘要'));
         box.appendChild(info);
         title.appendChild(box);
         tr.appendChild(title);
-
         tr.appendChild(el('td', '', row.category_name || row.category_id || '未分类'));
         tr.appendChild(el('td', '', `${meta.file_type || '资源'} / ${meta.file_size || '-'}`));
-        tr.appendChild(el('td', 'mono', `浏览 ${row.hits || 0} / 下载 ${row.download_num || 0}`));
-
+        tr.appendChild(el('td', 'mono', row.sort || 0));
         const status = el('td');
         status.appendChild(el('span', `pill ${row.is_show ? 'ok' : 'off'}`, row.is_show ? '显示' : '隐藏'));
         if (row.just_vip) status.appendChild(el('span', 'pill warn', 'VIP'));
+        if (row.is_recommend) status.appendChild(el('span', 'pill ok', '推荐'));
+        if (row.is_top) status.appendChild(el('span', 'pill warn', '置顶'));
         tr.appendChild(status);
-
+        tr.appendChild(el('td', 'mono', `浏览 ${row.hits || 0} / 下载 ${row.download_num || 0}`));
         const actions = el('td', 'row-actions');
         const edit = el('button', 'btn secondary small', '编辑');
         edit.type = 'button';
-        edit.addEventListener('click', (event) => { event.stopPropagation(); openContent(row.id); });
+        edit.onclick = (event) => { event.stopPropagation(); openContent(row.id); };
         actions.appendChild(edit);
         const copy = el('button', 'btn ghost small', '复制链接');
         copy.type = 'button';
-        copy.addEventListener('click', async (event) => {
-          event.stopPropagation();
-          await navigator.clipboard?.writeText(row.file_url || '');
-          setMsg('contentMsg', row.file_url ? '已复制资源链接' : '该资源还没有下载链接', row.file_url ? 'ok' : 'error');
-        });
+        copy.onclick = async (event) => { event.stopPropagation(); await navigator.clipboard?.writeText(row.file_url || ''); setMsg('contentMsg', row.file_url ? '已复制资源链接' : '该资源还没有下载链接', row.file_url ? 'ok' : 'error'); };
         actions.appendChild(copy);
         tr.appendChild(actions);
         return tr;
       }
       function resetContentForm() {
         $('contentId').value = '';
-        for (const id of ['fTitle','fKeywords','fSummary','fCover','fFileUrl','fPass','fFileType','fSize','fPrice','fBody']) $(id).value = '';
-        $('fCategory').value = '0';
+        for (const id of ['fTitle','fKeywords','fSummary','fCover','fFileUrl','fPass','fFileType','fSize','fPrice','fIntegral','fBody']) $(id).value = '';
+        $('fCategory').value = String(state.activeCategoryId || $('contentCategory').value || 0);
+        $('fSort').value = '0';
         $('fVip').value = '0';
         $('fShow').value = '1';
+        $('fRecommend').value = '0';
+        $('fTop').value = '0';
         $('editorTitle').textContent = '新增资源';
-        $('editorHint').textContent = '填写资源信息后保存';
+        $('editorHint').textContent = '填写后保存到资源库';
         document.querySelectorAll('#contentRows tr').forEach((row) => row.classList.remove('selected'));
       }
       async function openContent(id) {
@@ -517,6 +668,7 @@
         $('contentId').value = row.id;
         $('fTitle').value = row.title || '';
         $('fCategory').value = String(row.category_id || 0);
+        $('fSort').value = row.sort || 0;
         $('fKeywords').value = row.keywords || '';
         $('fSummary').value = row.summary || '';
         $('fCover').value = row.cover_url || '';
@@ -525,8 +677,11 @@
         $('fFileType').value = meta.file_type || '';
         $('fSize').value = meta.file_size || '';
         $('fPrice').value = row.price_money || 0;
+        $('fIntegral').value = row.price_integral || 0;
         $('fVip').value = row.just_vip ? '1' : '0';
         $('fShow').value = row.is_show ? '1' : '0';
+        $('fRecommend').value = row.is_recommend ? '1' : '0';
+        $('fTop').value = row.is_top ? '1' : '0';
         $('fBody').value = row.body || '';
         setMsg('contentMsg', '');
       }
@@ -534,6 +689,7 @@
         return {
           title:$('fTitle').value,
           category_id:Number($('fCategory').value || 0),
+          sort:Number($('fSort').value || 0),
           keywords:$('fKeywords').value,
           summary:$('fSummary').value,
           cover_url:$('fCover').value,
@@ -542,8 +698,11 @@
           fileType:$('fFileType').value,
           size:$('fSize').value,
           price_money:Number($('fPrice').value || 0),
+          price_integral:Number($('fIntegral').value || 0),
           just_vip:Number($('fVip').value || 0),
           is_show:Number($('fShow').value || 0),
+          is_recommend:Number($('fRecommend').value || 0),
+          is_top:Number($('fTop').value || 0),
           body:$('fBody').value,
         };
       }
@@ -551,8 +710,7 @@
         event.preventDefault();
         const id = $('contentId').value;
         const url = id ? `/api/admin/content/${id}` : '/api/admin/contents';
-        const method = id ? 'PATCH' : 'POST';
-        await api(url, json(method, formPayload()));
+        await api(url, json(id ? 'PATCH' : 'POST', formPayload()));
         setMsg('contentMsg', '保存成功', 'ok');
         await Promise.all([loadContents(), loadStats()]);
       }
@@ -563,6 +721,14 @@
         setMsg('contentMsg', '已隐藏资源', 'ok');
         await Promise.all([loadContents(), loadStats()]);
       }
+      async function batchContent(action) {
+        const ids = Array.from(state.selectedContentIds);
+        if (!ids.length) return setMsg('contentMsg', '请先勾选资源', 'error');
+        const payload = { action, ids, category_id:Number($('batchMoveCategory').value || 0) };
+        await api('/api/admin/contents', json('PATCH', payload));
+        setMsg('contentMsg', '批量操作完成', 'ok');
+        await loadContents();
+      }
       async function uploadFile(kind, file) {
         const form = new FormData();
         form.append('kind', kind);
@@ -572,14 +738,14 @@
       async function handleUpload(input, kind, targetId) {
         const file = input.files?.[0];
         if (!file) return;
-        setMsg('contentMsg', kind === 'cover' ? '正在上传封面...' : '正在上传测试附件...');
+        setMsg(state.currentView === 'categories' ? 'categoryMsg' : 'contentMsg', kind === 'cover' ? '正在上传封面...' : '正在上传测试附件...');
         try {
           const data = await uploadFile(kind, file);
           $(targetId).value = data.url || '';
           if (kind === 'resource' && !$('fSize').value) $('fSize').value = `${Math.max(1, Math.round((data.size || file.size) / 1024 / 1024))} MB`;
-          setMsg('contentMsg', '上传成功，已自动填入链接', 'ok');
+          setMsg(state.currentView === 'categories' ? 'categoryMsg' : 'contentMsg', '上传成功，已自动填入链接', 'ok');
         } catch (error) {
-          setMsg('contentMsg', error.message || '上传失败', 'error');
+          setMsg(state.currentView === 'categories' ? 'categoryMsg' : 'contentMsg', error.message || '上传失败', 'error');
         } finally {
           input.value = '';
         }
@@ -639,20 +805,32 @@
       document.querySelectorAll('.nav-btn').forEach((button) => button.addEventListener('click', () => setView(button.dataset.view)));
       $('refreshAll').onclick = () => Promise.all([loadStats(), loadCategories()]);
       $('quickNew').onclick = () => { setView('contents'); resetContentForm(); };
+      $('quickCategory').onclick = () => { setView('categories'); resetCategoryForm(); };
       $('quickFeedback').onclick = () => setView('feedback');
+      $('newRootCategory').onclick = () => resetCategoryForm(0);
+      $('resetCategory').onclick = () => resetCategoryForm();
+      $('newChildCategory').onclick = () => resetCategoryForm(Number($('catId').value || 0));
+      $('categoryForm').onsubmit = saveCategory;
+      $('deleteCategory').onclick = deleteCategory;
+      $('saveCategorySort').onclick = saveCategorySort;
       $('newContent').onclick = resetContentForm;
       $('closeEditor').onclick = resetContentForm;
       $('contentSearch').onclick = () => { state.contentPage = 1; loadContents(); };
-      $('contentReset').onclick = () => { $('contentQ').value = ''; $('contentStatus').value = 'all'; state.contentPage = 1; loadContents(); };
-      $('contentStatus').onchange = renderContentRows;
+      $('contentReset').onclick = () => { $('contentQ').value = ''; $('contentCategory').value = '0'; $('contentStatus').value = 'all'; $('contentOrder').value = 'newest'; state.activeCategoryId = 0; state.contentPage = 1; renderCategoryTree(); loadContents(); };
+      $('contentCategory').onchange = () => { state.activeCategoryId = Number($('contentCategory').value || 0); renderCategoryTree(); state.contentPage = 1; loadContents(); };
+      $('contentStatus').onchange = loadContents;
+      $('contentOrder').onchange = loadContents;
+      $('contentLimit').onchange = loadContents;
       $('contentForm').onsubmit = saveContent;
       $('hideContent').onclick = hideCurrentContent;
-      $('copyResourceUrl').onclick = async () => {
-        await navigator.clipboard?.writeText($('fFileUrl').value || '');
-        setMsg('contentMsg', $('fFileUrl').value ? '已复制下载链接' : '下载链接为空', $('fFileUrl').value ? 'ok' : 'error');
-      };
+      $('copyResourceUrl').onclick = async () => { await navigator.clipboard?.writeText($('fFileUrl').value || ''); setMsg('contentMsg', $('fFileUrl').value ? '已复制下载链接' : '下载链接为空', $('fFileUrl').value ? 'ok' : 'error'); };
+      $('checkAllContents').onchange = (event) => { state.selectedContentIds.clear(); if (event.currentTarget.checked) for (const row of state.contentRows) state.selectedContentIds.add(Number(row.id)); renderContentRows(); };
+      $('batchMove').onclick = () => batchContent('move');
+      $('batchShow').onclick = () => batchContent('show');
+      $('batchHide').onclick = () => batchContent('hide');
       $('coverUpload').onchange = (event) => handleUpload(event.currentTarget, 'cover', 'fCover');
       $('resourceUpload').onchange = (event) => handleUpload(event.currentTarget, 'resource', 'fFileUrl');
+      $('catCoverUpload').onchange = (event) => handleUpload(event.currentTarget, 'cover', 'catCover');
       $('feedbackSearch').onclick = () => { state.feedbackPage = 1; loadFeedback(); };
       $('feedbackRefresh').onclick = loadFeedback;
       $('feedbackReset').onclick = () => { $('feedbackQ').value = ''; $('feedbackStatus').value = 'all'; state.feedbackPage = 1; loadFeedback(); };

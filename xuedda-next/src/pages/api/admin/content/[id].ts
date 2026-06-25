@@ -7,22 +7,37 @@ function contentId(value: string | undefined) {
   return Number.isInteger(id) && id > 0 ? id : 0;
 }
 
+function toInt(value: unknown, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.trunc(n) : fallback;
+}
+
+function cleanText(value: unknown, max = 255) {
+  return String(value ?? '').trim().slice(0, max);
+}
+
 function pickContentPayload(body: any) {
   return {
-    categoryId: Number(body.category_id || 0),
-    title: String(body.title || '').trim().slice(0, 255),
-    summary: String(body.summary || '').trim().slice(0, 500),
-    coverUrl: String(body.cover_url || '').trim().slice(0, 500),
-    body: String(body.body || '').trim(),
-    keywords: String(body.keywords || '').trim().slice(0, 255),
-    fileUrl: String(body.file_url || '').trim().slice(0, 700),
-    extractPass: String(body.extract_pass || '').trim().slice(0, 100),
+    categoryId: toInt(body.category_id),
+    title: cleanText(body.title, 255),
+    summary: cleanText(body.summary, 500),
+    coverUrl: cleanText(body.cover_url, 500),
+    body: cleanText(body.body, 100000),
+    keywords: cleanText(body.keywords, 255),
+    fileUrl: cleanText(body.file_url, 700),
+    extractPass: cleanText(body.extract_pass, 100),
+    priceIntegral: toInt(body.price_integral),
     priceMoney: Number(body.price_money || 0),
     justVip: body.just_vip ? 1 : 0,
     isShow: body.is_show == null ? 1 : Number(body.is_show ? 1 : 0),
+    isTop: body.is_top ? 1 : 0,
+    isRecommend: body.is_recommend ? 1 : 0,
+    sort: toInt(body.sort),
+    indexTypeId: toInt(body.index_type_id),
+    indexThemeId: toInt(body.index_theme_id),
     meta: JSON.stringify({
-      file_type: String(body.fileType || '').trim().slice(0, 60),
-      file_size: String(body.size || '').trim().slice(0, 60),
+      file_type: cleanText(body.fileType, 60),
+      file_size: cleanText(body.size, 60),
     }),
   };
 }
@@ -53,7 +68,8 @@ export const PATCH: APIRoute = async ({ params, request }) => {
   await db.query(
     `UPDATE xuedda.contents SET
        category_id=?, title=?, summary=?, cover_url=?, body=?, keywords=?, file_url=?, extract_pass=?,
-       price_money=?, just_vip=?, is_show=?, meta=?, updated_at=NOW()
+       price_integral=?, price_money=?, just_vip=?, is_show=?, is_top=?, is_recommend=?, sort=?,
+       index_type_id=?, index_theme_id=?, meta=?, updated_at=NOW()
      WHERE id=?`,
     [
       payload.categoryId,
@@ -64,9 +80,15 @@ export const PATCH: APIRoute = async ({ params, request }) => {
       payload.keywords,
       payload.fileUrl,
       payload.extractPass,
+      payload.priceIntegral,
       payload.priceMoney,
       payload.justVip,
       payload.isShow,
+      payload.isTop,
+      payload.isRecommend,
+      payload.sort,
+      payload.indexTypeId,
+      payload.indexThemeId,
       payload.meta,
       id,
     ],
