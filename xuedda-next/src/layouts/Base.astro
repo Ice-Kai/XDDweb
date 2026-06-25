@@ -8,8 +8,8 @@ const {
   description = 'SketchUp 模型、D5/Enscape/Lumion 教程、材质贴图、软件参数一站获取，VIP 会员畅享下载。',
 } = Astro.props;
 
-// 静态发布版：关闭开场注册门槛，首页直接展示内容。
-const isHome = false;
+// 首页开场注册/登录门槛：未登录停留在开场界面，登录后进入网站。
+const isHome = Astro.url.pathname === '/';
 
 // 并行运行期：旧站入口（在 .env 设 OLD_SITE_URL=https://old.xuedda.com 即显示「旧版」切换链接；未设则不显示）
 const oldSiteUrl = (import.meta.env?.OLD_SITE_URL as string) ?? process.env.OLD_SITE_URL ?? '';
@@ -505,7 +505,7 @@ const cloudWords = [
     </script>
 
     <script is:inline>
-      // 开场页 · 注册/登录门槛（UI 阶段：前端校验 + 占位，后端随会员阶段接）
+      // 开场页 · 注册/登录门槛
       (function () {
         const intro = document.getElementById('intro');
         if (!intro) return;
@@ -514,14 +514,16 @@ const cloudWords = [
           document.body.classList.remove('intro-locked');
           setTimeout(() => intro.remove(), 1100);
         };
-        // 进入过一次就永久不再拦（localStorage 跨会话/标签/刷新都记住）。退出登录时清除该键即可重新展示。
-        if (localStorage.getItem('xdd-entered') === '1') { enter(); return; }
 
         let mode = 'register';
         const form = document.getElementById('introAuthForm');
         const confirm = intro.querySelector('.ia-confirm');
         const submit = document.getElementById('iaSubmit');
         const err = document.getElementById('iaErr');
+        fetch('/api/member/me', { credentials: 'include' })
+          .then((r) => r.json())
+          .then((d) => { if (d.member) enter(); })
+          .catch(() => {});
         intro.querySelectorAll('.ia-tab').forEach((t) => {
           t.addEventListener('click', () => {
             intro.querySelectorAll('.ia-tab').forEach((x) => x.classList.remove('active'));
@@ -549,14 +551,12 @@ const cloudWords = [
             });
             const data = await res.json();
             if (!res.ok || !data.ok) { err.textContent = data.message || '提交失败'; return; }
-            localStorage.setItem('xdd-entered', '1');
             enter();
           } catch {
             err.textContent = '网络错误，请稍后重试';
           }
         });
         document.getElementById('iaWechat')?.addEventListener('click', () => {
-          localStorage.setItem('xdd-entered', '1');
           enter();
         });
       })();
@@ -622,6 +622,7 @@ const cloudWords = [
           .catch(() => {});
         document.getElementById('memberLogout')?.addEventListener('click', async () => {
           await fetch('/api/member/logout', { method: 'POST', credentials: 'include' });
+          localStorage.removeItem('xdd-entered');
           location.href = '/';
         });
       })();
