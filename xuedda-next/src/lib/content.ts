@@ -12,6 +12,7 @@ export interface DownloadItem {
   category_id: number;
   created_at: string;
   pass: string;
+  hidePass?: boolean;
   size?: string;
   summary?: string;
   fileType?: string;
@@ -136,6 +137,7 @@ function toDownload(row: ContentRow): DownloadItem {
     category_id: Number(row.category_id || 0),
     created_at: row.created_at ? String(row.created_at).slice(0, 10) : '',
     pass: String(row.extract_pass || ''),
+    hidePass: Boolean(meta.hide_extract_pass || meta.hideExtractPass),
     size: normalSize(meta),
     summary: String(row.summary || ''),
     description: String(row.summary || ''),

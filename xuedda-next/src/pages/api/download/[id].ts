@@ -25,7 +25,8 @@ export const GET: APIRoute = async ({ params, request }) => {
       ? [{ name: item.title, url: item.file_url, pass: item.pass, fileSize: item.size }]
       : [];
 
-  const safeFiles = sanitizeDownloadFiles(files);
+  const visibleFiles = item.hidePass ? files.map((file) => ({ ...file, pass: '' })) : files;
+  const safeFiles = sanitizeDownloadFiles(visibleFiles);
   if (!safeFiles.length) return fail('该资源暂未配置可信下载链接', 404);
 
   try {

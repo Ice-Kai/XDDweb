@@ -43,6 +43,7 @@ function pickContentPayload(body: any) {
       model_format: cleanText(body.modelFormat, 60),
       file_type: cleanText(body.fileType, 60),
       file_size: cleanText(body.size, 60),
+      hide_extract_pass: body.hideExtractPass ? 1 : 0,
     }),
   };
 }

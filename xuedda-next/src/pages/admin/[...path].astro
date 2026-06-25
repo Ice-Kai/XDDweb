@@ -97,6 +97,17 @@
 
       .board { display:grid; grid-template-columns:minmax(0,1fr) 420px; gap:16px; align-items:start; }
       .board.wide-left { grid-template-columns:280px minmax(0,1fr) 420px; }
+      .material-console { display:grid; grid-template-columns:310px minmax(0,1fr); gap:16px; align-items:start; }
+      .material-side { position:sticky; top:82px; max-height:calc(100vh - 104px); display:flex; flex-direction:column; }
+      .material-side .category-tree { max-height:none; flex:1; }
+      .category-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:10px; border-bottom:1px solid var(--line); background:var(--panel-2); }
+      .material-workspace { display:grid; gap:16px; min-width:0; }
+      .material-search { display:grid; grid-template-columns:minmax(240px,1fr) 160px 136px 106px auto auto; gap:9px; padding:12px; border:1px solid var(--line); border-radius:10px; background:var(--panel); box-shadow:var(--shadow-soft); }
+      .material-grid { display:grid; grid-template-columns:minmax(520px,1fr) minmax(430px,520px); gap:16px; align-items:start; }
+      .material-upload { position:sticky; top:82px; max-height:calc(100vh - 104px); overflow:auto; }
+      .batch-import-box { display:grid; gap:10px; padding:12px; border-top:1px solid var(--line); }
+      .batch-import-box .textarea { min-height:132px; }
+      .file-note { color:var(--quiet); font-size:12px; line-height:1.5; }
       .panel { border:1px solid var(--line); border-radius:9px; background:var(--panel); box-shadow:var(--shadow-soft); overflow:hidden; transition:border-color .25s,box-shadow .3s; }
       .panel:hover { border-color:rgba(201,150,60,.18); }
       .panel-head { min-height:64px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line); background:var(--panel); }
@@ -183,6 +194,8 @@
 
       @media (max-width:1280px) {
         .board,.board.wide-left { grid-template-columns:1fr; }
+        .material-console,.material-grid { grid-template-columns:1fr; }
+        .material-side,.material-upload { position:static; max-height:none; }
         .editor { position:static; max-height:none; }
         .table-wrap,.category-tree { max-height:none; }
       }
@@ -192,7 +205,7 @@
         .main { padding:12px; }
         .topbar { margin:-12px -12px 12px; flex-direction:column; align-items:flex-start; }
         .dash-grid { grid-template-columns:1fr 1fr; }
-        .toolbar { grid-template-columns:1fr; }
+        .toolbar,.material-search { grid-template-columns:1fr; }
         .form-grid { grid-template-columns:1fr; }
         .upload-step-grid,.choice-grid { grid-template-columns:1fr; }
         .upload-step-hint { white-space:normal; }
@@ -296,44 +309,53 @@
         </section>
 
         <section id="contentsView" class="view">
-          <div class="board wide-left resource-board">
-            <aside class="panel category-panel">
-              <div class="panel-head"><div class="panel-title"><h2>分类上传</h2><p>先选栏目，再新增资源</p></div></div>
+          <div class="material-console">
+            <aside class="panel category-panel material-side">
+              <div class="panel-head"><div class="panel-title"><h2>素材栏目</h2><p>模型素材 / 灯光贴图 / 主栏目与子栏目</p></div></div>
+              <div class="category-actions">
+                <button id="addUploadRootCategory" class="btn secondary small" type="button">新增主栏目</button>
+                <button id="addUploadChildCategory" class="btn ghost small" type="button">新增子栏目</button>
+              </div>
               <div id="categoryTree" class="category-tree"></div>
             </aside>
-            <div class="panel data-panel">
-              <div class="panel-head">
-                <div class="panel-title"><h2>资源库</h2><p>搜索、筛选、批量移动和编辑资源</p></div>
-                <button id="newContent" class="btn" type="button">新增资源</button>
-              </div>
-              <div class="toolbar">
-                <input id="contentQ" class="input" placeholder="搜索标题、摘要、关键词" />
+
+            <div class="material-workspace">
+              <div class="material-search">
+                <input id="contentQ" class="input" placeholder="搜索素材标题 / 简介 / 关键词" />
                 <select id="contentCategory" class="select"></select>
                 <select id="contentStatus" class="select"><option value="all">全部状态</option><option value="show">显示中</option><option value="hidden">已隐藏</option><option value="vip">VIP</option><option value="recommend">推荐</option><option value="top">置顶</option></select>
-                <select id="contentOrder" class="select"><option value="newest">最新</option><option value="sort">排序优先</option><option value="hits">浏览量</option><option value="downloads">下载量</option><option value="oldest">最早</option></select>
                 <select id="contentLimit" class="select"><option>20</option><option>50</option><option>100</option></select>
-                <button id="contentSearch" class="btn secondary" type="button">搜索</button>
+                <button id="contentSearch" class="btn" type="button">搜索</button>
                 <button id="contentReset" class="btn ghost" type="button">重置</button>
+                <select id="contentOrder" class="select" style="display:none"><option value="newest">最新</option><option value="sort">排序优先</option><option value="hits">浏览量</option><option value="downloads">下载量</option><option value="oldest">最早</option></select>
               </div>
-              <div class="batchbar">
-                <span id="selectedCount" class="pill">已选 0</span>
-                <select id="batchMoveCategory" class="select" style="max-width:220px"></select>
-                <strong>批量操作</strong>
-                <button id="batchMove" class="btn secondary small" type="button">批量移动</button>
-                <button id="batchShow" class="btn ghost small" type="button">批量显示</button>
-                <button id="batchHide" class="btn danger small" type="button">批量隐藏</button>
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead><tr><th style="width:38px"><input id="checkAllContents" type="checkbox" /></th><th>资源</th><th>栏目</th><th>类型/大小</th><th>排序</th><th>状态</th><th>数据</th><th>操作</th></tr></thead>
-                  <tbody id="contentRows"></tbody>
-                </table>
-              </div>
-              <div class="panel-body"><p id="contentMsg" class="message"></p></div>
-            </div>
-            <aside class="panel editor form-panel">
-              <div class="panel-head"><div class="panel-title"><h2 id="editorTitle">上传资源</h2><p id="editorHint">栏目、类型、封面、网盘链接与发布状态</p></div><button id="closeEditor" class="btn ghost small" type="button">清空</button></div>
-              <div class="panel-body">
+
+              <div class="material-grid">
+                <div class="panel data-panel">
+                  <div class="panel-head">
+                    <div class="panel-title"><h2>素材库</h2><p>选中素材后可批量隐藏、移动或编辑</p></div>
+                    <button id="newContent" class="btn" type="button">新增素材</button>
+                  </div>
+                  <div class="batchbar">
+                    <span id="selectedCount" class="pill">已选 0</span>
+                    <select id="batchMoveCategory" class="select" style="max-width:220px"></select>
+                    <strong>批量操作</strong>
+                    <button id="batchMove" class="btn secondary small" type="button">批量移动</button>
+                    <button id="batchShow" class="btn ghost small" type="button">批量显示</button>
+                    <button id="batchHide" class="btn danger small" type="button">批量隐藏</button>
+                  </div>
+                  <div class="table-wrap">
+                    <table>
+                      <thead><tr><th style="width:38px"><input id="checkAllContents" type="checkbox" /></th><th>素材</th><th>栏目</th><th>类型/大小</th><th>序号</th><th>状态</th><th>数据</th><th>操作</th></tr></thead>
+                      <tbody id="contentRows"></tbody>
+                    </table>
+                  </div>
+                  <div class="panel-body"><p id="contentMsg" class="message"></p></div>
+                </div>
+
+                <aside class="panel form-panel material-upload">
+                  <div class="panel-head"><div class="panel-title"><h2 id="editorTitle">上传素材</h2><p id="editorHint">图片、网盘链接、提取码、类型、大小和简介</p></div><button id="closeEditor" class="btn ghost small" type="button">清空</button></div>
+                  <div class="panel-body">
                 <form id="contentForm" class="form-grid upload-form">
                   <input id="contentId" type="hidden" />
                   <section class="upload-step">
@@ -362,9 +384,11 @@
                     <div class="upload-step-head"><div class="upload-step-title"><span class="upload-step-index">3</span><span>封面与下载</span></div><span class="upload-step-hint">图片 + 网盘链接</span></div>
                     <div class="upload-step-grid">
                       <label class="field wide"><span>封面图片</span><div class="upload-row"><input id="fCover" class="input" placeholder="封面 URL 或上传图片自动填入" /><label class="upload-btn">上传图片<input id="coverUpload" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></label></div><small>支持 JPG / PNG / WebP / GIF，最大 8MB。</small></label>
+                      <label class="field wide"><span>粘贴网盘分享文本</span><textarea id="fNetdiskRaw" class="textarea" placeholder="粘贴：链接：https://pan.baidu.com/s/... 提取码：abcd"></textarea><small>粘贴后会自动拆出链接和提取码，也可以手动修改。</small></label>
                       <label class="field wide"><span>百度网盘 / 夸克 / 其他下载链接</span><div class="upload-row"><input id="fFileUrl" class="input" placeholder="https://pan.baidu.com/..." /><label class="upload-btn">上传附件<input id="resourceUpload" type="file" accept=".zip,.rar,.7z,.skp,.max,.dwg,.dxf,.fbx,.obj,.pdf,.txt,.doc,.docx" /></label></div><small>正式资源建议填网盘链接；本地附件用于测试。</small></label>
                       <label class="field"><span>提取码</span><input id="fPass" class="input" /></label>
                       <label class="field"><span>文件大小</span><input id="fSize" class="input" placeholder="128 MB" /></label>
+                      <label class="field wide"><span>提取码显示</span><select id="fHidePass" class="select"><option value="0">前台显示提取码</option><option value="1">隐藏提取码，只显示下载链接</option></select></label>
                     </div>
                   </section>
 
@@ -382,9 +406,18 @@
                   </section>
                   <div class="drawer-actions"><button class="btn" type="submit">保存资源</button><button id="hideContent" class="btn danger" type="button">隐藏资源</button><button id="copyResourceUrl" class="btn ghost" type="button">复制下载链接</button></div>
                 </form>
+                <div class="batch-import-box">
+                  <div class="panel-title"><h2>批量导入</h2><p>一行一个素材，可批量上传图片并自动对应</p></div>
+                  <textarea id="batchImportText" class="textarea" placeholder="每行一个素材：标题 | 网盘链接 | 提取码 | 文件大小&#10;示例：现代茶室SU模型 | https://pan.baidu.com/s/xxx 提取码 abcd | 128 MB"></textarea>
+                  <label class="upload-btn">批量选择封面<input id="batchCoverUpload" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple /></label>
+                  <div class="file-note" id="batchImageNote">未选择批量封面。按顺序与每行素材对应。</div>
+                  <button id="batchImport" class="btn" type="button">导入多条素材</button>
+                </div>
                 <datalist id="fileTypes"><option value="SKP 模型"></option><option value="SU 模型"></option><option value="MAX 模型"></option><option value="D5 教程"></option><option value="灯光贴图"></option><option value="文本参考"></option><option value="CAD 图纸"></option><option value="PS 素材"></option></datalist>
+                  </div>
+                </aside>
               </div>
-            </aside>
+            </div>
           </div>
         </section>
 
@@ -406,7 +439,7 @@
 
     <script>
       const $ = (id) => document.getElementById(id);
-      const state = { admin:null, stats:{}, categories:[], contentRows:[], selectedContentIds:new Set(), contentPage:1, feedbackPage:1, currentView:'dashboard', activeCategoryId:0 };
+      const state = { admin:null, stats:{}, categories:[], contentRows:[], selectedContentIds:new Set(), contentPage:1, feedbackPage:1, currentView:'dashboard', activeCategoryId:0, batchCoverFiles:[] };
       const viewCopy = {
         dashboard:['工作台','站点数据与近期维护动作'],
         categories:['栏目管理','新增、删减、排序和管理分类树'],
@@ -716,11 +749,52 @@
         tr.appendChild(actions);
         return tr;
       }
+      function parseShareText(value) {
+        const raw = text(value).trim();
+        if (!raw) return { url:'', pass:'', title:'', size:'' };
+        const urlMatch = raw.match(/https?:\/\/[^\s|，,；;]+/i);
+        const passMatch = raw.match(/(?:提取码|访问码|密码|pwd|pass|code)[:：\s]*([A-Za-z0-9]{3,12})/i) || raw.match(/[?&]pwd=([A-Za-z0-9]{3,12})/i);
+        const sizeMatch = raw.match(/(\d+(?:\.\d+)?\s*(?:GB|MB|KB|G|M))/i);
+        const title = raw
+          .replace(urlMatch?.[0] || '', '')
+          .replace(passMatch?.[0] || '', '')
+          .replace(sizeMatch?.[0] || '', '')
+          .replace(/[|，,；;]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        return {
+          url: urlMatch?.[0] || '',
+          pass: passMatch?.[1] || '',
+          title,
+          size: sizeMatch?.[1] || '',
+        };
+      }
+      function applyNetdiskParse() {
+        const parsed = parseShareText($('fNetdiskRaw').value);
+        if (parsed.url) $('fFileUrl').value = parsed.url;
+        if (parsed.pass) $('fPass').value = parsed.pass;
+        if (parsed.size && !$('fSize').value) $('fSize').value = parsed.size.toUpperCase();
+        if (parsed.title && !$('fTitle').value) $('fTitle').value = parsed.title;
+      }
+      function parseBatchLine(line, index) {
+        const parts = line.split('|').map((part) => part.trim()).filter(Boolean);
+        const parsed = parseShareText(line);
+        const titlePart = parts.find((part) => !/^https?:\/\//i.test(part) && !/(提取码|访问码|密码|pwd|pass|code)[:：\s]*/i.test(part) && !/^\d+(?:\.\d+)?\s*(?:GB|MB|KB|G|M)$/i.test(part));
+        const sizePart = parts.find((part) => /^\d+(?:\.\d+)?\s*(?:GB|MB|KB|G|M)$/i.test(part));
+        const passPart = parts.find((part) => /^(?:[A-Za-z0-9]{4}|提取码|访问码|密码|pwd|pass|code)/i.test(part));
+        return {
+          title: titlePart || parsed.title || `批量素材 ${index + 1}`,
+          file_url: parsed.url,
+          extract_pass: parsed.pass || passPart?.replace(/^(?:提取码|访问码|密码|pwd|pass|code)[:：\s]*/i, '') || '',
+          size: (parsed.size || sizePart || '').toUpperCase(),
+        };
+      }
       function resetContentForm() {
         $('contentId').value = '';
-        for (const id of ['fTitle','fKeywords','fSummary','fCover','fFileUrl','fPass','fFileType','fSize','fPrice','fIntegral','fBody']) $(id).value = '';
+        for (const id of ['fTitle','fKeywords','fSummary','fCover','fNetdiskRaw','fFileUrl','fPass','fFileType','fSize','fPrice','fIntegral','fBody']) $(id).value = '';
         $('fAssetKind').value = 'model';
         $('fModelFormat').value = 'SU';
+        $('fHidePass').value = '0';
         syncUploadType();
         $('fCategory').value = String(state.activeCategoryId || $('contentCategory').value || 0);
         $('fSort').value = '0';
@@ -747,12 +821,14 @@
         $('fKeywords').value = row.keywords || '';
         $('fSummary').value = row.summary || '';
         $('fCover').value = row.cover_url || '';
+        $('fNetdiskRaw').value = '';
         $('fFileUrl').value = row.file_url || '';
         $('fPass').value = row.extract_pass || '';
         $('fAssetKind').value = meta.asset_kind || 'model';
         $('fModelFormat').value = meta.model_format || 'SU';
         $('fFileType').value = meta.file_type || '';
         $('fSize').value = meta.file_size || '';
+        $('fHidePass').value = meta.hide_extract_pass ? '1' : '0';
         $('fPrice').value = row.price_money || 0;
         $('fIntegral').value = row.price_integral || 0;
         $('fVip').value = row.just_vip ? '1' : '0';
@@ -776,6 +852,7 @@
           modelFormat:$('fModelFormat').value,
           fileType:$('fFileType').value,
           size:$('fSize').value,
+          hideExtractPass:Number($('fHidePass').value || 0),
           price_money:Number($('fPrice').value || 0),
           price_integral:Number($('fIntegral').value || 0),
           just_vip:Number($('fVip').value || 0),
@@ -828,6 +905,42 @@
         } finally {
           input.value = '';
         }
+      }
+      async function batchImportResources() {
+        const lines = $('batchImportText').value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+        if (!lines.length) return setMsg('contentMsg', '请先粘贴批量素材内容', 'error');
+        const categoryId = Number($('fCategory').value || state.activeCategoryId || $('contentCategory').value || 0);
+        if (!categoryId) return setMsg('contentMsg', '请先选择一个素材栏目', 'error');
+        setMsg('contentMsg', `正在导入 ${lines.length} 条素材...`);
+        let created = 0;
+        for (let index = 0; index < lines.length; index += 1) {
+          const parsed = parseBatchLine(lines[index], index);
+          let coverUrl = $('fCover').value;
+          const coverFile = state.batchCoverFiles[index];
+          if (coverFile) {
+            const uploaded = await uploadFile('cover', coverFile);
+            coverUrl = uploaded.url || coverUrl;
+          }
+          const payload = {
+            ...formPayload(),
+            category_id: categoryId,
+            title: parsed.title,
+            file_url: parsed.file_url || $('fFileUrl').value,
+            extract_pass: parsed.extract_pass || $('fPass').value,
+            size: parsed.size || $('fSize').value,
+            cover_url: coverUrl,
+            summary: $('fSummary').value || '',
+            sort: Number($('fSort').value || 0) + index,
+          };
+          if (!payload.file_url) throw new Error(`第 ${index + 1} 行没有识别到网盘链接`);
+          await api('/api/admin/contents', json('POST', payload));
+          created += 1;
+        }
+        setMsg('contentMsg', `批量导入完成：${created} 条素材`, 'ok');
+        $('batchImportText').value = '';
+        state.batchCoverFiles = [];
+        $('batchImageNote').textContent = '未选择批量封面。按顺序与每行素材对应。';
+        await Promise.all([loadContents(), loadStats()]);
       }
       async function loadFeedback() {
         setMsg('feedbackMsg', '正在读取反馈...');
@@ -899,6 +1012,8 @@
       $('quickNew').onclick = () => { setView('contents'); resetContentForm(); };
       $('quickCategory').onclick = () => { setView('categories'); resetCategoryForm(); };
       $('quickFeedback').onclick = () => setView('feedback');
+      $('addUploadRootCategory').onclick = () => { setView('categories'); resetCategoryForm(0); };
+      $('addUploadChildCategory').onclick = () => { setView('categories'); resetCategoryForm(Number($('fCategory').value || state.activeCategoryId || 0)); };
       $('newRootCategory').onclick = () => resetCategoryForm(0);
       $('resetCategory').onclick = () => resetCategoryForm();
       $('newChildCategory').onclick = () => resetCategoryForm(Number($('catId').value || 0));
@@ -914,6 +1029,7 @@
       $('contentOrder').onchange = loadContents;
       $('contentLimit').onchange = loadContents;
       $('contentForm').onsubmit = saveContent;
+      $('fNetdiskRaw').oninput = applyNetdiskParse;
       $('fAssetKind').onchange = syncUploadType;
       $('fModelFormat').onchange = syncUploadType;
       $('hideContent').onclick = hideCurrentContent;
@@ -924,6 +1040,17 @@
       $('batchHide').onclick = () => batchContent('hide');
       $('coverUpload').onchange = (event) => handleUpload(event.currentTarget, 'cover', 'fCover');
       $('resourceUpload').onchange = (event) => handleUpload(event.currentTarget, 'resource', 'fFileUrl');
+      $('batchCoverUpload').onchange = (event) => {
+        state.batchCoverFiles = Array.from(event.currentTarget.files || []);
+        $('batchImageNote').textContent = state.batchCoverFiles.length ? `已选择 ${state.batchCoverFiles.length} 张批量封面，按行顺序匹配。` : '未选择批量封面。按顺序与每行素材对应。';
+      };
+      $('batchImport').onclick = async () => {
+        try {
+          await batchImportResources();
+        } catch (error) {
+          setMsg('contentMsg', error.message || '批量导入失败', 'error');
+        }
+      };
       $('catCoverUpload').onchange = (event) => handleUpload(event.currentTarget, 'cover', 'catCover');
       $('feedbackSearch').onclick = () => { state.feedbackPage = 1; loadFeedback(); };
       $('feedbackRefresh').onclick = loadFeedback;
