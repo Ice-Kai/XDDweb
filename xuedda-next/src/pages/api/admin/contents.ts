@@ -39,6 +39,8 @@ function pickContentPayload(body: any) {
     indexTypeId: toInt(body.index_type_id),
     indexThemeId: toInt(body.index_theme_id),
     meta: JSON.stringify({
+      asset_kind: cleanText(body.assetKind, 60),
+      model_format: cleanText(body.modelFormat, 60),
       file_type: cleanText(body.fileType, 60),
       file_size: cleanText(body.size, 60),
     }),

@@ -139,6 +139,17 @@
       .field.wide { grid-column:1 / -1; }
       .field > span { color:var(--muted); font-size:12px; font-weight:900; }
       .field small { color:var(--quiet); font-size:12px; line-height:1.5; }
+      .upload-form { gap:14px; }
+      .upload-step { grid-column:1 / -1; border:1px solid var(--line); border-radius:9px; background:rgba(28,28,40,.72); overflow:hidden; }
+      .upload-step-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 12px; border-bottom:1px solid var(--line); background:rgba(255,255,255,.025); }
+      .upload-step-title { display:flex; align-items:center; gap:8px; min-width:0; font-weight:900; }
+      .upload-step-index { width:22px; height:22px; display:grid; place-items:center; border-radius:5px; background:var(--gold); color:#0d0900; font-size:12px; font-weight:1000; }
+      .upload-step-hint { color:var(--quiet); font-size:12px; white-space:nowrap; }
+      .upload-step-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:12px; }
+      .upload-step-grid .wide { grid-column:1 / -1; }
+      .choice-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+      .choice-grid .select,.choice-grid .input { min-height:40px; }
+      .batchbar strong { color:var(--ink); font-size:12px; margin-right:2px; }
       .upload-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; }
       .upload-btn { position:relative; display:inline-flex; align-items:center; justify-content:center; min-height:38px; padding:0 12px; border-radius:8px; border:1px solid var(--gold-border); background:var(--gold-pale); color:var(--gold); font-weight:900; white-space:nowrap; cursor:pointer; }
       .upload-btn input { position:absolute; inset:0; opacity:0; cursor:pointer; }
@@ -183,6 +194,8 @@
         .dash-grid { grid-template-columns:1fr 1fr; }
         .toolbar { grid-template-columns:1fr; }
         .form-grid { grid-template-columns:1fr; }
+        .upload-step-grid,.choice-grid { grid-template-columns:1fr; }
+        .upload-step-hint { white-space:normal; }
       }
     </style>
   </head>
@@ -305,9 +318,10 @@
               <div class="batchbar">
                 <span id="selectedCount" class="pill">已选 0</span>
                 <select id="batchMoveCategory" class="select" style="max-width:220px"></select>
+                <strong>批量操作</strong>
                 <button id="batchMove" class="btn secondary small" type="button">批量移动</button>
-                <button id="batchShow" class="btn ghost small" type="button">显示</button>
-                <button id="batchHide" class="btn danger small" type="button">隐藏</button>
+                <button id="batchShow" class="btn ghost small" type="button">批量显示</button>
+                <button id="batchHide" class="btn danger small" type="button">批量隐藏</button>
               </div>
               <div class="table-wrap">
                 <table>
@@ -318,30 +332,57 @@
               <div class="panel-body"><p id="contentMsg" class="message"></p></div>
             </div>
             <aside class="panel editor form-panel">
-              <div class="panel-head"><div class="panel-title"><h2 id="editorTitle">新增资源</h2><p id="editorHint">填写后保存到资源库</p></div><button id="closeEditor" class="btn ghost small" type="button">清空</button></div>
+              <div class="panel-head"><div class="panel-title"><h2 id="editorTitle">上传资源</h2><p id="editorHint">栏目、类型、封面、网盘链接与发布状态</p></div><button id="closeEditor" class="btn ghost small" type="button">清空</button></div>
               <div class="panel-body">
-                <form id="contentForm" class="form-grid">
+                <form id="contentForm" class="form-grid upload-form">
                   <input id="contentId" type="hidden" />
-                  <label class="field wide"><span>标题</span><input id="fTitle" class="input" required /></label>
-                  <label class="field"><span>所属栏目</span><select id="fCategory" class="select"></select></label>
-                  <label class="field"><span>排序</span><input id="fSort" class="input" type="number" value="0" /></label>
-                  <label class="field wide"><span>关键词</span><input id="fKeywords" class="input" /></label>
-                  <label class="field wide"><span>摘要</span><textarea id="fSummary" class="textarea"></textarea></label>
-                  <label class="field wide"><span>封面 URL</span><div class="upload-row"><input id="fCover" class="input" /><label class="upload-btn">上传封面<input id="coverUpload" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></label></div><small>支持 JPG / PNG / WebP / GIF，最大 8MB。</small></label>
-                  <label class="field wide"><span>网盘或下载链接</span><div class="upload-row"><input id="fFileUrl" class="input" /><label class="upload-btn">上传附件<input id="resourceUpload" type="file" accept=".zip,.rar,.7z,.skp,.max,.dwg,.dxf,.fbx,.obj,.pdf" /></label></div><small>正式资源建议填百度网盘/夸克等链接；本地附件用于测试。</small></label>
-                  <label class="field"><span>提取码</span><input id="fPass" class="input" /></label>
-                  <label class="field"><span>资源类型</span><input id="fFileType" class="input" list="fileTypes" placeholder="SKP 模型" /></label>
-                  <label class="field"><span>文件大小</span><input id="fSize" class="input" placeholder="128 MB" /></label>
-                  <label class="field"><span>价格</span><input id="fPrice" class="input" type="number" step="0.01" value="0" /></label>
-                  <label class="field"><span>积分</span><input id="fIntegral" class="input" type="number" value="0" /></label>
-                  <label class="field"><span>会员限制</span><select id="fVip" class="select"><option value="0">普通资源</option><option value="1">仅会员</option></select></label>
-                  <label class="field"><span>显示状态</span><select id="fShow" class="select"><option value="1">显示</option><option value="0">隐藏</option></select></label>
-                  <label class="field"><span>推荐</span><select id="fRecommend" class="select"><option value="0">否</option><option value="1">是</option></select></label>
-                  <label class="field"><span>置顶</span><select id="fTop" class="select"><option value="0">否</option><option value="1">是</option></select></label>
-                  <label class="field wide"><span>正文</span><textarea id="fBody" class="textarea"></textarea></label>
+                  <section class="upload-step">
+                    <div class="upload-step-head"><div class="upload-step-title"><span class="upload-step-index">1</span><span>归属与类型</span></div><span class="upload-step-hint">决定前台出现在哪个栏目</span></div>
+                    <div class="upload-step-grid">
+                      <label class="field wide"><span>所属栏目</span><select id="fCategory" class="select"></select><small>选择模型、灯光贴图、软件参数、视频教程等栏目。</small></label>
+                      <div class="choice-grid wide">
+                        <label class="field"><span>资源归属</span><select id="fAssetKind" class="select"><option value="model">模型素材</option><option value="tutorial">教程视频</option><option value="texture">灯光 / 贴图</option><option value="software">软件参数</option><option value="text">文本 / 文案</option><option value="other">其他资源</option></select></label>
+                        <label class="field"><span>模型格式</span><select id="fModelFormat" class="select"><option value="SU">SU / SKP</option><option value="MAX">3ds Max</option><option value="D5">D5</option><option value="CAD">CAD</option><option value="TEXT">文本</option><option value="OTHER">其他</option></select></label>
+                        <label class="field"><span>前台显示类型</span><input id="fFileType" class="input" list="fileTypes" placeholder="SKP 模型" /></label>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="upload-step">
+                    <div class="upload-step-head"><div class="upload-step-title"><span class="upload-step-index">2</span><span>基础信息</span></div><span class="upload-step-hint">标题、序号和说明</span></div>
+                    <div class="upload-step-grid">
+                      <label class="field wide"><span>标题</span><input id="fTitle" class="input" required /></label>
+                      <label class="field"><span>自定义序号</span><input id="fSort" class="input" type="number" value="0" /><small>数字越大越靠前，用于后台和前台排序。</small></label>
+                      <label class="field"><span>关键词</span><input id="fKeywords" class="input" /></label>
+                      <label class="field wide"><span>摘要</span><textarea id="fSummary" class="textarea"></textarea></label>
+                    </div>
+                  </section>
+
+                  <section class="upload-step">
+                    <div class="upload-step-head"><div class="upload-step-title"><span class="upload-step-index">3</span><span>封面与下载</span></div><span class="upload-step-hint">图片 + 网盘链接</span></div>
+                    <div class="upload-step-grid">
+                      <label class="field wide"><span>封面图片</span><div class="upload-row"><input id="fCover" class="input" placeholder="封面 URL 或上传图片自动填入" /><label class="upload-btn">上传图片<input id="coverUpload" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></label></div><small>支持 JPG / PNG / WebP / GIF，最大 8MB。</small></label>
+                      <label class="field wide"><span>百度网盘 / 夸克 / 其他下载链接</span><div class="upload-row"><input id="fFileUrl" class="input" placeholder="https://pan.baidu.com/..." /><label class="upload-btn">上传附件<input id="resourceUpload" type="file" accept=".zip,.rar,.7z,.skp,.max,.dwg,.dxf,.fbx,.obj,.pdf,.txt,.doc,.docx" /></label></div><small>正式资源建议填网盘链接；本地附件用于测试。</small></label>
+                      <label class="field"><span>提取码</span><input id="fPass" class="input" /></label>
+                      <label class="field"><span>文件大小</span><input id="fSize" class="input" placeholder="128 MB" /></label>
+                    </div>
+                  </section>
+
+                  <section class="upload-step">
+                    <div class="upload-step-head"><div class="upload-step-title"><span class="upload-step-index">4</span><span>发布控制</span></div><span class="upload-step-hint">显示、隐藏和推荐</span></div>
+                    <div class="upload-step-grid">
+                      <label class="field"><span>显示状态</span><select id="fShow" class="select"><option value="1">显示</option><option value="0">隐藏</option></select></label>
+                      <label class="field"><span>会员限制</span><select id="fVip" class="select"><option value="0">普通资源</option><option value="1">仅会员</option></select></label>
+                      <label class="field"><span>推荐</span><select id="fRecommend" class="select"><option value="0">否</option><option value="1">是</option></select></label>
+                      <label class="field"><span>置顶</span><select id="fTop" class="select"><option value="0">否</option><option value="1">是</option></select></label>
+                      <label class="field"><span>价格</span><input id="fPrice" class="input" type="number" step="0.01" value="0" /></label>
+                      <label class="field"><span>积分</span><input id="fIntegral" class="input" type="number" value="0" /></label>
+                      <label class="field wide"><span>正文 / 说明</span><textarea id="fBody" class="textarea"></textarea></label>
+                    </div>
+                  </section>
                   <div class="drawer-actions"><button class="btn" type="submit">保存资源</button><button id="hideContent" class="btn danger" type="button">隐藏资源</button><button id="copyResourceUrl" class="btn ghost" type="button">复制下载链接</button></div>
                 </form>
-                <datalist id="fileTypes"><option value="SKP 模型"></option><option value="MAX 模型"></option><option value="D5 教程"></option><option value="贴图素材"></option><option value="SU 模型"></option><option value="CAD 图纸"></option><option value="PS 素材"></option></datalist>
+                <datalist id="fileTypes"><option value="SKP 模型"></option><option value="SU 模型"></option><option value="MAX 模型"></option><option value="D5 教程"></option><option value="灯光贴图"></option><option value="文本参考"></option><option value="CAD 图纸"></option><option value="PS 素材"></option></datalist>
               </div>
             </aside>
           </div>
@@ -653,7 +694,8 @@
         title.appendChild(box);
         tr.appendChild(title);
         tr.appendChild(el('td', '', row.category_name || row.category_id || '未分类'));
-        tr.appendChild(el('td', '', `${meta.file_type || '资源'} / ${meta.file_size || '-'}`));
+        const typeText = [meta.model_format, meta.file_type || meta.asset_kind || '资源'].filter(Boolean).join(' · ');
+        tr.appendChild(el('td', '', `${typeText} / ${meta.file_size || '-'}`));
         tr.appendChild(el('td', 'mono', row.sort || 0));
         const status = el('td');
         status.appendChild(el('span', `pill ${row.is_show ? 'ok' : 'off'}`, row.is_show ? '显示' : '隐藏'));
@@ -677,6 +719,9 @@
       function resetContentForm() {
         $('contentId').value = '';
         for (const id of ['fTitle','fKeywords','fSummary','fCover','fFileUrl','fPass','fFileType','fSize','fPrice','fIntegral','fBody']) $(id).value = '';
+        $('fAssetKind').value = 'model';
+        $('fModelFormat').value = 'SU';
+        syncUploadType();
         $('fCategory').value = String(state.activeCategoryId || $('contentCategory').value || 0);
         $('fSort').value = '0';
         $('fVip').value = '0';
@@ -704,6 +749,8 @@
         $('fCover').value = row.cover_url || '';
         $('fFileUrl').value = row.file_url || '';
         $('fPass').value = row.extract_pass || '';
+        $('fAssetKind').value = meta.asset_kind || 'model';
+        $('fModelFormat').value = meta.model_format || 'SU';
         $('fFileType').value = meta.file_type || '';
         $('fSize').value = meta.file_size || '';
         $('fPrice').value = row.price_money || 0;
@@ -725,6 +772,8 @@
           cover_url:$('fCover').value,
           file_url:$('fFileUrl').value,
           extract_pass:$('fPass').value,
+          assetKind:$('fAssetKind').value,
+          modelFormat:$('fModelFormat').value,
           fileType:$('fFileType').value,
           size:$('fSize').value,
           price_money:Number($('fPrice').value || 0),
@@ -819,6 +868,19 @@
         card.appendChild(actions);
         return card;
       }
+      function syncUploadType() {
+        const format = $('fModelFormat').value;
+        const kind = $('fAssetKind').value;
+        const labels = {
+          SU:'SU 模型',
+          MAX:'MAX 模型',
+          D5:'D5 教程',
+          CAD:'CAD 图纸',
+          TEXT:'文本参考',
+          OTHER:kind === 'texture' ? '灯光贴图' : '其他资源',
+        };
+        $('fFileType').value = labels[format] || labels.OTHER;
+      }
 
       $('loginForm').onsubmit = async (event) => {
         event.preventDefault();
@@ -852,6 +914,8 @@
       $('contentOrder').onchange = loadContents;
       $('contentLimit').onchange = loadContents;
       $('contentForm').onsubmit = saveContent;
+      $('fAssetKind').onchange = syncUploadType;
+      $('fModelFormat').onchange = syncUploadType;
       $('hideContent').onclick = hideCurrentContent;
       $('copyResourceUrl').onclick = async () => { await navigator.clipboard?.writeText($('fFileUrl').value || ''); setMsg('contentMsg', $('fFileUrl').value ? '已复制下载链接' : '下载链接为空', $('fFileUrl').value ? 'ok' : 'error'); };
       $('checkAllContents').onchange = (event) => { state.selectedContentIds.clear(); if (event.currentTarget.checked) for (const row of state.contentRows) state.selectedContentIds.add(Number(row.id)); renderContentRows(); };
