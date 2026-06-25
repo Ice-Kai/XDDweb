@@ -106,7 +106,7 @@ const prompts = [
           <div class="filter-card">
             <div class="filter-head">
               <span class="fi"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/></svg></span>
-              <div><strong>{type === 'max' ? 'MAX 分类' : '模型分类'}</strong><span>{type === 'max' ? '软件 / 渲染 / 插件' : '建筑 / 室内 / 景观'}</span></div>
+              <div><strong>{type === 'max' ? 'MAX 分类' : '模型分类'}</strong><span>{type === 'max' ? '软件 / 渲染 / 插件' : '建筑 / 室内 / 景观园林'}</span></div>
             </div>
             <nav class="filter-nav">
               <a href={qs({ group: '', category: '' })} class={`filter-link ${!group && !category ? 'active' : ''}`}>{type === 'max' ? '全部 MAX' : '全部模型'}</a>
