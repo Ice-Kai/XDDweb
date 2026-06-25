@@ -19,9 +19,9 @@ export const GET: APIRoute = async ({ url }) => {
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
 
   const [rows] = await db.query<any[]>(
-    `SELECT
+     `SELECT
        f.id,f.member_id,f.title,f.content,f.reply,f.replied_at,f.created_at,
-       m.username AS member_username,
+       m.user_name AS member_username,
        m.nickname AS member_nickname
      FROM xuedda.feedback f
      LEFT JOIN legacy.lz_member m ON m.id = f.member_id
