@@ -127,15 +127,76 @@ const cloudWords = [
     <!-- 开场动画（仅首页） -->
     {isHome && (
     <div class="intro" id="intro">
-      <div class="intro-sun"></div>
-      <span class="intro-spark" style="animation-delay:0s;left:49%"></span>
-      <span class="intro-spark" style="animation-delay:.8s;left:51%"></span>
-      <span class="intro-spark" style="animation-delay:1.6s;left:50%"></span>
-      <span class="intro-spark" style="animation-delay:2.4s;left:48%"></span>
-      <div class="intro-logo">x<b>Design</b></div>
-      <p class="intro-sub">薛大大设计 · XUEDDA</p>
+      <div class="intro-rail">
+        <button type="button" class="intro-rail-btn primary" data-auth-open data-mode="login">立即登录</button>
+        <button type="button" class="intro-rail-btn" data-auth-open data-mode="register">注册</button>
+      </div>
 
-      <div class="intro-auth" id="introAuth">
+      <div class="intro-slides" id="introSlides">
+        <section class="intro-slide active" data-slide="0">
+          <div class="intro-sun"></div>
+          <span class="intro-spark" style="animation-delay:0s;left:49%"></span>
+          <span class="intro-spark" style="animation-delay:.8s;left:51%"></span>
+          <span class="intro-spark" style="animation-delay:1.6s;left:50%"></span>
+          <span class="intro-spark" style="animation-delay:2.4s;left:48%"></span>
+          <div class="intro-copy compact">
+            <p>DESIGN RESOURCE CLOUD</p>
+            <h2>从模型、贴图到渲染参数，先找到方向</h2>
+          </div>
+          <div class="intro-logo">X<b>Design</b></div>
+          <p class="intro-sub">薛大大设计 · XUEDDA</p>
+          <div class="intro-cloud">
+            {cloudWords.map((c) => (
+              <span class="intro-word" style={`left:${c.x}%;top:${c.y}%;font-size:${c.s}px;font-weight:${c.b};opacity:${c.o};animation-delay:${c.d}s`}>{c.w}</span>
+            ))}
+          </div>
+          <div class="intro-device">
+            <div class="intro-device-dot"></div>
+            <span></span><span></span><span></span>
+          </div>
+        </section>
+
+        <section class="intro-slide" data-slide="1">
+          <div class="intro-copy">
+            <p>INSPIRATION BOARD</p>
+            <h2>专业设计师在<span>素材库</span>发现、收藏灵感</h2>
+            <div class="intro-tabs"><b>每日新传</b><b>室内模型</b><b>灯光贴图</b></div>
+          </div>
+          <div class="intro-masonry">
+            <figure class="im-card tall"><img src="/img/m1.jpg" alt="" /><figcaption>SU模型</figcaption></figure>
+            <figure class="im-card"><img src="/img/t1.jpg" alt="" /><figcaption>灯光贴图</figcaption></figure>
+            <figure class="im-card mid"><img src="/img/c1.jpg" alt="" /><figcaption>教程</figcaption></figure>
+            <figure class="im-card tall"><img src="/img/m3.jpg" alt="" /><figcaption>室内</figcaption></figure>
+            <figure class="im-card"><img src="/hero/hero-2.jpg" alt="" /><figcaption>项目</figcaption></figure>
+            <figure class="im-card mid"><img src="/img/t3.jpg" alt="" /><figcaption>HDR</figcaption></figure>
+            <figure class="im-card"><img src="/img/m5.jpg" alt="" /><figcaption>MAX</figcaption></figure>
+            <figure class="im-card tall"><img src="/hero/hero-1.jpg" alt="" /><figcaption>景观</figcaption></figure>
+          </div>
+        </section>
+
+        <section class="intro-slide" data-slide="2">
+          <div class="intro-copy">
+            <p>XDESIGN WORKSPACE</p>
+            <h2>收藏、检索、下载，把素材整理成自己的工作流</h2>
+          </div>
+          <div class="intro-feature-grid">
+            <article><strong>01</strong><h3>分类找模型</h3><p>建筑、室内、景观、灯光贴图和教程统一入口。</p></article>
+            <article><strong>02</strong><h3>AI 搜索</h3><p>用自然语言直接描述你需要的资源。</p></article>
+            <article><strong>03</strong><h3>下载记录</h3><p>登录后保留最近打开的网盘资源。</p></article>
+          </div>
+        </section>
+      </div>
+
+      <div class="intro-dots" id="introDots" aria-label="开场翻页">
+        <button class="active" type="button" data-slide="0"></button>
+        <button type="button" data-slide="1"></button>
+        <button type="button" data-slide="2"></button>
+      </div>
+
+      <div class="intro-brand"><b>xDesign</b><span>灵感之源，设计之始</span></div>
+
+      <div class="intro-auth" id="introAuth" hidden>
+        <button class="ia-close" id="introAuthClose" type="button" aria-label="关闭登录注册">×</button>
         <div class="ia-tabs">
           <button type="button" class="ia-tab active" data-mode="register">注册</button>
           <button type="button" class="ia-tab" data-mode="login">登录</button>
@@ -149,12 +210,6 @@ const cloudWords = [
         </form>
         <!-- 微信登录：并行测试期由旧站承载，待新站接入微信后再启用 -->
         <p class="ia-note">注册即同意《用户协议》与《隐私政策》</p>
-      </div>
-
-      <div class="intro-cloud">
-        {cloudWords.map((c) => (
-          <span class="intro-word" style={`left:${c.x}%;top:${c.y}%;font-size:${c.s}px;font-weight:${c.b};opacity:${c.o};animation-delay:${c.d}s`}>{c.w}</span>
-        ))}
       </div>
     </div>
     )}
@@ -520,20 +575,42 @@ const cloudWords = [
         const confirm = intro.querySelector('.ia-confirm');
         const submit = document.getElementById('iaSubmit');
         const err = document.getElementById('iaErr');
+        const auth = document.getElementById('introAuth');
+        const slides = Array.from(intro.querySelectorAll('.intro-slide'));
+        const dots = Array.from(intro.querySelectorAll('#introDots button'));
+        let slide = 0;
+        const setSlide = (next) => {
+          slide = (Number(next) + slides.length) % slides.length;
+          slides.forEach((item, index) => item.classList.toggle('active', index === slide));
+          dots.forEach((item, index) => item.classList.toggle('active', index === slide));
+        };
+        const setMode = (nextMode) => {
+          mode = nextMode === 'login' ? 'login' : 'register';
+          intro.querySelectorAll('.ia-tab').forEach((x) => x.classList.toggle('active', x.dataset.mode === mode));
+          confirm.style.display = mode === 'register' ? 'block' : 'none';
+          submit.textContent = mode === 'register' ? '注册并进入 →' : '登录并进入 →';
+          err.textContent = '';
+        };
+        dots.forEach((dot) => dot.addEventListener('click', () => setSlide(dot.dataset.slide || 0)));
+        intro.querySelectorAll('[data-auth-open]').forEach((button) => {
+          button.addEventListener('click', () => {
+            setMode(button.dataset.mode || 'login');
+            auth.hidden = false;
+          });
+        });
+        document.getElementById('introAuthClose')?.addEventListener('click', () => {
+          auth.hidden = true;
+        });
         fetch('/api/member/me', { credentials: 'include' })
           .then((r) => r.json())
           .then((d) => { if (d.member) enter(); })
           .catch(() => {});
         intro.querySelectorAll('.ia-tab').forEach((t) => {
           t.addEventListener('click', () => {
-            intro.querySelectorAll('.ia-tab').forEach((x) => x.classList.remove('active'));
-            t.classList.add('active');
-            mode = t.dataset.mode;
-            confirm.style.display = mode === 'register' ? 'block' : 'none';
-            submit.textContent = mode === 'register' ? '注册并进入 →' : '登录并进入 →';
-            err.textContent = '';
+            setMode(t.dataset.mode);
           });
         });
+        setMode('register');
         form?.addEventListener('submit', async (e) => {
           e.preventDefault();
           const f = new FormData(form);
