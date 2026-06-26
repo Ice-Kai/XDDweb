@@ -41,13 +41,16 @@ const promo = {
 };
 
 // 后台可配置项：客服二维码、顶部公告。
-// AI 生图现在固定作为 belongstoai.com 的内部子页，不再读取旧的外链设置。
+// AI 生图独立部署：本地可指向 Next.js AI 站，生产可改成 ai.xuedda.com 或新域名。
 interface Announce { enabled: boolean; text: string; link: string }
 const [csQr, announce] = await Promise.all([
   getSetting<string>('cs_qr', ''),
   getSetting<Announce>('announcement', { enabled: false, text: '', link: '' }),
 ]);
-const aiImageHref = '/ai-image';
+const aiImageHref =
+  (import.meta.env?.AI_IMAGE_URL as string) ||
+  process.env.AI_IMAGE_URL ||
+  '/ai-image';
 
 // 左侧导航：把现有功能重组为更像专业素材站的工作台入口。
 const lnavGroups = [
@@ -139,11 +142,8 @@ const cloudWords = [
           <span class="intro-spark" style="animation-delay:.8s;left:51%"></span>
           <span class="intro-spark" style="animation-delay:1.6s;left:50%"></span>
           <span class="intro-spark" style="animation-delay:2.4s;left:48%"></span>
-          <div class="intro-copy compact">
-            <p>DESIGN RESOURCE CLOUD</p>
-          </div>
-          <div class="intro-logo">X<b>Design</b></div>
-          <p class="intro-sub">薛大大设计 · XUEDDA</p>
+          <div class="intro-logo"><span class="logo-x">X</span><span class="logo-design">Design</span></div>
+          <p class="intro-sub"><span>薛大大生态设计</span><i>XUEDDA DESIGN</i></p>
           <div class="intro-cloud">
             {cloudWords.map((c) => (
               <span class="intro-word" style={`left:${c.x}%;top:${c.y}%;font-size:${c.s}px;font-weight:${c.b};opacity:${c.o};animation-delay:${c.d}s`}>{c.w}</span>
@@ -283,7 +283,7 @@ const cloudWords = [
           <a href="/member" class="member-only" hidden>下载记录</a>
           <a href="/member/login" class="guest-only">登录</a>
           <a href="/member/register" class="guest-only nav-register">注册</a>
-          <button type="button" class="member-only nav-logout" id="memberLogout" hidden>退出</button>
+          <a href="/api/member/logout?next=/" class="member-only nav-logout" id="memberLogout" hidden>退出</a>
           <a href="/feedback">反馈</a>
           <!-- 字号调节（阅读模式滑块） -->
           <div class="fontsize-wrap">
@@ -368,7 +368,7 @@ const cloudWords = [
               <li><a href="/c/texture">灯光贴图</a></li>
               <li><a href="/c/software">软件参数</a></li>
               <li><a href="/c/video">视频教程</a></li>
-              <li><a href="/ai-image">AI生图</a></li>
+              <li><a href={aiImageHref}>AI生图</a></li>
             </ul>
           </div>
           <div>
@@ -696,10 +696,17 @@ const cloudWords = [
             members.forEach((el) => el.hidden = !logged);
           })
           .catch(() => {});
-        document.getElementById('memberLogout')?.addEventListener('click', async () => {
-          await fetch('/api/member/logout', { method: 'POST', credentials: 'include' });
+        document.getElementById('memberLogout')?.addEventListener('click', async (event) => {
+          event.preventDefault();
+          const logout = event.currentTarget;
+          logout.setAttribute('aria-disabled', 'true');
+          logout.textContent = '退出中...';
+          try {
+            await fetch('/api/member/logout', { method: 'POST', credentials: 'include', cache: 'no-store' });
+          } catch {}
           localStorage.removeItem('xdd-entered');
-          location.href = '/';
+          sessionStorage.removeItem('xdd-promo');
+          location.replace('/');
         });
       })();
 
