@@ -61,11 +61,8 @@ export const SECTION_SLUG_BY_ID: Record<number, string> = {
 
 export const MODEL_GROUPS: { key: string; name: string; ids: number[] }[] = [
   { key: 'arch', name: '建筑', ids: [108, 342, 348, 349, 288] },
-  { key: 'home', name: '室内家装', ids: [115, 203, 204, 205, 258, 208, 280, 287] },
-  { key: 'commercial', name: '商业工装', ids: [261, 354, 356, 361, 362, 363, 355, 357, 358, 359, 364, 365] },
-  { key: 'landscape', name: '景观园林', ids: [252, 125, 112, 109, 113] },
-  { key: 'decor', name: '软装构件', ids: [207, 110, 111, 114] },
-  { key: 'd5', name: 'D5模型', ids: [334, 330, 332, 333, 343, 331] },
+  { key: 'landscape', name: '景观', ids: [252, 125, 112, 109, 113] },
+  { key: 'interior', name: '室内', ids: [115, 203, 204, 205, 258, 208, 280, 287, 261, 354, 356, 361, 362, 363, 355, 357, 358, 359, 364, 365, 207, 110, 111, 114] },
 ];
 
 export const MAX_GROUPS: { key: string; name: string; ids: number[] }[] = [
@@ -87,6 +84,9 @@ export interface DownloadQuery {
   categoryId?: number;
   categoryIds?: number[];
   rootCategoryId?: number;
+  assetKind?: string;
+  modelFormat?: string;
+  excludeModelFormat?: string;
   q?: string;
   sort?: 'newest' | 'popular' | 'downloads';
   limit?: number;
@@ -109,6 +109,8 @@ function normalFileType(row: ContentRow, meta: Record<string, any>) {
   const type = String(meta.file_type || meta.fileType || '').trim();
   if (type) return type;
   const title = String(row.title || '').toLowerCase();
+  const modelFormat = String(meta.model_format || meta.modelFormat || '').toUpperCase();
+  if (modelFormat === 'PSD' || title.includes('psd')) return 'PSD 素材';
   if (title.includes('max') || row.category_id === 212) return 'MAX 模型';
   if (title.includes('hdr')) return 'HDR 贴图';
   if (title.includes('pbr')) return 'PBR 贴图';
@@ -193,6 +195,21 @@ async function buildWhere(opts: DownloadQuery) {
   if (ids.length) {
     where.push(`category_id IN (${ids.map(() => '?').join(',')})`);
     params.push(...ids);
+  }
+
+  if (opts.assetKind) {
+    where.push("JSON_VALID(meta) AND JSON_UNQUOTE(JSON_EXTRACT(meta, '$.asset_kind')) = ?");
+    params.push(opts.assetKind);
+  }
+
+  if (opts.modelFormat) {
+    where.push("JSON_VALID(meta) AND JSON_UNQUOTE(JSON_EXTRACT(meta, '$.model_format')) = ?");
+    params.push(opts.modelFormat);
+  }
+
+  if (opts.excludeModelFormat) {
+    where.push("(NOT JSON_VALID(meta) OR JSON_UNQUOTE(JSON_EXTRACT(meta, '$.model_format')) IS NULL OR JSON_UNQUOTE(JSON_EXTRACT(meta, '$.model_format')) <> ?)");
+    params.push(opts.excludeModelFormat);
   }
 
   const terms = String(opts.q || '').trim().split(/\s+/).filter(Boolean).slice(0, 6);

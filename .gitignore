@@ -1,0 +1,29 @@
+# Runtime / dependencies
+node_modules/
+dist/
+.astro/
+.wrangler/
+.dev-server.log
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Legacy PHP site and large local dumps
+www.xuedda.com/
+www_xuedda_com.sql
+backups/
+
+# Local generated/exported documents
+公众号导出/
+公众号导出2/
+*.docx
+
+# External reference repo copied locally, not part of this app
+xuedda-next/design.md/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/

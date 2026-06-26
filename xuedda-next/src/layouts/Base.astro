@@ -450,6 +450,28 @@ const cloudWords = [
       </div>
     </aside>
 
+    <!-- 底部网站公告：进站浮起，可收起为底部小标签 -->
+    <aside class="site-notice" id="siteNotice" aria-label="网站公告">
+      <button class="site-notice-tab" id="siteNoticeOpen" type="button" aria-label="展开网站公告">
+        <span class="site-notice-tab-dot"></span>
+        网站公告
+      </button>
+      <div class="site-notice-panel">
+        <div class="site-notice-copy">
+          <p class="site-notice-kicker">网站公告</p>
+          <h2>资源库整理更新中</h2>
+          <p>模型、贴图、PSD素材、软件参数与视频教程会陆续补全。下载或访问遇到问题，可以通过反馈入口告诉我们。</p>
+        </div>
+        <div class="site-notice-actions">
+          <a href="/feedback" class="site-notice-primary">提交反馈</a>
+          <a href="/c/model" class="site-notice-secondary">查看资源</a>
+          <button class="site-notice-close" id="siteNoticeClose" type="button" aria-label="收起网站公告">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
 
     <script is:inline>
       // 卡片下载：当前页小弹窗展示网盘链接，不跳详情页
@@ -652,10 +674,97 @@ const cloudWords = [
         mask.addEventListener('click', (e) => { if (e.target === mask) close(); });
       })();
 
-      // 客服浮窗
-      document.getElementById('csBtn')?.addEventListener('click', () => {
-        document.getElementById('csPanel')?.classList.toggle('open');
-      });
+      // 客服浮窗：默认右侧居中，可拖动并记住位置
+      (function () {
+        const wrap = document.querySelector('.cs-float');
+        const btn = document.getElementById('csBtn');
+        const panel = document.getElementById('csPanel');
+        if (!wrap || !btn) return;
+
+        const key = 'xdd-cs-pos';
+        const margin = 10;
+        const topSafe = 70;
+        let dragging = false;
+        let moved = false;
+        let suppressClick = false;
+        let startX = 0;
+        let startY = 0;
+        let baseX = 0;
+        let baseY = 0;
+
+        const clamp = (value, min, max) => Math.min(Math.max(value, min), Math.max(min, max));
+        const maxX = () => window.innerWidth - wrap.offsetWidth - margin;
+        const maxY = () => window.innerHeight - wrap.offsetHeight - margin;
+        const applyPos = (x, y) => {
+          wrap.style.left = `${clamp(x, margin, maxX())}px`;
+          wrap.style.top = `${clamp(y, topSafe, maxY())}px`;
+          wrap.style.right = 'auto';
+          wrap.style.bottom = 'auto';
+          wrap.style.transform = 'none';
+        };
+        const defaultPos = () => ({
+          x: window.innerWidth - wrap.offsetWidth - 22,
+          y: Math.round(window.innerHeight / 2 - wrap.offsetHeight / 2),
+        });
+        const savePos = () => {
+          const r = wrap.getBoundingClientRect();
+          localStorage.setItem(key, JSON.stringify({ x: Math.round(r.left), y: Math.round(r.top) }));
+        };
+        const restorePos = () => {
+          let pos = null;
+          try { pos = JSON.parse(localStorage.getItem(key) || 'null'); } catch {}
+          if (!pos || typeof pos.x !== 'number' || typeof pos.y !== 'number') pos = defaultPos();
+          applyPos(pos.x, pos.y);
+        };
+
+        requestAnimationFrame(restorePos);
+        window.addEventListener('resize', () => {
+          const r = wrap.getBoundingClientRect();
+          applyPos(r.left, r.top);
+          savePos();
+        });
+
+        btn.addEventListener('pointerdown', (e) => {
+          if (e.button !== undefined && e.button !== 0) return;
+          dragging = true;
+          moved = false;
+          startX = e.clientX;
+          startY = e.clientY;
+          const r = wrap.getBoundingClientRect();
+          baseX = r.left;
+          baseY = r.top;
+          wrap.classList.add('dragging');
+          btn.setPointerCapture?.(e.pointerId);
+        });
+        btn.addEventListener('pointermove', (e) => {
+          if (!dragging) return;
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+          if (Math.abs(dx) + Math.abs(dy) > 5) moved = true;
+          applyPos(baseX + dx, baseY + dy);
+        });
+        const endDrag = () => {
+          if (!dragging) return;
+          dragging = false;
+          wrap.classList.remove('dragging');
+          if (moved) {
+            suppressClick = true;
+            panel?.classList.remove('open');
+            savePos();
+          }
+        };
+        btn.addEventListener('pointerup', endDrag);
+        btn.addEventListener('pointercancel', endDrag);
+        btn.addEventListener('click', (e) => {
+          if (suppressClick) {
+            suppressClick = false;
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+          panel?.classList.toggle('open');
+        });
+      })();
 
       // 「公告」按钮 → 打开右侧消息抽屉（与铃铛一致），旧小弹卡停用
       document.getElementById('announceBtn')?.addEventListener('click', (e) => {
@@ -664,6 +773,39 @@ const cloudWords = [
         const mask = document.getElementById('noticeMask');
         if (drawer) { drawer.classList.add('open'); if (mask) mask.hidden = false; drawer.setAttribute('aria-hidden', 'false'); }
       });
+
+      // 底部网站公告：进入网站后从浏览器底边浮起，可收起成小入口
+      (function () {
+        const root = document.getElementById('siteNotice');
+        if (!root) return;
+        const closeBtn = document.getElementById('siteNoticeClose');
+        const openBtn = document.getElementById('siteNoticeOpen');
+        const key = 'xdd-site-notice-collapsed';
+        const open = () => {
+          root.classList.add('open');
+          root.classList.remove('collapsed');
+          root.setAttribute('aria-expanded', 'true');
+          sessionStorage.removeItem(key);
+        };
+        const collapse = () => {
+          root.classList.remove('open');
+          root.classList.add('collapsed');
+          root.setAttribute('aria-expanded', 'false');
+          sessionStorage.setItem(key, '1');
+        };
+        if (sessionStorage.getItem(key) === '1') {
+          root.classList.add('collapsed');
+          root.setAttribute('aria-expanded', 'false');
+        } else {
+          const waitIntro = () => {
+            if (document.getElementById('intro')) { setTimeout(waitIntro, 350); return; }
+            setTimeout(open, 420);
+          };
+          waitIntro();
+        }
+        closeBtn?.addEventListener('click', collapse);
+        openBtn?.addEventListener('click', open);
+      })();
 
       // 移动端汉堡菜单
       document.getElementById('navBurger')?.addEventListener('click', () => {
@@ -801,23 +943,36 @@ const cloudWords = [
           t.textContent = title || '资源下载';
           const sub = document.createElement('div');
           sub.className = 'dlm-sub';
-          sub.textContent = '请使用下方网盘链接打开，提取码可一键复制。';
+          sub.textContent = '如果网盘链接失效，请把下方链接地址和提取码一起反馈给管理员。';
           body.append(t, sub);
+          const copyText = async (button, value) => {
+            await navigator.clipboard?.writeText(value || '');
+            button.textContent = '已复制';
+            setTimeout(() => { button.textContent = '复制'; }, 1200);
+          };
           for (const file of files || []) {
             const row = document.createElement('div');
             row.className = 'dlm-row';
             const k = document.createElement('span');
             k.className = 'k';
-            k.textContent = file.provider || providerName(file.url);
+            k.textContent = '链接地址';
             const link = document.createElement('div');
             link.className = 'dlm-link';
-            const a = document.createElement('a');
-            a.className = 'dlm-open';
-            a.href = file.url;
-            a.target = '_blank';
-            a.rel = 'noopener';
-            a.textContent = '打开链接';
-            link.appendChild(a);
+            const code = document.createElement('code');
+            code.className = 'dlm-value';
+            code.textContent = file.url;
+            const copyUrl = document.createElement('button');
+            copyUrl.type = 'button';
+            copyUrl.className = 'dlm-copy';
+            copyUrl.textContent = '复制';
+            copyUrl.addEventListener('click', () => copyText(copyUrl, file.url));
+            const open = document.createElement('a');
+            open.className = 'dlm-open';
+            open.href = file.url;
+            open.target = '_blank';
+            open.rel = 'noopener';
+            open.textContent = '打开';
+            link.append(code, copyUrl, open);
             row.append(k, link);
             body.appendChild(row);
             if (file.pass) {
@@ -827,17 +982,13 @@ const cloudWords = [
               passK.className = 'k';
               passK.textContent = '提取码';
               const code = document.createElement('code');
-              code.className = 'dlm-pass';
+              code.className = 'dlm-value dlm-pass';
               code.textContent = file.pass;
               const copy = document.createElement('button');
               copy.type = 'button';
               copy.className = 'dlm-copy';
               copy.textContent = '复制';
-              copy.addEventListener('click', async () => {
-                await navigator.clipboard?.writeText(file.pass);
-                copy.textContent = '已复制';
-                setTimeout(() => { copy.textContent = '复制'; }, 1200);
-              });
+              copy.addEventListener('click', () => copyText(copy, file.pass));
               passRow.append(passK, code, copy);
               body.appendChild(passRow);
             }

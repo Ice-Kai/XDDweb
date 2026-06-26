@@ -1,28 +1,959 @@
 ---
-import Base from '../layouts/Base.astro';
+const suggestions = [
+  '确定 AI 能做什么',
+  '生成电商主图',
+  '生成电商场景图',
+];
+
+const toolbar = [
+  { k: '+', t: '添加' },
+  { k: '✋', t: '移动' },
+  { k: '⌗', t: '构图' },
+  { k: 'T', t: '文字' },
+  { k: '□', t: '画框' },
+  { k: '◰', t: '贴图' },
+  { k: '◎', t: '角色' },
+  { k: '✦', t: '改图' },
+  { k: '⌘', t: '工作流' },
+];
+
+const ratios = ['16:9', '1:1', '9:16', '4:3', '3:4'];
 ---
-<Base title="AI 生图工作台 — 薛大大设计网">
-  <section class="container" style="padding:42px 0 70px;">
-    <div class="aig-static">
-      <p class="section-label">AI STUDIO</p>
-      <h1>AI 生图工作台</h1>
-      <p>静态展示版已上线。AI 生图、积分和上传功能会在正式服务器阶段恢复。</p>
-      <div class="aig-static-grid">
-        <div><b>文字生图</b><span>建筑、室内、景观提示词整理中</span></div>
-        <div><b>参考图改图</b><span>后续接入图片上传与生成接口</span></div>
-        <div><b>高清放大</b><span>正式版恢复后开放</span></div>
-      </div>
-      <a class="btn-primary" href="/c/model">先浏览资源</a>
-    </div>
-  </section>
-  <style>
-    .aig-static { min-height:520px; border:1px solid var(--border); border-radius:22px; padding:54px; background:radial-gradient(80% 90% at 50% 0%, rgba(201,150,60,.16), transparent 62%), var(--bg-card); display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:18px; }
-    .aig-static h1 { font-size:38px; font-weight:800; color:var(--text-hi); }
-    .aig-static p { max-width:620px; color:var(--text-md); line-height:1.8; }
-    .aig-static-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; width:100%; margin:16px 0; }
-    .aig-static-grid div { border:1px solid var(--border); border-radius:12px; padding:18px; background:var(--bg-elevated); }
-    .aig-static-grid b { display:block; color:var(--text-hi); margin-bottom:8px; }
-    .aig-static-grid span { color:var(--text-lo); font-size:13px; line-height:1.6; }
-    @media (max-width:760px) { .aig-static { padding:28px; } .aig-static-grid { grid-template-columns:1fr; } }
-  </style>
-</Base>
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 生图工作台 — XDesign</title>
+  </head>
+  <body>
+    <main class="studio">
+      <header class="topbar">
+        <a class="brand" href="/">
+          <span class="brand-mark">XD</span>
+          <strong>XDesign AI</strong>
+          <em>未命名</em>
+        </a>
+        <div class="top-actions">
+          <button id="historyToggle" type="button">本地记录</button>
+          <a id="downloadCurrent" class="download disabled" download="xdesign-ai.png">导出</a>
+          <button class="icon-menu" type="button" aria-label="设置">☰</button>
+        </div>
+      </header>
+
+      <aside class="toolrail" aria-label="画布工具">
+        {toolbar.map((tool, i) => (
+          <button type="button" class={i === 0 ? 'active' : ''} title={tool.t}>{tool.k}</button>
+        ))}
+      </aside>
+
+      <aside class="history-panel" id="historyPanel" hidden>
+        <div class="history-head">
+          <div>
+            <strong>本地生成记录</strong>
+            <span>只保存在你的浏览器里</span>
+          </div>
+          <button id="clearHistory" type="button">清空</button>
+        </div>
+        <div class="history-grid" id="historyGrid"></div>
+        <p class="history-empty" id="historyEmpty">暂无记录，生成完成后会自动保存。</p>
+      </aside>
+
+      <section class="canvas-area">
+        <div class="canvas-empty" id="canvasEmpty">
+          <div class="upload-illus">
+            <span></span>
+            <span></span>
+            <b>↑</b>
+          </div>
+          <p><i>☺</i> 上传图片，或者直接与 AI 聊聊~</p>
+          <div class="canvas-buttons">
+            <button type="button" id="localUpload">本地上传</button>
+            <button type="button">资源库</button>
+          </div>
+        </div>
+
+        <div class="canvas-result" id="aigCanvas" hidden></div>
+        <div class="canvas-actions" id="canvasActions" hidden>
+          <button id="editPromptBtn" type="button">作为参考改图</button>
+          <a id="downloadCanvas" download="xdesign-ai.png">下载图片</a>
+        </div>
+        <div class="zoom-chip">15% <span>⌄</span></div>
+        <button class="help-chip" type="button">?</button>
+      </section>
+
+      <aside class="chat-panel">
+        <div class="chat-head">
+          <strong>对话</strong>
+          <div>
+            <button type="button" aria-label="搜索">⌕</button>
+            <button type="button" aria-label="刷新">↻</button>
+            <button type="button" aria-label="收起">→</button>
+          </div>
+        </div>
+
+        <div class="chat-body">
+          <div class="hello">
+            <h1>Hi，<br />今天的你有什么好想法</h1>
+            <p>请尽管提，我来帮你呈现</p>
+          </div>
+
+          <div class="suggestions" id="suggestions">
+            {suggestions.map((text) => (
+              <button type="button" data-sample={text}>✧ {text}</button>
+            ))}
+            <button type="button" data-sample="换一组更适合电商和品牌视觉的创作方向">↻ 换一换</button>
+          </div>
+
+          <div class="chat-log" id="chatLog"></div>
+        </div>
+
+        <div class="composer">
+          <textarea id="aigPrompt" rows="3" placeholder="描述你的灵感，支持 @ 输入内容"></textarea>
+          <div class="ratio-row" id="ratioRow">
+            {ratios.map((r, i) => <button type="button" class={i === 0 ? 'active' : ''} data-ratio={r}>{r}</button>)}
+          </div>
+          <div class="composer-foot">
+            <button class="plus" type="button" id="composerUpload" aria-label="添加参考">+</button>
+            <button class="agent" type="button">∞ Agent⌄</button>
+            <button class="voice" type="button" aria-label="语音">◉</button>
+            <button class="send" id="aigGo" type="button" aria-label="发送生成">
+              <span class="aig-go-text">生成</span>
+              <span class="aig-go-timer" id="aigTimer" hidden></span>
+            </button>
+          </div>
+          <p id="aigMsg" class="msg"></p>
+        </div>
+      </aside>
+
+      <input id="fileInput" type="file" accept="image/*" hidden />
+    </main>
+
+    <style>
+      :root {
+        --bg: #eef1f4;
+        --panel: #ffffff;
+        --text: #25313a;
+        --muted: #8c97a1;
+        --line: #dfe5ea;
+        --blue: #88dff1;
+        --dark: #1c222a;
+        --gold: #d29a35;
+        --canvas: #e9edf1;
+      }
+      * { box-sizing: border-box; }
+      [hidden] { display: none !important; }
+      html, body { width: 100%; min-height: 100%; margin: 0; }
+      body {
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 50% 42%, rgba(255,255,255,.72), transparent 0 170px, transparent 360px),
+          linear-gradient(135deg, rgba(255,255,255,.5), transparent 30%),
+          var(--bg);
+        overflow: hidden;
+      }
+      button, textarea { font: inherit; }
+      button { cursor: pointer; }
+      .studio {
+        width: 100vw;
+        height: 100vh;
+        display: grid;
+        grid-template-columns: 66px minmax(0, 1fr) 392px;
+        grid-template-rows: 58px minmax(0, 1fr);
+        background:
+          radial-gradient(circle at 48% 50%, rgba(255,255,255,.78), transparent 0 210px, transparent 460px),
+          linear-gradient(135deg, rgba(205,216,222,.32), transparent 34%),
+          var(--canvas);
+      }
+      .topbar {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 18px 0 16px;
+        border-bottom: 1px solid rgba(209, 217, 224, .82);
+        background: rgba(250, 251, 252, .9);
+        backdrop-filter: blur(20px);
+        z-index: 8;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        color: var(--text);
+        text-decoration: none;
+      }
+      .brand-mark {
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        border-radius: 11px;
+        background: linear-gradient(145deg, #121820, #252b32);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 900;
+      }
+      .brand strong { font-size: 15px; letter-spacing: .01em; }
+      .brand em {
+        color: var(--muted);
+        font-size: 13px;
+        font-style: normal;
+        padding-left: 4px;
+      }
+      .top-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+      }
+      .top-actions button, .top-actions .download {
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid rgba(213, 220, 226, .9);
+        border-radius: 10px;
+        background: rgba(255,255,255,.72);
+        color: var(--text);
+        text-decoration: none;
+        padding: 0 13px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+      }
+      .top-actions button:hover, .top-actions .download:hover {
+        border-color: #c6d1d9;
+        background: #fff;
+      }
+      .download.disabled { opacity: .42; pointer-events: none; }
+      .top-actions .icon-menu {
+        width: 34px;
+        justify-content: center;
+        padding: 0;
+        border-radius: 50%;
+      }
+      .toolrail {
+        grid-row: 2;
+        grid-column: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        padding: 8px;
+        pointer-events: none;
+      }
+      .toolrail::before {
+        content: '';
+        position: absolute;
+        width: 44px;
+        height: 322px;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 10px 28px rgba(31, 42, 54, .09);
+      }
+      .toolrail button {
+        position: relative;
+        z-index: 1;
+        width: 36px;
+        height: 36px;
+        border: 0;
+        border-radius: 11px;
+        background: transparent;
+        color: #4c5964;
+        font-weight: 800;
+        pointer-events: auto;
+      }
+      .toolrail button:hover { background: #f2f5f7; }
+      .toolrail button.active {
+        background: var(--dark);
+        color: #fff;
+      }
+      .history-panel {
+        position: fixed;
+        left: 74px;
+        top: 70px;
+        bottom: 22px;
+        width: 270px;
+        z-index: 7;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(255,255,255,.94);
+        box-shadow: 0 24px 70px rgba(31, 42, 54, .14);
+        padding: 16px;
+        overflow: auto;
+      }
+      .history-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .history-head strong { display: block; font-size: 14px; }
+      .history-head span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+      .history-head button {
+        border: 0;
+        background: #f3f6f8;
+        color: #697581;
+        border-radius: 10px;
+        height: 28px;
+        padding: 0 10px;
+      }
+      .history-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 9px;
+      }
+      .history-grid button {
+        aspect-ratio: 1;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+        padding: 0;
+        background: #f4f6f8;
+      }
+      .history-grid img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .history-empty {
+        margin: 28px 0 0;
+        color: var(--muted);
+        text-align: center;
+        font-size: 13px;
+      }
+      .canvas-area {
+        grid-column: 2;
+        grid-row: 2;
+        position: relative;
+        min-width: 0;
+        overflow: hidden;
+        border-right: 1px solid rgba(208, 216, 224, .76);
+      }
+      .canvas-empty {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -46%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+        text-align: center;
+        color: #2f3b45;
+        padding: 34px 38px;
+        border-radius: 30px;
+        background: rgba(255,255,255,.22);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.36);
+      }
+      .upload-illus {
+        position: relative;
+        width: 124px;
+        height: 100px;
+      }
+      .upload-illus span {
+        position: absolute;
+        left: 30px;
+        top: 14px;
+        width: 66px;
+        height: 80px;
+        border-radius: 9px;
+        border: 4px solid #fff;
+        background: linear-gradient(180deg, #ebfbff, #d5f7fa);
+        box-shadow: 0 14px 34px rgba(88, 179, 194, .18);
+        transform: rotate(8deg);
+      }
+      .upload-illus span:first-child {
+        left: 16px;
+        top: 26px;
+        transform: rotate(-8deg);
+        opacity: .72;
+      }
+      .upload-illus b {
+        position: absolute;
+        left: 28px;
+        bottom: 0;
+        width: 76px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.72));
+        color: #9feeff;
+        font-size: 28px;
+        box-shadow: 0 18px 38px rgba(66, 116, 128, .1);
+      }
+      .canvas-empty p {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .canvas-empty i {
+        display: inline-grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        margin-right: 8px;
+        border-radius: 50%;
+        background: #bdf4f0;
+        color: #0099a8;
+        font-style: normal;
+      }
+      .canvas-buttons { display: flex; gap: 10px; }
+      .canvas-buttons button {
+        min-width: 96px;
+        height: 42px;
+        border: 0;
+        border-radius: 12px;
+        background: #fff;
+        color: #43505b;
+        box-shadow: 0 10px 24px rgba(31, 42, 54, .07);
+      }
+      .canvas-result {
+        position: absolute;
+        inset: 72px 80px;
+        display: grid;
+        place-items: center;
+      }
+      .canvas-result img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        border-radius: 18px;
+        box-shadow: 0 28px 70px rgba(24, 31, 40, .18);
+      }
+      .canvas-result.loading::after {
+        content: '生成中...';
+        color: #5b6874;
+        font-weight: 700;
+      }
+      .canvas-actions {
+        position: absolute;
+        left: 50%;
+        bottom: 64px;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+      }
+      .canvas-actions button, .canvas-actions a {
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        border: 0;
+        border-radius: 12px;
+        background: #fff;
+        color: #34424d;
+        text-decoration: none;
+        padding: 0 14px;
+        box-shadow: 0 12px 30px rgba(31, 42, 54, .11);
+      }
+      .zoom-chip, .help-chip {
+        position: absolute;
+        bottom: 16px;
+        height: 34px;
+        border: 0;
+        border-radius: 10px;
+        background: #fff;
+        color: #697581;
+        box-shadow: 0 8px 22px rgba(31, 42, 54, .07);
+      }
+      .zoom-chip {
+        right: 54px;
+        padding: 8px 10px;
+        font-size: 13px;
+      }
+      .help-chip {
+        right: 16px;
+        width: 34px;
+        font-weight: 900;
+      }
+      .chat-panel {
+        grid-column: 3;
+        grid-row: 2;
+        display: grid;
+        grid-template-rows: 58px minmax(0, 1fr) auto;
+        border-left: 0;
+        background: rgba(255,255,255,.94);
+        box-shadow: -24px 0 60px rgba(31, 42, 54, .045);
+        min-width: 0;
+      }
+      .chat-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        border-bottom: 1px solid #edf1f4;
+      }
+      .chat-head strong { font-size: 15px; letter-spacing: .02em; }
+      .chat-head button {
+        width: 28px;
+        height: 28px;
+        border: 0;
+        background: transparent;
+        color: #6b7883;
+      }
+      .chat-body {
+        padding: 38px 24px 18px;
+        overflow: auto;
+      }
+      .hello h1 {
+        margin: 0;
+        color: #31485a;
+        font-size: 25px;
+        line-height: 1.28;
+        letter-spacing: 0;
+      }
+      .hello p {
+        margin: 12px 0 28px;
+        color: #adb5bd;
+        font-size: 13px;
+      }
+      .suggestions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .suggestions button {
+        height: 34px;
+        border: 1px solid #e8edf1;
+        border-radius: 999px;
+        background: #fbfcfd;
+        color: #7a8792;
+        padding: 0 14px;
+        font-size: 13px;
+      }
+      .suggestions button:hover {
+        border-color: #bfe5ee;
+        color: #247f92;
+        background: #f5fcfe;
+      }
+      .chat-log {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 24px;
+      }
+      .bubble {
+        max-width: 92%;
+        padding: 12px 14px;
+        border-radius: 16px;
+        font-size: 13px;
+        line-height: 1.7;
+      }
+      .bubble.user {
+        align-self: flex-end;
+        background: #eff8fb;
+        color: #315c67;
+      }
+      .bubble.ai {
+        align-self: flex-start;
+        background: #f6f8fa;
+        color: #55636f;
+      }
+      .composer {
+        margin: 0 16px 16px;
+        border: 1px solid #c9eefa;
+        border-radius: 22px;
+        background: #fff;
+        box-shadow: 0 18px 46px rgba(38, 124, 150, .13);
+        overflow: hidden;
+      }
+      .composer textarea {
+        width: 100%;
+        min-height: 92px;
+        border: 0;
+        outline: 0;
+        resize: none;
+        padding: 18px 18px 6px;
+        color: #24313a;
+        line-height: 1.65;
+      }
+      .composer textarea::placeholder { color: #bac2c9; }
+      .ratio-row {
+        display: flex;
+        gap: 6px;
+        padding: 0 14px 8px;
+      }
+      .ratio-row button {
+        height: 24px;
+        border: 1px solid #edf0f3;
+        border-radius: 999px;
+        background: #f8fafb;
+        color: #7d8790;
+        padding: 0 9px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .ratio-row button.active {
+        border-color: #bdefff;
+        background: #effbff;
+        color: #168aa2;
+      }
+      .composer-foot {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px 12px;
+      }
+      .composer-foot button {
+        border: 0;
+        height: 30px;
+        border-radius: 999px;
+      }
+      .plus {
+        width: 30px;
+        background: #f4f7f9;
+        color: #4b5964;
+        font-weight: 900;
+      }
+      .agent {
+        background: transparent;
+        color: #2a8fa8;
+        font-weight: 800;
+      }
+      .voice {
+        margin-left: auto;
+        width: 30px;
+        background: #1d232a;
+        color: #fff;
+      }
+      .send {
+        min-width: 52px;
+        padding: 0 12px;
+        background: #1d232a;
+        color: #fff;
+        font-weight: 800;
+      }
+      .send:disabled { opacity: .55; }
+      .msg {
+        min-height: 16px;
+        margin: -2px 14px 10px;
+        color: #96a0aa;
+        font-size: 12px;
+      }
+      .msg.error { color: #d04a3c; }
+      @media (max-width: 980px) {
+        body { overflow: auto; }
+        .studio {
+          min-height: 100vh;
+          height: auto;
+          grid-template-columns: 54px minmax(0, 1fr);
+          grid-template-rows: 54px minmax(520px, 62vh) auto;
+        }
+        .chat-panel {
+          grid-column: 1 / -1;
+          grid-row: 3;
+          min-height: 520px;
+        }
+        .canvas-area { grid-column: 2; }
+      }
+    </style>
+
+    <script>
+      (() => {
+        const $ = (id) => document.getElementById(id);
+        const DB_NAME = 'belongstoai-ai-image';
+        const STORE_NAME = 'generated-history';
+        const MAX_HISTORY = 40;
+        const LAST_RESULT_KEY = 'belongstoai-image-last-result-id';
+        let busy = false;
+        let ratio = '16:9';
+        let timerId = 0;
+        let currentImage = '';
+        let currentPrompt = '';
+
+        function uid() {
+          return crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        }
+
+        function reqToPromise(request) {
+          return new Promise((resolve, reject) => {
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error || new Error('IndexedDB error'));
+          });
+        }
+
+        function openDb() {
+          return new Promise((resolve, reject) => {
+            if (!window.indexedDB) {
+              reject(new Error('IndexedDB unavailable'));
+              return;
+            }
+            const request = indexedDB.open(DB_NAME, 1);
+            request.onupgradeneeded = () => {
+              const db = request.result;
+              if (!db.objectStoreNames.contains(STORE_NAME)) {
+                const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                store.createIndex('createdAt', 'createdAt');
+              }
+            };
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error || new Error('Open DB failed'));
+          });
+        }
+
+        async function withStore(mode, callback) {
+          const db = await openDb();
+          try {
+            const tx = db.transaction(STORE_NAME, mode);
+            return await reqToPromise(callback(tx.objectStore(STORE_NAME)));
+          } finally {
+            db.close();
+          }
+        }
+
+        async function loadHistory() {
+          try {
+            const items = await withStore('readonly', (store) => store.getAll());
+            return items.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, MAX_HISTORY);
+          } catch {
+            try {
+              return JSON.parse(localStorage.getItem('xdd-ai-history') || '[]');
+            } catch {
+              return [];
+            }
+          }
+        }
+
+        async function saveHistory(item) {
+          try {
+            await withStore('readwrite', (store) => store.put(item));
+            const items = await loadHistory();
+            const stale = items.slice(MAX_HISTORY);
+            if (stale.length) {
+              const db = await openDb();
+              try {
+                const store = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME);
+                stale.forEach((entry) => store.delete(entry.id));
+              } finally {
+                db.close();
+              }
+            }
+          } catch {
+            const list = await loadHistory();
+            localStorage.setItem('xdd-ai-history', JSON.stringify([item, ...list.filter((x) => x.id !== item.id)].slice(0, 18)));
+          }
+        }
+
+        async function clearHistoryStore() {
+          try {
+            await withStore('readwrite', (store) => store.clear());
+          } catch {}
+          localStorage.removeItem('xdd-ai-history');
+          localStorage.removeItem(LAST_RESULT_KEY);
+          renderHistory([]);
+        }
+
+        function createThumbnail(source) {
+          return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+              try {
+                const scale = Math.min(1, 112 / Math.max(img.naturalWidth, img.naturalHeight));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+                canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+                const ctx = canvas.getContext('2d', { alpha: false });
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL('image/jpeg', 0.72));
+              } catch {
+                resolve(source);
+              }
+            };
+            img.onerror = () => resolve(source);
+            img.src = source;
+          });
+        }
+
+        function setDownload(src) {
+          $('downloadCurrent').href = src;
+          $('downloadCanvas').href = src;
+          $('downloadCurrent').classList.toggle('disabled', !src);
+          $('canvasActions').hidden = !src;
+        }
+
+        function showImage(src, prompt = '') {
+          currentImage = src;
+          currentPrompt = prompt || currentPrompt;
+          $('canvasEmpty').hidden = true;
+          const canvas = $('aigCanvas');
+          canvas.hidden = false;
+          canvas.classList.remove('loading');
+          canvas.innerHTML = '';
+          const img = document.createElement('img');
+          img.src = src;
+          img.alt = '生成结果';
+          canvas.appendChild(img);
+          setDownload(src);
+        }
+
+        function addBubble(text, role) {
+          const el = document.createElement('div');
+          el.className = `bubble ${role}`;
+          el.textContent = text;
+          $('chatLog').appendChild(el);
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function setMsg(text, error) {
+          const msg = $('aigMsg');
+          msg.textContent = text || '';
+          msg.classList.toggle('error', !!error);
+        }
+
+        function renderHistory(items) {
+          const grid = $('historyGrid');
+          grid.innerHTML = '';
+          $('historyEmpty').hidden = items.length > 0;
+          items.forEach((item) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.title = item.prompt || '历史图片';
+            const img = document.createElement('img');
+            img.src = item.thumbnail || item.image;
+            img.loading = 'lazy';
+            btn.appendChild(img);
+            btn.addEventListener('click', () => {
+              showImage(item.image, item.prompt);
+              $('aigPrompt').value = item.prompt || '';
+              try { localStorage.setItem(LAST_RESULT_KEY, item.id); } catch {}
+            });
+            grid.appendChild(btn);
+          });
+        }
+
+        async function refreshHistory() {
+          const items = await loadHistory();
+          renderHistory(items);
+          const preferred = localStorage.getItem(LAST_RESULT_KEY);
+          const restore = items.find((item) => item.id === preferred) || items[0];
+          if (restore && !currentImage) {
+            showImage(restore.image, restore.prompt);
+            $('aigPrompt').value = restore.prompt || '';
+          }
+        }
+
+        async function persistResult(image, prompt) {
+          const item = {
+            id: uid(),
+            prompt,
+            image,
+            thumbnail: await createThumbnail(image),
+            createdAt: new Date().toISOString(),
+          };
+          await saveHistory(item);
+          try { localStorage.setItem(LAST_RESULT_KEY, item.id); } catch {}
+          await refreshHistory();
+        }
+
+        async function generate() {
+          if (busy) return;
+          const prompt = $('aigPrompt').value.trim();
+          if (!prompt) { setMsg('请先描述你的想法。', true); return; }
+
+          busy = true;
+          $('aigGo').disabled = true;
+          $('canvasEmpty').hidden = true;
+          $('aigCanvas').hidden = false;
+          $('aigCanvas').innerHTML = '';
+          $('aigCanvas').classList.add('loading');
+          setDownload('');
+          addBubble(prompt, 'user');
+          addBubble('收到，我先帮你生成一版视觉方向。', 'ai');
+          setMsg('正在生成，请不要刷新页面。');
+
+          const started = Date.now();
+          const timer = $('aigTimer');
+          timer.hidden = false;
+          document.querySelector('.aig-go-text').textContent = '';
+          timerId = window.setInterval(() => {
+            timer.textContent = Math.floor((Date.now() - started) / 1000) + 's';
+          }, 1000);
+
+          try {
+            const res = await fetch('/api/ai-image/generate', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ prompt, ratio, provider: 'gpt', quality: 'standard' }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.image) {
+              $('aigCanvas').classList.remove('loading');
+              $('aigCanvas').hidden = true;
+              $('canvasEmpty').hidden = false;
+              setMsg(data.message || data.error || '生成失败，请稍后再试。', true);
+            } else {
+              showImage(data.image, prompt);
+              await persistResult(data.image, prompt);
+              setMsg('生成完成，已保存到本地记录。');
+            }
+          } catch {
+            $('aigCanvas').classList.remove('loading');
+            $('aigCanvas').hidden = true;
+            $('canvasEmpty').hidden = false;
+            setMsg('网络错误，请稍后再试。', true);
+          } finally {
+            window.clearInterval(timerId);
+            timer.hidden = true;
+            timer.textContent = '';
+            document.querySelector('.aig-go-text').textContent = '生成';
+            $('aigGo').disabled = false;
+            busy = false;
+          }
+        }
+
+        $('ratioRow').addEventListener('click', (event) => {
+          const btn = event.target.closest('button[data-ratio]');
+          if (!btn) return;
+          ratio = btn.dataset.ratio || '16:9';
+          document.querySelectorAll('#ratioRow button').forEach((item) => item.classList.toggle('active', item === btn));
+        });
+
+        $('suggestions').addEventListener('click', (event) => {
+          const btn = event.target.closest('button[data-sample]');
+          if (!btn) return;
+          const text = btn.dataset.sample || '';
+          const map = {
+            '确定 AI 能做什么': '帮我梳理一下这个 AI 工作台可以完成哪些设计任务，按电商、品牌、空间、素材整理分类。',
+            '生成电商主图': '生成一张高级感电商主图，产品居中，浅色背景，柔和阴影，适合详情页首屏。',
+            '生成电商场景图': '生成一张生活方式电商场景图，产品自然融入桌面环境，真实摄影质感，清爽高级。',
+          };
+          $('aigPrompt').value = map[text] || text;
+          $('aigPrompt').focus();
+        });
+
+        function uploadReference() { $('fileInput').click(); }
+        $('localUpload').addEventListener('click', uploadReference);
+        $('composerUpload').addEventListener('click', uploadReference);
+        $('fileInput').addEventListener('change', (event) => {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          const url = URL.createObjectURL(file);
+          showImage(url, $('aigPrompt').value.trim());
+          addBubble(`已上传参考图：${file.name}`, 'user');
+          setMsg('参考图已放到画布，可以继续描述要修改的方向。');
+        });
+        $('editPromptBtn').addEventListener('click', () => {
+          $('aigPrompt').value = currentPrompt
+            ? `${currentPrompt}，基于当前图片继续优化，保持主体不变，提升画面质感。`
+            : '基于当前图片继续优化，保持主体不变，提升画面质感。';
+          $('aigPrompt').focus();
+        });
+        $('historyToggle').addEventListener('click', () => {
+          $('historyPanel').hidden = !$('historyPanel').hidden;
+          if (!$('historyPanel').hidden) refreshHistory();
+        });
+        $('clearHistory').addEventListener('click', () => { void clearHistoryStore(); });
+        $('aigGo').addEventListener('click', generate);
+        $('aigPrompt').addEventListener('keydown', (event) => {
+          if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') generate();
+        });
+        refreshHistory();
+      })();
+    </script>
+  </body>
+</html>

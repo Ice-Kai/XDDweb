@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fail, ok } from '../../../lib/api';
 
 const COVER_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
-const RESOURCE_EXTS = new Set(['.zip', '.rar', '.7z', '.skp', '.max', '.dwg', '.dxf', '.fbx', '.obj', '.pdf']);
+const RESOURCE_EXTS = new Set(['.zip', '.rar', '.7z', '.skp', '.max', '.psd', '.psb', '.dwg', '.dxf', '.fbx', '.obj', '.pdf', '.txt', '.doc', '.docx']);
 
 function cleanExt(name: string) {
   return path.extname(name || '').toLowerCase().replace(/[^a-z0-9.]/g, '');

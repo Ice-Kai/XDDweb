@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../lib/db';
 import { fail, ok, readJson } from '../../../lib/api';
+import { logAction } from '../../../lib/adminlog';
 
 const ORDER_MAP: Record<string, string> = {
   newest: 'c.id DESC',
@@ -56,15 +57,38 @@ export const GET: APIRoute = async ({ url }) => {
   const page = Math.max(1, toInt(url.searchParams.get('page'), 1));
   const limit = Math.min(100, Math.max(1, toInt(url.searchParams.get('limit'), 20)));
 
+  const field = cleanText(url.searchParams.get('field') || 'all', 12); // all|title|summary|keywords
+  const format = cleanText(url.searchParams.get('format') || '', 16);   // 模型格式 SU/MAX/D5/CAD/TEXT/OTHER
+
   const where: string[] = [];
   const params: any[] = [];
   if (q) {
-    where.push('(c.title LIKE ? OR c.summary LIKE ? OR c.keywords LIKE ?)');
-    params.push(`%${q}%`, `%${q}%`, `%${q}%`);
+    const like = `%${q}%`;
+    if (field === 'title') { where.push('c.title LIKE ?'); params.push(like); }
+    else if (field === 'summary') { where.push('c.summary LIKE ?'); params.push(like); }
+    else if (field === 'keywords') { where.push('c.keywords LIKE ?'); params.push(like); }
+    else { where.push('(c.title LIKE ? OR c.summary LIKE ? OR c.keywords LIKE ?)'); params.push(like, like, like); }
+  }
+  if (format) {
+    where.push("JSON_VALID(c.meta) AND JSON_UNQUOTE(JSON_EXTRACT(c.meta, '$.model_format')) = ?");
+    params.push(format);
   }
   if (categoryId > 0) {
-    where.push('c.category_id = ?');
-    params.push(categoryId);
+    // 含所有子孙栏目：资源大多挂在叶子栏目上，选父栏目要能看到其下全部资源
+    const [cats] = await db.query<any[]>('SELECT id, parent_id FROM legacy.lz_category');
+    const childrenOf = new Map<number, number[]>();
+    for (const r of cats) {
+      const p = Number(r.parent_id) || 0;
+      (childrenOf.get(p) || childrenOf.set(p, []).get(p))!.push(Number(r.id));
+    }
+    const ids = [categoryId];
+    const queue = [categoryId];
+    while (queue.length) {
+      const cur = queue.shift()!;
+      for (const ch of childrenOf.get(cur) || []) { ids.push(ch); queue.push(ch); }
+    }
+    where.push(`c.category_id IN (${ids.map(() => '?').join(',')})`);
+    params.push(...ids);
   }
   if (status === 'show') where.push('c.is_show = 1');
   if (status === 'hidden') where.push('c.is_show = 0');
@@ -92,7 +116,7 @@ export const GET: APIRoute = async ({ url }) => {
   return ok({ rows, total: Number(total?.n || 0), page, limit });
 };
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   const payload = pickContentPayload(await readJson<any>(request));
   if (!payload.title) return fail('标题不能为空');
 
@@ -123,6 +147,7 @@ export const POST: APIRoute = async ({ request }) => {
       payload.meta,
     ],
   );
+  await logAction({ admin: (locals as any).admin?.name, action: 'create', targetType: 'content', targetId: Number(res.insertId), title: payload.title, detail: `栏目 ${payload.categoryId}` });
   return ok({ id: Number(res.insertId) });
 };
 
@@ -147,6 +172,11 @@ export const PATCH: APIRoute = async ({ request }) => {
   if (body.action === 'show') {
     await db.query(`UPDATE xuedda.contents SET is_show=1, updated_at=NOW() WHERE id IN (${placeholders})`, ids);
     return ok({ updated: ids.length });
+  }
+
+  if (body.action === 'delete') {
+    await db.query(`DELETE FROM xuedda.contents WHERE id IN (${placeholders})`, ids);
+    return ok({ deleted: ids.length });
   }
 
   return fail('不支持的批量操作');

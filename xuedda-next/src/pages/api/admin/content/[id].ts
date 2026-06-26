@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { db } from '../../../../lib/db';
 import { fail, ok, readJson } from '../../../../lib/api';
+import { logAction } from '../../../../lib/adminlog';
 
 function contentId(value: string | undefined) {
   const id = Number(value);
@@ -61,7 +62,7 @@ export const GET: APIRoute = async ({ params }) => {
   return ok({ content: rows[0] });
 };
 
-export const PATCH: APIRoute = async ({ params, request }) => {
+export const PATCH: APIRoute = async ({ params, request, locals }) => {
   const id = contentId(params.id);
   if (!id) return fail('资源 ID 不正确', 400);
 
@@ -96,12 +97,14 @@ export const PATCH: APIRoute = async ({ params, request }) => {
       id,
     ],
   );
+  await logAction({ admin: (locals as any).admin?.name, action: 'update', targetType: 'content', targetId: id, title: payload.title });
   return ok();
 };
 
-export const DELETE: APIRoute = async ({ params }) => {
+export const DELETE: APIRoute = async ({ params, locals }) => {
   const id = contentId(params.id);
   if (!id) return fail('资源 ID 不正确', 400);
   await db.query('UPDATE xuedda.contents SET is_show = 0, updated_at = NOW() WHERE id = ?', [id]);
+  await logAction({ admin: (locals as any).admin?.name, action: 'hide', targetType: 'content', targetId: id });
   return ok();
 };

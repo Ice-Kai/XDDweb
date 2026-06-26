@@ -1,6 +1,6 @@
 ﻿---
 import Base from '../../layouts/Base.astro';
-import { getCategoryTree, getDownloads, countDownloads, getDescendantIds, coverUrl, MODEL_GROUPS, modelGroupByKey, MAX_GROUPS, maxGroupByKey, type CatNode, type DownloadItem } from '../../lib/content';
+import { getCategoryTree, getDownloads, countDownloads, getDescendantIds, coverUrl, MODEL_GROUPS, modelGroupByKey, type CatNode, type DownloadItem } from '../../lib/content';
 
 const sp = Astro.url.searchParams;
 const type = (sp.get('type') || 'su') as 'su' | 'max' | 'text';
@@ -15,30 +15,43 @@ const PER = 30;
 const tree = await getCategoryTree(107);
 const nameMap = new Map<number, string>();
 (function walk(ns: CatNode[]) { for (const n of ns) { nameMap.set(n.id, n.name); walk(n.children); } })(tree);
+const groupedFilters = MODEL_GROUPS.map((g) => ({
+  ...g,
+  children: g.ids.map((id) => ({ id, name: nameMap.get(id) || `栏目 ${id}` })).filter((item) => item.name),
+}));
 
 // 先确定过滤条件，再分页查询 + 计总数
-let filter: { categoryIds?: number[]; categoryId?: number; rootCategoryId?: number } | null = null;
+let filter: { categoryIds?: number[]; categoryId?: number; rootCategoryId?: number; assetKind?: string; modelFormat?: string; excludeModelFormat?: string } | null = null;
 let items: DownloadItem[] = [];
 let total = 0;
 let activeLabel = '全部模型';
 if (type === 'max') {
   if (group) {
-    const g = maxGroupByKey(group);
-    const ids = (await Promise.all((g?.ids ?? [162, 212, 321]).map(getDescendantIds))).flat();
-    filter = { categoryIds: ids }; activeLabel = g?.name ?? 'MAX 全部';
+    const g = modelGroupByKey(group);
+    if (g) {
+      const ids = (await Promise.all(g.ids.map(getDescendantIds))).flat();
+      filter = { categoryIds: ids, assetKind: 'model', modelFormat: 'MAX' };
+      activeLabel = g.name;
+    }
+  } else if (category) {
+    filter = { categoryId: category, assetKind: 'model', modelFormat: 'MAX' };
+    activeLabel = nameMap.get(category) || '分类';
   } else {
-    const ids = (await Promise.all([162, 212, 321].map(getDescendantIds))).flat();
-    filter = { categoryIds: ids }; activeLabel = 'MAX 全部';
+    filter = { assetKind: 'model', modelFormat: 'MAX' };
+    activeLabel = '全部 MAX';
   }
 } else if (type === 'su') {
   if (group) {
     const g = modelGroupByKey(group);
-    if (g) { const ids = (await Promise.all(g.ids.map(getDescendantIds))).flat(); filter = { categoryIds: ids }; activeLabel = g.name; }
+    if (g) { const ids = (await Promise.all(g.ids.map(getDescendantIds))).flat(); filter = { categoryIds: ids, excludeModelFormat: 'MAX' }; activeLabel = g.name; }
   } else if (category) {
-    filter = { categoryId: category }; activeLabel = nameMap.get(category) || '分类';
+    filter = { categoryId: category, excludeModelFormat: 'MAX' }; activeLabel = nameMap.get(category) || '分类';
   } else {
-    filter = { rootCategoryId: 107 };
+    filter = { rootCategoryId: 107, excludeModelFormat: 'MAX' };
   }
+} else if (type === 'text') {
+  filter = { assetKind: 'text' };
+  activeLabel = '文本 · 文案参考';
 }
 if (filter) {
   const opts = { ...filter, q, sort };
@@ -68,15 +81,6 @@ const qs = (over: Record<string, string | number | undefined>) => {
 };
 function priceLabel(_it: DownloadItem) { return '免费'; }
 const sorts: { k: 'newest' | 'popular' | 'downloads'; t: string }[] = [{ k: 'newest', t: '最新' }, { k: 'popular', t: '最热' }, { k: 'downloads', t: '下载' }];
-
-const prompts = [
-  { t: '室内渲染', h: '室内渲染文案参考', p: '现代侘寂风客餐厅，微水泥墙面，低饱和暖灰色，隐藏灯带，清晨自然光，D5 写实效果。' },
-  { t: '建筑外观', h: '建筑外观文案参考', p: '山地度假民宿，木格栅立面，大面积落地窗，雨后湿润石材地面，黄昏灯光，电影感建筑表现。' },
-  { t: '景观方案', h: '景观方案文案参考', p: '社区口袋公园，曲线步道，耐候钢花池，低维护植物群落，儿童活动节点，鸟瞰与人视结合。' },
-  { t: '室内空间', h: '日式茶室文案', p: '日式禅意茶室，原木格栅，榻榻米，柔和漫射光，枯山水庭院借景，宁静氛围。' },
-  { t: '商业空间', h: '咖啡店文案', p: '工业风精品咖啡馆，水泥裸顶，黄铜吊灯，深色木质吧台，暖光氛围，街景落地窗。' },
-  { t: '建筑鸟瞰', h: '住宅区鸟瞰文案', p: '现代低密度住宅区鸟瞰，组团绿地，水景轴线，黄昏暖光，云层透视，规划级表现。' },
-];
 ---
 <Base title="模型 — 薛大大设计网">
   <div class="container">
@@ -91,49 +95,34 @@ const prompts = [
       <a href={qs({ type: 'text', group: '', category: '' })} class={`mtab ${type === 'text' ? 'active' : ''}`}>文本 · 文案参考</a>
     </div>
 
-    {type === 'text' ? (
-      <div style="padding-bottom:50px;">
-        <p style="color:var(--text-lo);font-size:13px;margin-bottom:18px;">设计文案 / 提示词参考，可直接用于 AI 生图与方案表达。</p>
-        <div class="prompt-grid">
-          {prompts.map((p) => (
-            <div class="prompt-card"><p class="pt">{p.t}</p><h3 class="ph">{p.h}</h3><p class="pp">{p.p}</p></div>
-          ))}
-        </div>
-      </div>
-    ) : (
-      <div class="mpage">
+    <div class={`mpage ${type === 'text' ? 'mpage-text' : ''}`}>
+      {type !== 'text' ? (
         <aside class="filter-side">
           <div class="filter-card">
             <div class="filter-head">
               <span class="fi"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/></svg></span>
-              <div><strong>{type === 'max' ? 'MAX 分类' : '模型分类'}</strong><span>{type === 'max' ? '软件 / 渲染 / 插件' : '建筑 / 室内 / 景观园林'}</span></div>
+              <div><strong>{type === 'max' ? 'MAX 分类' : '模型分类'}</strong><span>建筑 / 景观 / 室内</span></div>
             </div>
             <nav class="filter-nav">
               <a href={qs({ group: '', category: '' })} class={`filter-link ${!group && !category ? 'active' : ''}`}>{type === 'max' ? '全部 MAX' : '全部模型'}</a>
-              {type === 'su' ? (
-                MODEL_GROUPS.map((g) => (
-                  <div class="filter-det">
-                    <div class="filter-sum">{g.name}</div>
-                    <a href={qs({ group: g.key, category: '' })} class={`filter-link sub ${group === g.key ? 'active' : ''}`}>全部{g.name}</a>
-                    {g.ids.map((id) => (
-                      <a href={qs({ category: id, group: '' })} class={`filter-link sub ${category === id ? 'active' : ''}`}>{nameMap.get(id) || ('#' + id)}</a>
-                    ))}
-                  </div>
-                ))
-              ) : (
-                MAX_GROUPS.map((g) => (
-                  <a href={qs({ group: g.key, category: '' })} class={`filter-link ${group === g.key ? 'active' : ''}`} style="font-weight:600;">{g.name}</a>
-                ))
-              )}
+              {groupedFilters.map((top) => (
+                <div class="filter-det">
+                  <a href={qs({ group: top.key, category: '' })} class={`filter-link filter-group-link ${group === top.key ? 'active' : ''}`}>{top.name}<span class="filter-count">{top.children.length}</span></a>
+                  {top.children.map((c) => (
+                    <a href={qs({ category: c.id, group: '' })} class={`filter-link sub ${category === c.id ? 'active' : ''}`}>{c.name}</a>
+                  ))}
+                </div>
+              ))}
             </nav>
           </div>
         </aside>
+      ) : null}
 
         <div class="mpage-main">
           <div class="toolbar">
             <form action="/c/model" method="get">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-lo)"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-              <input name="q" value={q} placeholder="搜索模型…" />
+              <input name="q" value={q} placeholder={type === 'text' ? '搜索文本 / 文案参考…' : '搜索模型…'} />
               {type !== 'su' ? <input type="hidden" name="type" value={type} /> : null}
               {group ? <input type="hidden" name="group" value={group} /> : null}
               {category ? <input type="hidden" name="category" value={category} /> : null}
@@ -144,7 +133,7 @@ const prompts = [
           </div>
 
           {items.length === 0 ? (
-            <div class="mpage-empty">{type === 'max' ? 'MAX 模型资源整理中，敬请期待' : `该分类暂无资源${q ? `（搜索：${q}）` : ''}`}</div>
+            <div class="mpage-empty">{type === 'max' ? `暂无 MAX 模型素材${q ? `（搜索：${q}）` : ''}，上传后会自动显示。` : type === 'text' ? `暂无文本 / 文案参考${q ? `（搜索：${q}）` : ''}，上传后会自动显示。` : `该分类暂无资源${q ? `（搜索：${q}）` : ''}`}</div>
           ) : (
             <div class="grid-5">
               {items.map((m) => (
@@ -158,7 +147,7 @@ const prompts = [
                     <p class="card-desc">{m.summary || '暂无简介'}</p>
                     <div class="card-footer download-footer">
                       <span class="card-size">{m.size || '-- MB'}</span>
-                      <span class="card-foot-r"><span class="card-type">{m.fileType || (type === 'max' ? 'MAX 模型' : 'SKP 模型')}</span><span class="btn-dl" data-dl data-download-id={m.id} role="button" tabindex="0">下载</span></span>
+                      <span class="card-foot-r"><span class="card-type">{m.fileType || (type === 'max' ? 'MAX 模型' : type === 'text' ? '文案参考' : 'SKP 模型')}</span><span class="btn-dl" data-dl data-download-id={m.id} role="button" tabindex="0">下载</span></span>
                     </div>
                   </div>
                 </a>
@@ -185,7 +174,6 @@ const prompts = [
           )}
         </div>
       </div>
-    )}
   </div>
 
   <style>
@@ -197,5 +185,65 @@ const prompts = [
     .pager-btn.active { background:var(--gold); color:#0d0900; border-color:var(--gold); font-weight:700; }
     .pager-btn.disabled { opacity:.4; pointer-events:none; }
     .pager-gap { padding:8px 4px; color:var(--text-lo); }
+    .mpage-main.is-loading { opacity:.5; pointer-events:none; transition:opacity .15s; }
   </style>
+
+  <script>
+    // Partial navigation: clicking a filter / sort / pager link swaps only the
+    // results column (.mpage-main) and updates the sidebar's active state in
+    // place — so the filter sidebar never reloads and its scroll position +
+    // the page scroll are preserved. Card/download handlers are delegated on
+    // document (Base.astro), so swapping innerHTML keeps them working.
+    (() => {
+      const root = document.querySelector('.mpage');
+      if (!root) return;
+      let busy = false;
+
+      async function go(url, push) {
+        if (busy) return;
+        busy = true;
+        const main = document.querySelector('.mpage-main');
+        main && main.classList.add('is-loading');
+        try {
+          const res = await fetch(url, { headers: { 'X-Requested-With': 'partial' } });
+          const html = await res.text();
+          const doc = new DOMParser().parseFromString(html, 'text/html');
+          const newMain = doc.querySelector('.mpage-main');
+          const curMain = document.querySelector('.mpage-main');
+          if (newMain && curMain) curMain.innerHTML = newMain.innerHTML;
+
+          // Transfer active classes onto the EXISTING sidebar links (don't
+          // replace the sidebar element — that would reset its scroll).
+          const oldLinks = document.querySelectorAll('.filter-nav .filter-link');
+          const newLinks = doc.querySelectorAll('.filter-nav .filter-link');
+          oldLinks.forEach((a, i) => { if (newLinks[i]) a.className = newLinks[i].className; });
+
+          // Keep breadcrumb + active sort in sync.
+          const bc = document.querySelector('.mpage-bc');
+          const newBc = doc.querySelector('.mpage-bc');
+          if (bc && newBc) bc.innerHTML = newBc.innerHTML;
+
+          if (push) history.pushState({}, '', url);
+        } catch {
+          location.href = url;
+          return;
+        } finally {
+          const m = document.querySelector('.mpage-main');
+          m && m.classList.remove('is-loading');
+          busy = false;
+        }
+      }
+
+      document.addEventListener('click', (e) => {
+        const a = e.target.closest('.filter-nav a.filter-link, .mpage-main .sort-btn, .mpage-main .pager-btn');
+        if (!a || a.classList.contains('disabled')) return;
+        const href = a.getAttribute('href') || '';
+        if (!href.startsWith('/c/model')) return;
+        e.preventDefault();
+        go(href, true);
+      });
+
+      window.addEventListener('popstate', () => go(location.pathname + location.search, false));
+    })();
+  </script>
 </Base>
