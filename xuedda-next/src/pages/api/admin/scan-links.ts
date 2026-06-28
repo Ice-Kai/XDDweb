@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { db } from '../../../lib/db';
+import { db, appPrefix } from '../../../lib/db';
 import { ok, fail, readJson } from '../../../lib/api';
 
 // Best-effort netdisk link checker. Baidu actively blocks server-side probing
@@ -48,7 +48,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (!ids.length) return fail('没有要扫描的资源', 400);
 
   const [rows] = await db.query<any[]>(
-    `SELECT id, file_url FROM xuedda.contents WHERE id IN (${ids.map(() => '?').join(',')})`,
+    `SELECT id, file_url FROM ${appPrefix}contents WHERE id IN (${ids.map(() => '?').join(',')})`,
     ids,
   );
 

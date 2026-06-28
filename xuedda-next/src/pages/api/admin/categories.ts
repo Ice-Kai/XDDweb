@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
-import { db } from '../../../lib/db';
+import { db, legacyPrefix, appPrefix } from '../../../lib/db';
 import { fail, ok, readJson } from '../../../lib/api';
+import { logAction } from '../../../lib/adminlog';
 
 const CONTENT_TYPES = new Set(['download', 'article', 'picture', 'link', 'video', 'mp4', 'question', 'course', 'page']);
 
@@ -39,22 +40,42 @@ function contentTypeToModelId(type: unknown) {
   return MODEL_BY_TYPE[CONTENT_TYPES.has(contentType) ? contentType : 'download'];
 }
 
+async function categoryPath(categoryId: number) {
+  const names: string[] = [];
+  let cursor = Number(categoryId || 0);
+  let guard = 0;
+  while (cursor > 0 && guard++ < 12) {
+    const [rows] = await db.query<any[]>(`SELECT id,parent_id,name FROM ${legacyPrefix}lz_category WHERE id = ? LIMIT 1`, [cursor]);
+    const row = rows[0];
+    if (!row) break;
+    names.unshift(String(row.name || `栏目 ${cursor}`));
+    cursor = Number(row.parent_id || 0);
+  }
+  return names.join(' / ');
+}
+
+async function parentLabel(parentId: number) {
+  if (!parentId) return '作为一级栏目';
+  const path = await categoryPath(parentId);
+  return path ? `上级：${path}` : `上级栏目：${parentId}`;
+}
+
 export const GET: APIRoute = async () => {
   const [rows] = await db.query<any[]>(
     `SELECT
        c.id,c.parent_id,c.model_id,c.name,c.image_url,c.description,c.is_menu,c.sort,
        c.meta_keywords,c.meta_description,c.url,c.is_cover,
        m.name AS model_name,m.tablename AS content_type,
-       (SELECT COUNT(*) FROM legacy.lz_category child WHERE child.parent_id = c.id) AS child_count,
-       (SELECT COUNT(*) FROM xuedda.contents x WHERE x.category_id = c.id) AS content_count
-     FROM legacy.lz_category c
-     LEFT JOIN legacy.lz_model m ON m.id = c.model_id
+       (SELECT COUNT(*) FROM ${legacyPrefix}lz_category child WHERE child.parent_id = c.id) AS child_count,
+       (SELECT COUNT(*) FROM ${appPrefix}contents x WHERE x.category_id = c.id) AS content_count
+     FROM ${legacyPrefix}lz_category c
+     LEFT JOIN ${legacyPrefix}lz_model m ON m.id = c.model_id
      ORDER BY c.parent_id ASC,c.sort ASC,c.id ASC`,
   );
   return ok({ rows });
 };
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   const body = await readJson<any>(request);
   const name = cleanText(body.name, 100);
   if (!name) return fail('栏目名称不能为空');
@@ -63,7 +84,7 @@ export const POST: APIRoute = async ({ request }) => {
   const modelId = body.model_id != null ? toInt(body.model_id, 5) : contentTypeToModelId(body.content_type);
 
   const [res] = await db.query<any>(
-    `INSERT INTO legacy.lz_category
+    `INSERT INTO ${legacyPrefix}lz_category
        (parent_id,model_id,name,image_url,description,is_menu,sort,meta_keywords,meta_description,index_template,list_template,show_template,url,is_cover)
      VALUES
        (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
@@ -84,10 +105,18 @@ export const POST: APIRoute = async ({ request }) => {
       body.is_cover == null ? 1 : Number(body.is_cover ? 1 : 0),
     ],
   );
+  await logAction({
+    admin: (locals as any).admin?.name,
+    action: 'create',
+    targetType: 'category',
+    targetId: Number(res.insertId),
+    title: name,
+    detail: `${await parentLabel(parentId)} · ${Number(body.is_menu == null ? 1 : body.is_menu ? 1 : 0) ? '导航显示' : '导航隐藏'}`,
+  });
   return ok({ id: Number(res.insertId) });
 };
 
-export const PATCH: APIRoute = async ({ request }) => {
+export const PATCH: APIRoute = async ({ request, locals }) => {
   const body = await readJson<any>(request);
 
   if (Array.isArray(body.sorts)) {
@@ -95,8 +124,9 @@ export const PATCH: APIRoute = async ({ request }) => {
       .map((item: any) => [toSort(item.sort), toPositiveInt(item.id)])
       .filter((item: number[]) => item[1] > 0);
     for (const [sort, id] of values) {
-      await db.query('UPDATE legacy.lz_category SET sort = ? WHERE id = ?', [sort, id]);
+      await db.query(`UPDATE ${legacyPrefix}lz_category SET sort = ? WHERE id = ?`, [sort, id]);
     }
+    await logAction({ admin: (locals as any).admin?.name, action: 'move', targetType: 'category', title: `栏目排序 ${values.length} 项`, detail: `栏目 ID：${values.map((item) => item[1]).join(', ')}` });
     return ok({ updated: values.length });
   }
 
@@ -109,7 +139,7 @@ export const PATCH: APIRoute = async ({ request }) => {
   if (parentId === id) return fail('上级栏目不能是自己');
 
   if (parentId > 0) {
-    const [children] = await db.query<any[]>('SELECT id,parent_id FROM legacy.lz_category');
+    const [children] = await db.query<any[]>(`SELECT id,parent_id FROM ${legacyPrefix}lz_category`);
     let cursor = parentId;
     const parentMap = new Map(children.map((row) => [Number(row.id), Number(row.parent_id)]));
     while (cursor > 0) {
@@ -119,7 +149,7 @@ export const PATCH: APIRoute = async ({ request }) => {
   }
 
   await db.query(
-    `UPDATE legacy.lz_category SET
+    `UPDATE ${legacyPrefix}lz_category SET
        parent_id=?, model_id=?, name=?, image_url=?, description=?, is_menu=?, sort=?,
        meta_keywords=?, meta_description=?, url=?, is_cover=?
      WHERE id=?`,
@@ -138,20 +168,30 @@ export const PATCH: APIRoute = async ({ request }) => {
       id,
     ],
   );
+  await logAction({
+    admin: (locals as any).admin?.name,
+    action: 'update',
+    targetType: 'category',
+    targetId: id,
+    title: name,
+    detail: `${await parentLabel(parentId)} · ${Number(body.is_menu == null ? 1 : body.is_menu ? 1 : 0) ? '导航显示' : '导航隐藏'}`,
+  });
   return ok();
 };
 
-export const DELETE: APIRoute = async ({ request }) => {
+export const DELETE: APIRoute = async ({ request, locals }) => {
   const body = await readJson<any>(request);
   const id = toPositiveInt(body.id);
   if (!id) return fail('栏目 ID 不正确', 400);
 
-  const [[child]] = await db.query<any[]>('SELECT COUNT(*) n FROM legacy.lz_category WHERE parent_id = ?', [id]);
+  const [[child]] = await db.query<any[]>(`SELECT COUNT(*) n FROM ${legacyPrefix}lz_category WHERE parent_id = ?`, [id]);
   if (Number(child?.n || 0) > 0) return fail('请先删除或移动该栏目下的子栏目');
 
-  const [[content]] = await db.query<any[]>('SELECT COUNT(*) n FROM xuedda.contents WHERE category_id = ?', [id]);
+  const [[content]] = await db.query<any[]>(`SELECT COUNT(*) n FROM ${appPrefix}contents WHERE category_id = ?`, [id]);
   if (Number(content?.n || 0) > 0) return fail(`该栏目下还有 ${content.n} 条资源，请先移动或删除资源`);
 
-  await db.query('DELETE FROM legacy.lz_category WHERE id = ?', [id]);
+  const path = await categoryPath(id);
+  await db.query(`DELETE FROM ${legacyPrefix}lz_category WHERE id = ?`, [id]);
+  await logAction({ admin: (locals as any).admin?.name, action: 'delete', targetType: 'category', targetId: id, title: path || `栏目 #${id}`, detail: '栏目已删除' });
   return ok();
 };

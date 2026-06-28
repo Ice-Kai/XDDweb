@@ -21,7 +21,7 @@ const groupedFilters = MODEL_GROUPS.map((g) => ({
 }));
 
 // 先确定过滤条件，再分页查询 + 计总数
-let filter: { categoryIds?: number[]; categoryId?: number; rootCategoryId?: number; assetKind?: string; modelFormat?: string; excludeModelFormat?: string } | null = null;
+let filter: { categoryIds?: number[]; categoryId?: number; rootCategoryId?: number; assetKind?: string; modelFormat?: string; includeUnformatted?: boolean; excludeModelFormat?: string } | null = null;
 let items: DownloadItem[] = [];
 let total = 0;
 let activeLabel = '全部模型';
@@ -43,11 +43,11 @@ if (type === 'max') {
 } else if (type === 'su') {
   if (group) {
     const g = modelGroupByKey(group);
-    if (g) { const ids = (await Promise.all(g.ids.map(getDescendantIds))).flat(); filter = { categoryIds: ids, excludeModelFormat: 'MAX' }; activeLabel = g.name; }
+    if (g) { const ids = (await Promise.all(g.ids.map(getDescendantIds))).flat(); filter = { categoryIds: ids, modelFormat: 'SU', includeUnformatted: true }; activeLabel = g.name; }
   } else if (category) {
-    filter = { categoryId: category, excludeModelFormat: 'MAX' }; activeLabel = nameMap.get(category) || '分类';
+    filter = { categoryId: category, modelFormat: 'SU', includeUnformatted: true }; activeLabel = nameMap.get(category) || '分类';
   } else {
-    filter = { rootCategoryId: 107, excludeModelFormat: 'MAX' };
+    filter = { rootCategoryId: 107, modelFormat: 'SU', includeUnformatted: true };
   }
 } else if (type === 'text') {
   filter = { assetKind: 'text' };

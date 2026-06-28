@@ -46,12 +46,45 @@ export async function logAction(e: {
   }
 }
 
-export async function listLogs(page: number, limit: number) {
+export interface LogFilters {
+  date?: string;
+  action?: string;
+  q?: string;
+}
+
+function cleanFilter(value: unknown, max = 120) {
+  return String(value ?? '').trim().slice(0, max);
+}
+
+export async function listLogs(page: number, limit: number, filters: LogFilters = {}) {
   await ensure();
-  const [[cnt]] = await db.query<any[]>('SELECT COUNT(*) n FROM admin_log');
+  const where: string[] = [];
+  const params: any[] = [];
+
+  const date = cleanFilter(filters.date, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    where.push('created_at >= ? AND created_at < DATE_ADD(?, INTERVAL 1 DAY)');
+    params.push(date, date);
+  }
+
+  const action = cleanFilter(filters.action, 32);
+  if (action && action !== 'all') {
+    where.push('action = ?');
+    params.push(action);
+  }
+
+  const q = cleanFilter(filters.q, 120);
+  if (q) {
+    const like = `%${q}%`;
+    where.push('(title LIKE ? OR detail LIKE ? OR admin LIKE ? OR target_type LIKE ?)');
+    params.push(like, like, like, like);
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const [[cnt]] = await db.query<any[]>(`SELECT COUNT(*) n FROM admin_log ${whereSql}`, params);
   const [rows] = await db.query<any[]>(
-    'SELECT id,admin,action,target_type,target_id,title,detail,created_at FROM admin_log ORDER BY id DESC LIMIT ? OFFSET ?',
-    [limit, (page - 1) * limit],
+    `SELECT id,admin,action,target_type,target_id,title,detail,created_at FROM admin_log ${whereSql} ORDER BY id DESC LIMIT ? OFFSET ?`,
+    [...params, limit, (page - 1) * limit],
   );
   return { rows, total: Number(cnt?.n || 0) };
 }

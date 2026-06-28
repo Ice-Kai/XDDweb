@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { db } from '../../../lib/db';
+import { db, legacyPrefix, appPrefix } from '../../../lib/db';
 import { fail, ok, readJson } from '../../../lib/api';
 import { logAction } from '../../../lib/adminlog';
 
@@ -20,12 +20,51 @@ function cleanText(value: unknown, max = 255) {
   return String(value ?? '').trim().slice(0, max);
 }
 
+function normalizePath(value: unknown, max = 700) {
+  const text = cleanText(value, max).replace(/\\/g, '/');
+  if (!text) return '';
+  if (/^https?:\/\//i.test(text)) return text;
+  return text.replace(/^public\//i, '').replace(/^\/?/, '/');
+}
+
+function normalizeFormat(value: unknown, fallback = 'SU') {
+  const raw = cleanText(value, 60).toUpperCase();
+  if (['SU', 'SKP'].includes(raw)) return 'SU';
+  if (['MAX', '3DSMAX', '3D MAX', '3DS MAX'].includes(raw)) return 'MAX';
+  if (['PSD', 'PS', 'PHOTOSHOP'].includes(raw)) return 'PSD';
+  if (['D5', 'COURSE', 'VIDEO'].includes(raw)) return 'D5';
+  if (['CAD', 'DWG', 'AUTOCAD'].includes(raw)) return 'CAD';
+  if (['TEXT', 'COPY', 'PROMPT'].includes(raw)) return 'TEXT';
+  return raw || fallback;
+}
+
+function defaultFileType(format: string) {
+  if (format === 'MAX') return 'MAX 模型';
+  if (format === 'PSD') return 'PSD 素材';
+  if (format === 'TEXT') return '文本参考';
+  if (format === 'D5') return 'D5 教程';
+  if (format === 'CAD') return 'CAD 图纸';
+  return 'SKP 模型';
+}
+
+function normalizeAssetKind(value: unknown, format: string) {
+  if (format === 'PSD') return 'texture';
+  if (format === 'TEXT') return 'text';
+  if (format === 'D5') return 'tutorial';
+  if (format === 'CAD') return 'software';
+  const raw = cleanText(value, 60);
+  return ['model', 'texture', 'software', 'tutorial', 'text', 'article'].includes(raw) ? raw : 'model';
+}
+
 function pickContentPayload(body: any) {
+  const modelFormat = normalizeFormat(body.modelFormat ?? body.model_format);
+  const assetKind = normalizeAssetKind(body.assetKind ?? body.asset_kind, modelFormat);
+  const fileType = cleanText(body.fileType ?? body.file_type, 60) || defaultFileType(modelFormat);
   return {
     categoryId: toInt(body.category_id),
     title: cleanText(body.title, 255),
     summary: cleanText(body.summary, 500),
-    coverUrl: cleanText(body.cover_url, 500),
+    coverUrl: normalizePath(body.cover_url, 500),
     body: cleanText(body.body, 100000),
     keywords: cleanText(body.keywords, 255),
     fileUrl: cleanText(body.file_url, 700),
@@ -40,13 +79,48 @@ function pickContentPayload(body: any) {
     indexTypeId: toInt(body.index_type_id),
     indexThemeId: toInt(body.index_theme_id),
     meta: JSON.stringify({
-      asset_kind: cleanText(body.assetKind, 60),
-      model_format: cleanText(body.modelFormat, 60),
-      file_type: cleanText(body.fileType, 60),
+      asset_kind: assetKind,
+      model_format: modelFormat,
+      file_type: fileType,
       file_size: cleanText(body.size, 60),
-      hide_extract_pass: body.hideExtractPass ? 1 : 0,
+      hide_extract_pass: (body.hideExtractPass ?? body.hide_extract_pass) ? 1 : 0,
     }),
   };
+}
+
+async function categoryPath(categoryId: number) {
+  const names: string[] = [];
+  let cursor = Number(categoryId || 0);
+  let guard = 0;
+  while (cursor > 0 && guard++ < 12) {
+    const [rows] = await db.query<any[]>(`SELECT id,parent_id,name FROM ${legacyPrefix}lz_category WHERE id = ? LIMIT 1`, [cursor]);
+    const row = rows[0];
+    if (!row) break;
+    names.unshift(String(row.name || `栏目 ${cursor}`));
+    cursor = Number(row.parent_id || 0);
+  }
+  return names.join(' / ');
+}
+
+function payloadMeta(payload: ReturnType<typeof pickContentPayload>) {
+  try {
+    return JSON.parse(payload.meta || '{}') as Record<string, any>;
+  } catch {
+    return {};
+  }
+}
+
+async function contentLogDetail(payload: ReturnType<typeof pickContentPayload>) {
+  const meta = payloadMeta(payload);
+  const path = await categoryPath(payload.categoryId);
+  return [
+    path ? `栏目：${path}` : `栏目：${payload.categoryId}`,
+    meta.model_format ? `类型：${meta.model_format}` : '',
+    meta.file_type ? `文件：${meta.file_type}` : '',
+    meta.file_size ? `大小：${meta.file_size}` : '',
+    payload.coverUrl ? '封面已填' : '无封面',
+    payload.fileUrl ? '链接已填' : '无链接',
+  ].filter(Boolean).join(' · ');
 }
 
 export const GET: APIRoute = async ({ url }) => {
@@ -58,7 +132,7 @@ export const GET: APIRoute = async ({ url }) => {
   const limit = Math.min(100, Math.max(1, toInt(url.searchParams.get('limit'), 20)));
 
   const field = cleanText(url.searchParams.get('field') || 'all', 12); // all|title|summary|keywords
-  const format = cleanText(url.searchParams.get('format') || '', 16);   // 模型格式 SU/MAX/D5/CAD/TEXT/OTHER
+  const format = normalizeFormat(url.searchParams.get('format') || '', '');   // 模型格式 SU/MAX/D5/CAD/TEXT/OTHER
 
   const where: string[] = [];
   const params: any[] = [];
@@ -70,12 +144,12 @@ export const GET: APIRoute = async ({ url }) => {
     else { where.push('(c.title LIKE ? OR c.summary LIKE ? OR c.keywords LIKE ?)'); params.push(like, like, like); }
   }
   if (format) {
-    where.push("JSON_VALID(c.meta) AND JSON_UNQUOTE(JSON_EXTRACT(c.meta, '$.model_format')) = ?");
+    where.push("JSON_VALID(c.meta) = 1 AND UPPER(JSON_UNQUOTE(JSON_EXTRACT(c.meta, '$.model_format'))) = ?");
     params.push(format);
   }
   if (categoryId > 0) {
     // 含所有子孙栏目：资源大多挂在叶子栏目上，选父栏目要能看到其下全部资源
-    const [cats] = await db.query<any[]>('SELECT id, parent_id FROM legacy.lz_category');
+    const [cats] = await db.query<any[]>(`SELECT id, parent_id FROM ${legacyPrefix}lz_category`);
     const childrenOf = new Map<number, number[]>();
     for (const r of cats) {
       const p = Number(r.parent_id) || 0;
@@ -105,23 +179,25 @@ export const GET: APIRoute = async ({ url }) => {
        c.price_integral,c.price_money,c.just_vip,c.is_show,c.is_top,c.is_recommend,
        c.sort,c.index_type_id,c.index_theme_id,c.hits,c.download_num,c.meta,c.created_at,c.updated_at,
        cat.name AS category_name
-     FROM xuedda.contents c
-     LEFT JOIN legacy.lz_category cat ON cat.id = c.category_id
+     FROM ${appPrefix}contents c
+     LEFT JOIN ${legacyPrefix}lz_category cat ON cat.id = c.category_id
      ${whereSql}
      ORDER BY ${orderSql}
      LIMIT ? OFFSET ?`,
     [...params, limit, (page - 1) * limit],
   );
-  const [[total]] = await db.query<any[]>(`SELECT COUNT(*) n FROM xuedda.contents c ${whereSql}`, params);
+  const [[total]] = await db.query<any[]>(`SELECT COUNT(*) n FROM ${appPrefix}contents c ${whereSql}`, params);
   return ok({ rows, total: Number(total?.n || 0), page, limit });
 };
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const payload = pickContentPayload(await readJson<any>(request));
   if (!payload.title) return fail('标题不能为空');
+  if (!payload.categoryId) return fail('请选择所属栏目');
+  if (!payload.fileUrl) return fail('请填写下载链接');
 
   const [res] = await db.query<any>(
-    `INSERT INTO xuedda.contents
+    `INSERT INTO ${appPrefix}contents
        (type,category_id,title,summary,cover_url,body,keywords,file_url,extract_pass,
         price_integral,price_money,just_vip,is_show,is_top,is_recommend,sort,index_type_id,index_theme_id,meta,created_at,updated_at)
      VALUES
@@ -147,11 +223,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       payload.meta,
     ],
   );
-  await logAction({ admin: (locals as any).admin?.name, action: 'create', targetType: 'content', targetId: Number(res.insertId), title: payload.title, detail: `栏目 ${payload.categoryId}` });
+  await logAction({ admin: (locals as any).admin?.name, action: 'create', targetType: 'content', targetId: Number(res.insertId), title: payload.title, detail: await contentLogDetail(payload) });
   return ok({ id: Number(res.insertId) });
 };
 
-export const PATCH: APIRoute = async ({ request }) => {
+export const PATCH: APIRoute = async ({ request, locals }) => {
   const body = await readJson<any>(request);
   const ids = Array.isArray(body.ids) ? body.ids.map((id: unknown) => toInt(id)).filter((id: number) => id > 0) : [];
   if (!ids.length) return fail('请选择资源');
@@ -160,22 +236,26 @@ export const PATCH: APIRoute = async ({ request }) => {
   if (body.action === 'move') {
     const categoryId = toInt(body.category_id);
     if (!categoryId) return fail('请选择目标栏目');
-    await db.query(`UPDATE xuedda.contents SET category_id=?, updated_at=NOW() WHERE id IN (${placeholders})`, [categoryId, ...ids]);
+    await db.query(`UPDATE ${appPrefix}contents SET category_id=?, updated_at=NOW() WHERE id IN (${placeholders})`, [categoryId, ...ids]);
+    await logAction({ admin: (locals as any).admin?.name, action: 'move', targetType: 'content', title: `批量移动 ${ids.length} 条资源`, detail: `目标栏目：${await categoryPath(categoryId) || categoryId}` });
     return ok({ updated: ids.length });
   }
 
   if (body.action === 'hide') {
-    await db.query(`UPDATE xuedda.contents SET is_show=0, updated_at=NOW() WHERE id IN (${placeholders})`, ids);
+    await db.query(`UPDATE ${appPrefix}contents SET is_show=0, updated_at=NOW() WHERE id IN (${placeholders})`, ids);
+    await logAction({ admin: (locals as any).admin?.name, action: 'hide', targetType: 'content', title: `批量隐藏 ${ids.length} 条资源`, detail: `资源 ID：${ids.slice(0, 20).join(', ')}${ids.length > 20 ? '...' : ''}` });
     return ok({ updated: ids.length });
   }
 
   if (body.action === 'show') {
-    await db.query(`UPDATE xuedda.contents SET is_show=1, updated_at=NOW() WHERE id IN (${placeholders})`, ids);
+    await db.query(`UPDATE ${appPrefix}contents SET is_show=1, updated_at=NOW() WHERE id IN (${placeholders})`, ids);
+    await logAction({ admin: (locals as any).admin?.name, action: 'show', targetType: 'content', title: `批量显示 ${ids.length} 条资源`, detail: `资源 ID：${ids.slice(0, 20).join(', ')}${ids.length > 20 ? '...' : ''}` });
     return ok({ updated: ids.length });
   }
 
   if (body.action === 'delete') {
-    await db.query(`DELETE FROM xuedda.contents WHERE id IN (${placeholders})`, ids);
+    await db.query(`DELETE FROM ${appPrefix}contents WHERE id IN (${placeholders})`, ids);
+    await logAction({ admin: (locals as any).admin?.name, action: 'delete', targetType: 'content', title: `批量删除 ${ids.length} 条资源`, detail: `资源 ID：${ids.slice(0, 20).join(', ')}${ids.length > 20 ? '...' : ''}` });
     return ok({ deleted: ids.length });
   }
 

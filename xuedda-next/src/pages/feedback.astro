@@ -1,17 +1,31 @@
 ---
 import Base from '../layouts/Base.astro';
+import { getSetting } from '../lib/settings';
+
+const csQr = await getSetting<string>('cs_qr', '');
 ---
 <Base title="意见反馈 — 薛大大设计网">
   <div class="container authpage">
     <h1>意见反馈</h1>
-    <p class="sub">资源需求、访问问题、下载诉求都可以先记录在这里。</p>
-    <div class="authcard">
-      <form id="feedbackForm">
-        <div class="field"><label>标题</label><input name="title" placeholder="一句话说明" required /></div>
-        <div class="field"><label>内容</label><textarea name="content" rows="5" placeholder="详细描述你的需求或问题" required style="padding:12px 14px;border:1px solid var(--border);border-radius:9px;background:var(--bg-base);color:var(--text-hi);font-size:14px;outline:none;font-family:var(--font-base);resize:vertical;"></textarea></div>
-        <p id="fbMsg" class="auth-error"></p>
-        <button class="full" type="submit">提交反馈</button>
-      </form>
+    <p class="sub">资源需求、访问问题、下载诉求都可以先记录在这里；急事可以直接扫码联系客服。</p>
+    <div class="feedback-layout">
+      <div class="authcard feedback-form-card">
+        <form id="feedbackForm">
+          <div class="field"><label>标题</label><input name="title" placeholder="一句话说明" required /></div>
+          <div class="field"><label>内容</label><textarea name="content" rows="5" placeholder="详细描述你的需求或问题" required></textarea></div>
+          <p id="fbMsg" class="auth-error"></p>
+          <button class="full" type="submit">提交反馈</button>
+        </form>
+      </div>
+      <aside class="feedback-service-card">
+        <p class="section-label">SERVICE</p>
+        <h2>客服二维码</h2>
+        <p>下载链接失效、资源补档、上传需求，可以直接扫码沟通。</p>
+        {csQr
+          ? <img src={csQr} alt="客服二维码" class="feedback-qr" />
+          : <div class="feedback-qr-empty">后台暂未配置客服二维码</div>
+        }
+      </aside>
     </div>
   </div>
   <script>

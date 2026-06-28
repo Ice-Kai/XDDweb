@@ -1,28 +1,71 @@
 ---
 import Base from '../../layouts/Base.astro';
 ---
-<Base title="会员登录 — 薛大大设计网">
+
+<Base title="会员登录 - 薛大大设计网">
   <section class="auth-page">
     <form class="auth-card" id="loginForm">
       <p class="section-label">MEMBER</p>
       <h1>会员登录</h1>
-      <input name="username" placeholder="用户名 / 邮箱" autocomplete="username" required />
+      <p class="auth-desc">游客可以浏览全站素材，下载链接需要登录后查看。</p>
+      <input name="username" placeholder="用户名 / 邮箱 / 手机号" autocomplete="username" required />
       <input name="password" type="password" placeholder="密码" autocomplete="current-password" required />
+      <div class="auth-captcha">
+        <input type="hidden" name="captchaToken" id="captchaToken" />
+        <input name="captchaAnswer" id="captchaAnswer" inputmode="numeric" autocomplete="off" placeholder="输入验证码" required />
+        <button id="captchaRefresh" type="button">加载中</button>
+      </div>
       <p class="auth-error" id="err"></p>
-      <button class="btn-primary" type="submit">登录</button>
-      <a href="/member/register">还没有账号？去注册</a>
+      <button class="btn-primary" type="submit">登录并进入</button>
+      <div class="auth-oauth" aria-label="第三方登录">
+        <a href="/api/member/oauth/qq/start">QQ 登录</a>
+        <a href="/api/member/oauth/wechat/start">微信登录</a>
+      </div>
+      <div class="auth-links">
+        <a href="/member/register">还没有账号？去注册</a>
+        <a href="/member/forgot">忘记密码？</a>
+      </div>
     </form>
   </section>
   <script>
+    const token = document.getElementById('captchaToken') as HTMLInputElement | null;
+    const answer = document.getElementById('captchaAnswer') as HTMLInputElement | null;
+    const refresh = document.getElementById('captchaRefresh') as HTMLButtonElement | null;
+    async function loadCaptcha() {
+      if (!token || !answer || !refresh) return;
+      refresh.textContent = '刷新中';
+      answer.value = '';
+      try {
+        const res = await fetch('/api/member/captcha', { credentials: 'include' });
+        const json = await res.json();
+        token.value = json.token || '';
+        refresh.textContent = json.question || '刷新验证码';
+      } catch {
+        token.value = '';
+        refresh.textContent = '刷新验证码';
+      }
+    }
+    refresh?.addEventListener('click', loadCaptcha);
+    loadCaptcha();
+
     document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = e.currentTarget as HTMLFormElement;
       const err = document.getElementById('err');
       const data = Object.fromEntries(new FormData(form).entries());
-      const res = await fetch('/api/member/login', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'include', body: JSON.stringify(data) });
+      const res = await fetch('/api/member/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
       const json = await res.json();
-      if (!res.ok || !json.ok) { if (err) err.textContent = json.message || '登录失败'; return; }
-      location.href = '/member';
+      if (!res.ok || !json.ok) {
+        if (err) err.textContent = json.message || '登录失败';
+        if (json.captcha) loadCaptcha();
+        return;
+      }
+      location.href = '/';
     });
   </script>
 </Base>

@@ -1,7 +1,10 @@
 import type { APIRoute } from 'astro';
 import { fail, ok, readJson } from '../../../lib/api';
 
-const env = import.meta.env as Record<string, string | undefined>;
+const env = {
+  ...(import.meta.env as Record<string, string | undefined>),
+  ...(typeof process !== 'undefined' ? process.env : {}),
+};
 
 const RATIOS = new Set(['1:1', '16:9', '9:16', '3:4', '4:3']);
 

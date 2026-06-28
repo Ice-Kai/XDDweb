@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { db } from '../../../../lib/db';
+import { db, legacyPrefix } from '../../../../lib/db';
 import { ok, fail, readJson } from '../../../../lib/api';
 
 // User detail: member record + download history + login time.
@@ -10,7 +10,7 @@ export const GET: APIRoute = async ({ params }) => {
   const [rows] = await db.query<any[]>(
     `SELECT id, user_name, email, nickname, level, integral, exp_time, create_time, update_time,
             last_login_time, all_sign_num, last_sign_num, user_type
-     FROM legacy.lz_member WHERE id = ? LIMIT 1`,
+     FROM ${legacyPrefix}lz_member WHERE id = ? LIMIT 1`,
     [id],
   );
   const user = rows[0];
@@ -19,8 +19,8 @@ export const GET: APIRoute = async ({ params }) => {
   // Download history (legacy log). Best-effort resolve title from old lz_download.
   const [logs] = await db.query<any[]>(
     `SELECT l.data_id, l.model, l.create_time, d.title
-     FROM legacy.lz_download_log l
-     LEFT JOIN legacy.lz_download d ON d.id = l.data_id
+     FROM ${legacyPrefix}lz_download_log l
+     LEFT JOIN ${legacyPrefix}lz_download d ON d.id = l.data_id
      WHERE l.member_id = ?
      ORDER BY l.create_time DESC LIMIT 100`,
     [id],
@@ -43,6 +43,6 @@ export const PATCH: APIRoute = async ({ params, request }) => {
   if (!fields.length) return fail('没有要更新的字段', 400);
 
   vals.push(id);
-  await db.query(`UPDATE legacy.lz_member SET ${fields.join(', ')}, update_time = NOW() WHERE id = ? LIMIT 1`, vals);
+  await db.query(`UPDATE ${legacyPrefix}lz_member SET ${fields.join(', ')}, update_time = NOW() WHERE id = ? LIMIT 1`, vals);
   return ok({ id });
 };

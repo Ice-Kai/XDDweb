@@ -1,114 +1,175 @@
 ---
 import Base from '../../layouts/Base.astro';
 ---
+
 <Base title="会员中心 - 薛大大设计网">
   <section class="member-page">
-    <div class="container">
-      <div class="member-head">
+    <div class="container member-sheet">
+      <div class="member-head compact">
         <p class="section-label">MEMBER CENTER</p>
-        <h1>会员中心</h1>
-        <p>查看账号状态、积分和最近下载记录。</p>
-      </div>
-      <div class="member-grid">
-        <div class="member-card"><b id="mName">未登录</b><span id="mLevel">普通会员</span></div>
-        <div class="member-card"><b id="mIntegral">0</b><span>积分</span></div>
-        <div class="member-card"><b id="mDownloadCount">0</b><span>最近下载</span></div>
+        <h1>下载记录</h1>
+        <p>按时间记录你打开过的素材链接，方便回查。每天最多可打开 30 个素材下载链接。</p>
       </div>
 
-      <div class="member-card member-downloads">
-        <div class="member-section-head">
-          <div>
-            <p class="section-label">DOWNLOADS</p>
-            <h2>下载记录</h2>
-          </div>
+      <div class="member-toolbar">
+        <div>
+          <b id="mName">未登录</b>
+          <span id="mLevel">普通会员</span>
         </div>
-        <div id="downloadList" class="member-download-list">
-          <p class="member-empty">正在读取下载记录...</p>
+        <div>
+          <span>积分</span>
+          <b id="mIntegral">0</b>
+        </div>
+        <div>
+          <span>最近记录</span>
+          <b id="mDownloadCount">0</b>
+        </div>
+      </div>
+
+      <div class="member-table-card">
+        <div class="member-table-head">
+          <strong>下载记录</strong>
+          <button type="button" id="reloadDownloads">刷新</button>
+        </div>
+        <div class="member-table-wrap">
+          <table class="member-download-table">
+            <thead>
+              <tr>
+                <th>序号</th>
+                <th>资源名称</th>
+                <th>类型</th>
+                <th>大小</th>
+                <th>下载时间</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="downloadRows">
+              <tr><td colspan="7" class="member-empty">正在读取下载记录...</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   </section>
 
   <style>
-    .member-downloads { margin-top:18px; }
-    .member-section-head { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:12px; }
-    .member-section-head h2 { margin:0; font-size:20px; color:var(--text-hi); }
-    .member-download-list { display:flex; flex-direction:column; gap:10px; }
-    .member-download-item { display:grid; grid-template-columns:54px minmax(0,1fr) auto; align-items:center; gap:12px; padding:10px; border:1px solid var(--border); border-radius:10px; background:var(--bg-elevated); }
-    .member-download-cover { width:54px; height:42px; border-radius:7px; background:var(--bg-card); object-fit:cover; border:1px solid var(--border); }
-    .member-download-fallback { width:54px; height:42px; border-radius:7px; display:grid; place-items:center; background:var(--gold-pale); color:var(--gold); font-size:11px; font-weight:800; border:1px solid var(--gold-border); }
-    .member-download-title { font-size:14px; font-weight:700; color:var(--text-hi); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .member-download-meta { margin-top:4px; font-size:12px; color:var(--text-lo); display:flex; gap:8px; flex-wrap:wrap; }
-    .member-download-open { font-size:12px; font-weight:800; color:#0d0900; background:var(--gold); border-radius:8px; padding:8px 12px; white-space:nowrap; }
-    .member-empty { color:var(--text-lo); font-size:14px; padding:12px 0; }
-    @media (max-width:640px) {
-      .member-download-item { grid-template-columns:44px minmax(0,1fr); }
-      .member-download-cover, .member-download-fallback { width:44px; height:38px; }
-      .member-download-open { grid-column:2; width:max-content; }
+    .member-sheet { max-width:1320px; }
+    .member-head.compact { margin-bottom:18px; }
+    .member-head.compact h1 { margin:4px 0 8px; }
+    .member-toolbar { display:grid; grid-template-columns:1fr 160px 160px; gap:10px; margin-bottom:14px; }
+    .member-toolbar > div { min-height:64px; display:flex; flex-direction:column; justify-content:center; gap:4px; padding:14px 16px; border:1px solid var(--border); border-radius:10px; background:var(--bg-card); box-shadow:var(--shadow-card); }
+    .member-toolbar b { color:var(--text-hi); font-size:18px; font-weight:900; }
+    .member-toolbar span { color:var(--text-lo); font-size:12px; }
+    .member-table-card { border:1px solid var(--border); border-radius:12px; background:var(--bg-card); box-shadow:var(--shadow-card); overflow:hidden; }
+    .member-table-head { height:54px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 16px; border-bottom:1px solid var(--border); }
+    .member-table-head strong { color:var(--text-hi); font-size:16px; font-weight:900; }
+    .member-table-head button { height:34px; padding:0 14px; border:1px solid var(--border); border-radius:8px; background:var(--bg-elevated); color:var(--text-md); font-family:var(--font-base); font-weight:800; cursor:pointer; }
+    .member-table-head button:hover { border-color:var(--gold); color:var(--gold); }
+    .member-table-wrap { overflow:auto; }
+    .member-download-table { width:100%; min-width:860px; border-collapse:separate; border-spacing:0; font-size:13px; }
+    .member-download-table th { height:42px; padding:0 12px; background:var(--bg-elevated); color:var(--text-lo); font-weight:900; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap; }
+    .member-download-table td { height:48px; padding:8px 12px; color:var(--text-md); border-bottom:1px solid var(--border); vertical-align:middle; }
+    .member-download-table tr:last-child td { border-bottom:none; }
+    .member-download-table tbody tr:hover td { background:rgba(201,150,60,.06); }
+    .member-col-index { width:64px; color:var(--text-lo); font-family:var(--font-mono); }
+    .member-resource-title { max-width:520px; color:var(--text-hi); font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .member-tag { display:inline-flex; align-items:center; min-height:24px; padding:2px 8px; border-radius:999px; background:var(--bg-elevated); color:var(--text-md); font-size:12px; white-space:nowrap; }
+    .member-status { color:#18a058; font-weight:800; }
+    .member-status.off { color:var(--text-lo); }
+    .member-open { display:inline-flex; align-items:center; justify-content:center; height:30px; padding:0 12px; border:1px solid rgba(201,150,60,.35); border-radius:7px; background:rgba(201,150,60,.1); color:var(--gold); font-size:12px; font-weight:900; text-decoration:none; white-space:nowrap; }
+    .member-open:hover { background:var(--gold); color:#0d0900; }
+    .member-open.disabled { opacity:.45; cursor:not-allowed; pointer-events:none; }
+    .member-empty { height:72px !important; text-align:center !important; color:var(--text-lo) !important; }
+    @media (max-width:760px) {
+      .member-toolbar { grid-template-columns:1fr; }
+      .member-sheet { padding-left:14px; padding-right:14px; }
     }
   </style>
 
   <script>
-    const list = document.getElementById('downloadList');
+    const tbody = document.getElementById('downloadRows');
+    const countNode = document.getElementById('mDownloadCount');
     const text = (value) => String(value ?? '');
-    function el(tag, className, value) {
-      const node = document.createElement(tag);
-      if (className) node.className = className;
-      if (value != null) node.textContent = text(value);
-      return node;
+
+    function emptyRow(message) {
+      if (!tbody) return;
+      tbody.replaceChildren();
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 7;
+      td.className = 'member-empty';
+      td.textContent = message;
+      tr.appendChild(td);
+      tbody.appendChild(tr);
     }
+
+    function cell(className, value) {
+      const td = document.createElement('td');
+      if (className) td.className = className;
+      td.textContent = text(value);
+      return td;
+    }
+
     function renderDownloads(rows) {
-      if (!list) return;
-      list.replaceChildren();
-      const countNode = document.getElementById('mDownloadCount');
+      if (!tbody) return;
+      tbody.replaceChildren();
       if (countNode) countNode.textContent = String(rows.length);
       if (!rows.length) {
-        list.appendChild(el('p', 'member-empty', '还没有下载记录。'));
+        emptyRow('还没有下载记录。');
         return;
       }
-      for (const row of rows) {
-        const item = el('div', 'member-download-item');
-        if (row.cover) {
-          const img = el('img', 'member-download-cover');
-          img.src = row.cover;
-          img.alt = row.title || '资源封面';
-          item.appendChild(img);
-        } else {
-          item.appendChild(el('div', 'member-download-fallback', 'XD'));
-        }
-
-        const info = el('div');
-        info.appendChild(el('div', 'member-download-title', row.title || '资源已下架'));
-        const meta = el('div', 'member-download-meta');
-        meta.appendChild(el('span', '', row.downloadedAt || ''));
-        meta.appendChild(el('span', '', row.fileType || '资源'));
-        if (row.fileSize) meta.appendChild(el('span', '', row.fileSize));
-        info.appendChild(meta);
-        item.appendChild(info);
-
-        const open = el('a', 'member-download-open btn-dl', row.available ? '下载' : '已下架');
+      rows.forEach((row, index) => {
+        const tr = document.createElement('tr');
+        tr.appendChild(cell('member-col-index', String(index + 1).padStart(2, '0')));
+        tr.appendChild(cell('member-resource-title', row.title || '资源已下架'));
+        const type = cell('', '');
+        const typeTag = document.createElement('span');
+        typeTag.className = 'member-tag';
+        typeTag.textContent = row.fileType || '资源';
+        type.appendChild(typeTag);
+        tr.appendChild(type);
+        tr.appendChild(cell('', row.fileSize || '-- MB'));
+        tr.appendChild(cell('', row.downloadedAt || '--'));
+        const status = cell('', '');
+        const statusText = document.createElement('span');
+        statusText.className = row.available ? 'member-status' : 'member-status off';
+        statusText.textContent = row.available ? '可重新打开' : '已下架';
+        status.appendChild(statusText);
+        tr.appendChild(status);
+        const action = cell('', '');
+        const open = document.createElement('a');
+        open.className = row.available && row.contentId ? 'member-open btn-dl' : 'member-open disabled';
         open.href = '#';
-        if (row.available && row.contentId) open.dataset.downloadId = row.contentId;
-        open.dataset.title = row.title || '资源下载';
-        item.appendChild(open);
-        list.appendChild(item);
+        open.textContent = row.available && row.contentId ? '打开链接' : '不可用';
+        if (row.available && row.contentId) {
+          open.dataset.downloadId = row.contentId;
+          open.dataset.title = row.title || '资源下载';
+        }
+        action.appendChild(open);
+        tr.appendChild(action);
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function loadMemberCenter() {
+      emptyRow('正在读取下载记录...');
+      try {
+        const [me, downloads] = await Promise.all([
+          fetch('/api/member/me', { credentials: 'include' }).then((r) => r.json()),
+          fetch('/api/member/downloads?limit=50', { credentials: 'include' }).then((r) => r.json()),
+        ]);
+        if (!me.member) { location.href = '/member/login'; return; }
+        document.getElementById('mName').textContent = me.member.nickname || me.member.username;
+        document.getElementById('mLevel').textContent = me.isVip ? 'VIP会员' : '普通会员';
+        document.getElementById('mIntegral').textContent = String(me.member.integral || 0);
+        renderDownloads(downloads.rows || []);
+      } catch {
+        emptyRow('下载记录读取失败，请刷新后重试。');
       }
     }
 
-    Promise.all([
-      fetch('/api/member/me', { credentials: 'include' }).then((r) => r.json()),
-      fetch('/api/member/downloads', { credentials: 'include' }).then((r) => r.json()),
-    ]).then(([me, downloads]) => {
-      if (!me.member) { location.href = '/member/login'; return; }
-      document.getElementById('mName').textContent = me.member.nickname || me.member.username;
-      document.getElementById('mLevel').textContent = me.isVip ? 'VIP会员' : '普通会员';
-      document.getElementById('mIntegral').textContent = String(me.member.integral || 0);
-      renderDownloads(downloads.rows || []);
-    }).catch(() => {
-      if (list) {
-        list.replaceChildren();
-        list.appendChild(el('p', 'member-empty', '下载记录读取失败，请刷新后重试。'));
-      }
-    });
+    document.getElementById('reloadDownloads')?.addEventListener('click', loadMemberCenter);
+    loadMemberCenter();
   </script>
 </Base>

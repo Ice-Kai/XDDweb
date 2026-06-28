@@ -1,18 +1,22 @@
 ﻿---
 import '../styles/global.css';
 import { getSetting } from '../lib/settings';
+import { getCategoryTree, MODEL_GROUPS, SECTIONS, type CatNode } from '../lib/content';
 
 interface Props { title?: string; description?: string; }
 const {
   title = '薛大大设计网 — 建筑·景观·室内设计资源平台',
-  description = 'SketchUp 模型、D5/Enscape/Lumion 教程、材质贴图、软件参数一站获取，VIP 会员畅享下载。',
+  description = 'SketchUp 模型、D5/Enscape/Lumion 教程、材质贴图、软件参数一站获取，登录后每日可免费下载 30 个素材。',
 } = Astro.props;
 
-// 首页开场注册/登录门槛：未登录停留在开场界面，登录后进入网站。
+// 首页开场页默认关闭：游客可浏览全站，下载链接仍由接口要求登录。
 const isHome = Astro.url.pathname === '/';
+const introGateEnabled =
+  String(process.env.INTRO_GATE_ENABLED || (import.meta.env?.INTRO_GATE_ENABLED as string) || '').toLowerCase() === 'true';
+const showIntro = isHome && introGateEnabled;
 
 // 并行运行期：旧站入口（在 .env 设 OLD_SITE_URL=https://old.xuedda.com 即显示「旧版」切换链接；未设则不显示）
-const oldSiteUrl = (import.meta.env?.OLD_SITE_URL as string) ?? process.env.OLD_SITE_URL ?? '';
+const oldSiteUrl = process.env.OLD_SITE_URL || (import.meta.env?.OLD_SITE_URL as string) || '';
 
 // 右上角铃铛消息面板（右侧滑出，三标签）。后续可由后台/DB 提供，现为占位。
 const noticeTabs = [
@@ -22,7 +26,7 @@ const noticeTabs = [
     { title: '下载提速 & 网盘提取码自动填充', body: '详情页点击下载内联展开网盘链接，百度网盘自动带入提取码。', date: '2026-04-27' },
   ]},
   { key: 'official', name: '官方消息', items: [
-    { title: '年中大促 · 全新会员限时登场', body: 'VIP 年卡限时低至 5 折，全站模型 / 贴图 / 教程畅享下载。', date: '2026-06-01' },
+    { title: '素材下载规则更新', body: '全站素材免费下载，登录账号后每天可下载 30 个素材。', date: '2026-06-28' },
     { title: '材质贴图库新增 HDR 专区', body: '新增大量 4K HDR 天空 / 夜空 / 室外环境贴图，持续更新。', date: '2026-05-20' },
   ]},
   { key: 'interactive', name: '互动消息', items: [
@@ -43,14 +47,77 @@ const promo = {
 // 后台可配置项：客服二维码、顶部公告。
 // AI 生图独立部署：本地可指向 Next.js AI 站，生产可改成 ai.xuedda.com 或新域名。
 interface Announce { enabled: boolean; text: string; link: string }
-const [csQr, announce] = await Promise.all([
+const [csQr, announce, modelTree, textureTree, softwareTree, videoTree] = await Promise.all([
   getSetting<string>('cs_qr', ''),
   getSetting<Announce>('announcement', { enabled: false, text: '', link: '' }),
+  getCategoryTree(SECTIONS.model.id),
+  getCategoryTree(SECTIONS.texture.id),
+  getCategoryTree(SECTIONS.software.id),
+  getCategoryTree(SECTIONS.video.id),
 ]);
 const aiImageHref =
-  (import.meta.env?.AI_IMAGE_URL as string) ||
   process.env.AI_IMAGE_URL ||
+  (import.meta.env?.AI_IMAGE_URL as string) ||
   '/ai-image';
+const aiImageDisabled = true;
+
+type P3Group = { name: string; href: string; children: Array<{ name: string; href: string }> };
+type P3Item = { name: string; href: string; groups: P3Group[]; disabled?: boolean };
+
+function flattenCats(nodes: CatNode[]) {
+  const out: CatNode[] = [];
+  const walk = (items: CatNode[]) => {
+    for (const item of items) {
+      out.push(item);
+      walk(item.children || []);
+    }
+  };
+  walk(nodes);
+  return out;
+}
+
+function visibleCats(nodes: CatNode[]) {
+  return nodes.filter((item) => item.isMenu !== false);
+}
+
+function modelGroupsForNav(tree: CatNode[]): P3Group[] {
+  const all = flattenCats(tree);
+  const byId = new Map(all.map((item) => [Number(item.id), item]));
+  const groupedIds = new Set<number>();
+  const groups: P3Group[] = MODEL_GROUPS.map((group) => {
+    const children = group.ids
+      .map((id) => byId.get(id))
+      .filter((item): item is CatNode => Boolean(item && item.isMenu !== false))
+      .map((item) => ({ name: item.name, href: `/c/model?category=${item.id}` }));
+    children.forEach((item) => groupedIds.add(Number(item.href.split('=').pop() || 0)));
+    return { name: group.name, href: `/c/model?group=${group.key}`, children };
+  }).filter((group) => group.children.length);
+
+  const ungrouped = visibleCats(tree)
+    .filter((item) => !groupedIds.has(Number(item.id)))
+    .map((item) => ({ name: item.name, href: `/c/model?category=${item.id}` }));
+  if (ungrouped.length) groups.push({ name: '新增栏目', href: '/c/model', children: ungrouped.slice(0, 16) });
+  return groups;
+}
+
+function sectionGroupsForNav(tree: CatNode[], slug: string): P3Group[] {
+  return visibleCats(tree).slice(0, 10).map((item) => ({
+    name: item.name,
+    href: `/c/${slug}?category=${item.id}`,
+    children: visibleCats(item.children || []).slice(0, 14).map((child) => ({
+      name: child.name,
+      href: `/c/${slug}?category=${child.id}`,
+    })),
+  }));
+}
+
+const p3NavItems: P3Item[] = [
+  { name: 'AI生图', href: aiImageHref, groups: [], disabled: aiImageDisabled },
+  { name: '模型素材', href: '/c/model', groups: modelGroupsForNav(modelTree) },
+  { name: '灯光贴图', href: '/c/texture', groups: sectionGroupsForNav(textureTree, 'texture') },
+  { name: '软件参数', href: '/c/software', groups: sectionGroupsForNav(softwareTree, 'software') },
+  { name: '视频教程', href: '/c/video', groups: sectionGroupsForNav(videoTree, 'video') },
+];
 
 // 左侧导航：把现有功能重组为更像专业素材站的工作台入口。
 const lnavGroups = [
@@ -65,7 +132,7 @@ const lnavGroups = [
   ] },
   { label: '拿点有用的', icon: 'M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4v14h16V7zM8 7h8', items: [
     { name: 'AI 智能搜索', desc: '模型 / 贴图 / 教程', href: '/ask', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.3-4.3', ai: true },
-    { name: 'AI 生图', desc: '灵感草图与效果图', href: aiImageHref, icon: 'M21 15l-5-5L5 21M3 3h18v18H3zM8.5 8.5h.01', hot: true, ai: true },
+    { name: 'AI 生图', desc: '暂未开放', href: aiImageHref, icon: 'M21 15l-5-5L5 21M3 3h18v18H3zM8.5 8.5h.01', ai: true, disabled: aiImageDisabled },
     { name: 'AI 问答', desc: '设计问题快速问', href: '/chat', icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z', ai: true },
   ] },
   { label: '学点真干货', icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z', items: [
@@ -84,7 +151,7 @@ const navItems = [
   { name: '软件参数', href: '/c/software' },
   { name: '视频教程', href: '/c/video' },
   { name: '其他相关', href: '/c/other' },
-  { name: 'AI生图', href: aiImageHref },
+  { name: 'AI生图', href: aiImageHref, disabled: aiImageDisabled },
 ];
 
 
@@ -126,9 +193,9 @@ const cloudWords = [
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
-  <body class={isHome ? 'intro-locked' : ''}>
+  <body class={showIntro ? 'intro-locked' : ''}>
     <!-- 开场动画（仅首页） -->
-    {isHome && (
+    {showIntro && (
     <div class="intro" id="intro">
       <div class="intro-rail">
         <button type="button" class="intro-rail-btn primary" data-auth-open data-mode="login">立即登录</button>
@@ -204,11 +271,22 @@ const cloudWords = [
           <input class="ia-input" name="username" autocomplete="username" placeholder="用户名 / 手机号" required />
           <input class="ia-input" name="password" type="password" autocomplete="current-password" placeholder="密码" required />
           <input class="ia-input ia-confirm" name="confirm" type="password" placeholder="确认密码" />
+          <div class="ia-captcha">
+            <input type="hidden" name="captchaToken" id="iaCaptchaToken" />
+            <input class="ia-input" name="captchaAnswer" id="iaCaptchaAnswer" inputmode="numeric" autocomplete="off" placeholder="输入验证码" required />
+            <button class="ia-captcha-code" id="iaCaptchaRefresh" type="button" aria-label="刷新验证码">加载中</button>
+          </div>
           <p class="ia-err" id="iaErr"></p>
           <button type="submit" class="ia-submit" id="iaSubmit">注册并进入 →</button>
         </form>
-        <!-- 微信登录：并行测试期由旧站承载，待新站接入微信后再启用 -->
-        <p class="ia-note">注册即同意《用户协议》与《隐私政策》</p>
+        <div class="ia-oauth">
+          <span>第三方登录</span>
+          <div>
+            <a href="/api/member/oauth/qq/start" class="ia-oauth-btn qq">QQ 登录</a>
+            <a href="/api/member/oauth/wechat/start" class="ia-oauth-btn wechat">微信登录</a>
+          </div>
+        </div>
+        <p class="ia-note">注册即同意《用户协议》与《隐私政策》 · <a href="/member/forgot">忘记密码？</a></p>
       </div>
     </div>
     )}
@@ -231,7 +309,7 @@ const cloudWords = [
     )}
 
     <!-- 弹窗公告（首页） -->
-    {isHome && promo.enabled && (
+    {showIntro && promo.enabled && (
     <div class="promo-mask" id="promoMask" hidden>
       <div class="promo-card">
         <button class="promo-close" id="promoClose" type="button" aria-label="关闭">✕</button>
@@ -253,7 +331,7 @@ const cloudWords = [
       <div class="container nav-inner">
         <a href="/" class="nav-logo"><span class="nav-logo-dot"></span><span class="nav-logo-text"><b>XDesign</b><span class="nav-logo-cn">薛大大生态设计</span></span></a>
         <ul class="nav-main" id="navMain">
-          {navItems.map((n) => <li><a href={n.href} class={n.active ? 'active' : ''} target={n.external ? '_blank' : undefined} rel={n.external ? 'noopener' : undefined}>{n.name}</a></li>)}
+          {navItems.map((n) => <li><a href={n.disabled ? '#' : n.href} class={`${n.active ? 'active' : ''} ${n.disabled ? 'is-disabled' : ''}`} aria-disabled={n.disabled ? 'true' : undefined} data-disabled={n.disabled ? 'true' : undefined} target={n.external && !n.disabled ? '_blank' : undefined} rel={n.external && !n.disabled ? 'noopener' : undefined}>{n.name}</a></li>)}
         </ul>
         <form class="nav-search" action="/ask" method="get">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
@@ -262,23 +340,38 @@ const cloudWords = [
         <div class="nav-actions">
           <button class="nav-burger" id="navBurger" type="button" aria-label="导航菜单">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-          </button>          <div class="nav-cats" aria-label="资源栏目">
-            <a href={aiImageHref}>AI生图</a>
-            <span aria-hidden="true"></span>
-            <a href="/c/model">模型素材</a>
-            <span aria-hidden="true"></span>
-            <a href="/c/texture">灯光贴图</a>
-            <span aria-hidden="true"></span>
-            <a href="/c/software">软件参数</a>
-            <span aria-hidden="true"></span>
-            <a href="/c/video">视频教程</a>
+          </button>          <div class="nav-cats p3-nav" aria-label="资源栏目">
+            {p3NavItems.map((item, index) => (
+              <>
+                <div class={`p3-item ${item.groups.length ? 'has-menu' : ''} ${item.disabled ? 'is-disabled' : ''}`}>
+                  <a class={`p3-link ${item.disabled ? 'is-disabled' : ''}`} href={item.disabled ? '#' : item.href} aria-disabled={item.disabled ? 'true' : undefined} data-disabled={item.disabled ? 'true' : undefined} aria-haspopup={item.groups.length ? 'true' : undefined}>
+                    {item.name}
+                    {item.groups.length ? <span class="p3-arrow" aria-hidden="true"></span> : null}
+                  </a>
+                  {item.groups.length ? (
+                    <div class="p3-menu" role="menu">
+                      {item.groups.map((group) => (
+                        <div class="p3-group">
+                          <a class="p3-group-title" href={group.href}>{group.name}</a>
+                          {group.children.length ? (
+                            <div class="p3-sublist">
+                              {group.children.map((child) => <a href={child.href}>{child.name}</a>)}
+                            </div>
+                          ) : <p>暂无二级栏目</p>}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+                {index < p3NavItems.length - 1 ? <span class="p3-sep" aria-hidden="true"></span> : null}
+              </>
+            ))}
           </div>
           <a href="/search" class="nav-search-m" aria-label="搜索"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></a>
           <button class="notice-bell" id="noticeBell" type="button" aria-label="消息公告">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             <span class="notice-bell-dot"></span>
           </button>
-          {oldSiteUrl ? <a href={oldSiteUrl} class="site-switch" title="切换到旧版网站">旧版 ↗</a> : null}
           <a href="/member" class="member-only" hidden>会员中心</a>
           <a href="/member" class="member-only" hidden>下载记录</a>
           <a href="/member/login" class="guest-only">登录</a>
@@ -331,7 +424,7 @@ const cloudWords = [
               </div>
             ) : null}
             {g.items.map((it) => (
-              <a href={it.href} class={`lnav-item ${g.label !== '入口' ? 'sub' : ''} ${it.ai ? 'ai' : ''} ${isLnavActive(it.href) ? 'active' : ''}`} {...(it.external ? { target: '_blank', rel: 'noopener' } : {})}>
+              <a href={it.disabled ? '#' : it.href} class={`lnav-item ${g.label !== '入口' ? 'sub' : ''} ${it.ai ? 'ai' : ''} ${it.disabled ? 'disabled' : ''} ${!it.disabled && isLnavActive(it.href) ? 'active' : ''}`} aria-disabled={it.disabled ? 'true' : undefined} data-disabled={it.disabled ? 'true' : undefined} {...(it.external && !it.disabled ? { target: '_blank', rel: 'noopener' } : {})}>
                 <svg class="lnav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d={it.icon} /></svg>
                 <span class="lnav-copy">
                   <span class="lnav-label">{it.name}</span>
@@ -368,7 +461,7 @@ const cloudWords = [
               <li><a href="/c/texture">灯光贴图</a></li>
               <li><a href="/c/software">软件参数</a></li>
               <li><a href="/c/video">视频教程</a></li>
-              <li><a href={aiImageHref}>AI生图</a></li>
+              <li><a href={aiImageDisabled ? '#' : aiImageHref} class={aiImageDisabled ? 'is-disabled' : ''} aria-disabled={aiImageDisabled ? 'true' : undefined} data-disabled={aiImageDisabled ? 'true' : undefined}>AI生图</a></li>
             </ul>
           </div>
           <div>
@@ -389,7 +482,7 @@ const cloudWords = [
         <div class="footer-bottom">
           <span>薛大大设计网 © xuedda.com</span>
           <div style="display:flex;gap:16px;">
-            <a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">ICP 备案号（待填）</a>
+            <a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">苏ICP备17050823号-1</a>
           </div>
         </div>
       </div>
@@ -474,6 +567,11 @@ const cloudWords = [
 
 
     <script is:inline>
+      document.addEventListener('click', (event) => {
+        const disabledLink = event.target.closest('[data-disabled="true"]');
+        if (disabledLink) event.preventDefault();
+      });
+
       // 卡片下载：当前页小弹窗展示网盘链接，不跳详情页
       (function () {
         return;
@@ -558,9 +656,14 @@ const cloudWords = [
             const res = await fetch('/api/download/' + m[1], { credentials: 'include' });
             const data = await res.json();
             if (res.status === 401) {
-              setPop(p, '请先登录', '登录后即可查看网盘链接。', [{ text: '去登录', href: '/member/login' }]);
+              setPop(p, '请先登录或注册', '游客可以浏览素材，查看网盘链接需要账号。', [
+                { text: '去登录', href: '/member/login' },
+                { text: '注册账号', href: '/member/register' },
+              ]);
+            } else if (res.status === 429) {
+              setPop(p, '今日下载已达上限', data.message || '每个账号每天最多下载 30 个素材，明天再来。');
             } else if (res.status === 403) {
-              setPop(p, 'VIP 资源', '该资源需要会员权限。', [{ text: '查看会员', href: '/member/vip' }]);
+              setPop(p, '暂时无法下载', data.message || '当前账号暂无下载权限。');
             } else if (!res.ok || !data.ok) {
               setPop(p, '暂时无法下载', data.message || '下载链接暂未配置');
             } else {
@@ -585,6 +688,12 @@ const cloudWords = [
       (function () {
         const intro = document.getElementById('intro');
         if (!intro) return;
+        const params = new URLSearchParams(window.location.search);
+        const forceIntro = params.has('logout') || params.has('intro');
+        if (forceIntro) {
+          localStorage.removeItem('xdd-entered');
+          sessionStorage.removeItem('xdd-promo');
+        }
         const enter = () => {
           intro.classList.add('hide');
           document.body.classList.remove('intro-locked');
@@ -597,9 +706,31 @@ const cloudWords = [
         const submit = document.getElementById('iaSubmit');
         const err = document.getElementById('iaErr');
         const auth = document.getElementById('introAuth');
+        const captchaToken = document.getElementById('iaCaptchaToken');
+        const captchaAnswer = document.getElementById('iaCaptchaAnswer');
+        const captchaRefresh = document.getElementById('iaCaptchaRefresh');
         const slides = Array.from(intro.querySelectorAll('.intro-slide'));
         const dots = Array.from(intro.querySelectorAll('#introDots button'));
         let slide = 0;
+        let captchaLoading = false;
+        const loadCaptcha = async () => {
+          if (!captchaToken || !captchaAnswer || !captchaRefresh || captchaLoading) return;
+          captchaLoading = true;
+          captchaRefresh.textContent = '刷新中';
+          captchaAnswer.value = '';
+          try {
+            const res = await fetch('/api/member/captcha', { credentials: 'include' });
+            const data = await res.json();
+            if (!res.ok || !data.ok) throw new Error();
+            captchaToken.value = data.token || '';
+            captchaRefresh.textContent = data.question || '点击刷新';
+          } catch {
+            captchaToken.value = '';
+            captchaRefresh.textContent = '刷新验证码';
+          } finally {
+            captchaLoading = false;
+          }
+        };
         const setSlide = (next) => {
           slide = (Number(next) + slides.length) % slides.length;
           slides.forEach((item, index) => item.classList.toggle('active', index === slide));
@@ -611,20 +742,31 @@ const cloudWords = [
           confirm.style.display = mode === 'register' ? 'block' : 'none';
           submit.textContent = mode === 'register' ? '注册并进入 →' : '登录并进入 →';
           err.textContent = '';
+          loadCaptcha();
         };
         dots.forEach((dot) => dot.addEventListener('click', () => setSlide(dot.dataset.slide || 0)));
         intro.querySelectorAll('[data-auth-open]').forEach((button) => {
           button.addEventListener('click', () => {
             setMode(button.dataset.mode || 'login');
             auth.hidden = false;
+            loadCaptcha();
           });
         });
+        captchaRefresh?.addEventListener('click', loadCaptcha);
         document.getElementById('introAuthClose')?.addEventListener('click', () => {
           auth.hidden = true;
         });
-        fetch('/api/member/me', { credentials: 'include' })
+        const oauthError = params.get('oauth');
+        if (oauthError) {
+          setMode('login');
+          auth.hidden = false;
+          err.textContent = oauthError.includes('missing')
+            ? '第三方登录还没有配置 AppId / Secret'
+            : '第三方登录失败，请重试或使用账号密码登录';
+        }
+        fetch('/api/member/me', { credentials: 'include', cache: 'no-store' })
           .then((r) => r.json())
-          .then((d) => { if (d.member) enter(); })
+          .then((d) => { if (d.member && !forceIntro) enter(); })
           .catch(() => {});
         intro.querySelectorAll('.ia-tab').forEach((t) => {
           t.addEventListener('click', () => {
@@ -638,24 +780,32 @@ const cloudWords = [
           const u = (f.get('username') || '').toString().trim();
           const p = (f.get('password') || '').toString();
           const c = (f.get('confirm') || '').toString();
+          const captcha = (f.get('captchaAnswer') || '').toString().trim();
           if (!u || !p) { err.textContent = '请输入用户名和密码'; return; }
           if (mode === 'register' && p !== c) { err.textContent = '两次密码不一致'; return; }
+          if (!captcha) { err.textContent = '请输入验证码'; return; }
           try {
             const res = await fetch(mode === 'register' ? '/api/member/register' : '/api/member/login', {
               method: 'POST',
               headers: { 'content-type': 'application/json' },
               credentials: 'include',
-              body: JSON.stringify({ username: u, password: p }),
+              body: JSON.stringify({
+                username: u,
+                password: p,
+                captchaToken: (f.get('captchaToken') || '').toString(),
+                captchaAnswer: captcha,
+              }),
             });
             const data = await res.json();
-            if (!res.ok || !data.ok) { err.textContent = data.message || '提交失败'; return; }
+            if (!res.ok || !data.ok) {
+              err.textContent = data.message || '提交失败';
+              if (data.captcha) loadCaptcha();
+              return;
+            }
             enter();
           } catch {
             err.textContent = '网络错误，请稍后重试';
           }
-        });
-        document.getElementById('iaWechat')?.addEventListener('click', () => {
-          enter();
         });
       })();
 
@@ -830,12 +980,16 @@ const cloudWords = [
       (function () {
         const guests = document.querySelectorAll('.guest-only');
         const members = document.querySelectorAll('.member-only');
-        fetch('/api/member/me', { credentials: 'include' })
+        const path = window.location.pathname;
+        const authPage = path.startsWith('/member/login') || path.startsWith('/member/register');
+        const adminPage = path.startsWith('/admin');
+        fetch('/api/member/me', { credentials: 'include', cache: 'no-store' })
           .then((r) => r.json())
           .then((d) => {
             const logged = !!d.member;
             guests.forEach((el) => el.hidden = logged);
             members.forEach((el) => el.hidden = !logged);
+            // Guests may browse the site. Download APIs still require a member account.
           })
           .catch(() => {});
         document.getElementById('memberLogout')?.addEventListener('click', async (event) => {
@@ -846,9 +1000,11 @@ const cloudWords = [
           try {
             await fetch('/api/member/logout', { method: 'POST', credentials: 'include', cache: 'no-store' });
           } catch {}
+          guests.forEach((el) => el.hidden = false);
+          members.forEach((el) => el.hidden = true);
           localStorage.removeItem('xdd-entered');
           sessionStorage.removeItem('xdd-promo');
-          location.replace('/');
+          window.location.replace('/');
         });
       })();
 
@@ -1000,8 +1156,9 @@ const cloudWords = [
           try {
             const res = await fetch('/api/download/' + encodeURIComponent(id), { credentials:'include' });
             const data = await res.json().catch(() => ({}));
-            if (res.status === 401) return openState('请先登录', '登录后即可查看网盘链接。', { text:'去登录', href:'/member/login' });
-            if (res.status === 403) return openState('VIP 资源', '该资源需要会员权限。', { text:'查看会员', href:'/member/vip' });
+            if (res.status === 401) return openState('请先登录或注册', '游客可以浏览素材，查看网盘链接需要账号。', { text:'去登录', href:'/member/login' });
+            if (res.status === 429) return openState('今日下载已达上限', data.message || '每个账号每天最多下载 30 个素材，明天再来。');
+            if (res.status === 403) return openState('暂时无法下载', data.message || '当前账号暂无下载权限。');
             if (!res.ok || !data.ok) return openState('暂时无法下载', data.message || '下载链接暂未配置');
             openLinks(data.item?.title || title || '资源下载', data.files || []);
           } catch {

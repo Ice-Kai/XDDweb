@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { db } from './db';
+import { db, legacyPrefix } from './db';
 import { secureCookieSuffix, sessionSecret } from './security';
 
 export interface AdminSession {
@@ -43,7 +43,7 @@ export function verifyAdminToken(token?: string | null): AdminSession | null {
 }
 
 export async function loginAdmin(username: string, password: string): Promise<AdminSession | null> {
-  const [rows] = await db.query<any[]>('SELECT id,username,name,password FROM legacy.lz_admin WHERE username = ? LIMIT 1', [username]);
+  const [rows] = await db.query<any[]>(`SELECT id,username,name,password FROM ${legacyPrefix}lz_admin WHERE username = ? LIMIT 1`, [username]);
   const admin = rows[0];
   if (!admin || String(admin.password).toLowerCase() !== md5(password).toLowerCase()) return null;
   return { id: Number(admin.id), username: String(admin.username), name: String(admin.name || admin.username) };

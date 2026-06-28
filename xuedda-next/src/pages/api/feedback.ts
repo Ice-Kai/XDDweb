@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { cookieValue } from '../../lib/auth';
 import { fail, ok, readJson } from '../../lib/api';
-import { db } from '../../lib/db';
+import { db, appPrefix } from '../../lib/db';
 import { MEMBER_COOKIE, verifyMemberToken } from '../../lib/member';
 import { clientIp, rateLimit } from '../../lib/ratelimit';
 
@@ -15,6 +15,6 @@ export const POST: APIRoute = async ({ request }) => {
   if (!title || !content) return fail('请填写标题和内容');
 
   const memberId = verifyMemberToken(cookieValue(request.headers, MEMBER_COOKIE));
-  await db.query('INSERT INTO xuedda.feedback (member_id,title,content,created_at) VALUES (?,?,?,NOW())', [memberId || 0, title, content]);
+  await db.query(`INSERT INTO ${appPrefix}feedback (member_id,title,content,created_at) VALUES (?,?,?,NOW())`, [memberId || 0, title, content]);
   return ok();
 };

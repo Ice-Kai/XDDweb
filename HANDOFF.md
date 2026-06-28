@@ -126,6 +126,7 @@
 > 倒序记录。每条：日期 + 改了什么 + 关键文件。
 
 ### 2026-06-26（后台大改 + 两个根因坑）
+- **后台栏目管理表格同步前台模型分类逻辑**：`src/pages/admin/[...path].astro` 的「栏目树/栏目管理」不再直接平铺旧 PHP 原始模型树，新增 `categoryBoardRows()`，按前台整理后的三大模型分组输出「建筑 / 景观 / 室内」，并过滤掉旧模型树中间层（如工装/家装 SU 模型父级）避免后台继续混乱；非模型栏目放到「其他栏目」后面。表格增加分组标题行样式，栏目编辑、加子栏目、排序仍沿用原行操作。已跑 `npm run build` 通过。
 - **模型栏目按三大类重排：建筑 / 景观 / 室内**：`src/lib/content.ts` 的 `MODEL_GROUPS` 从「室内 / 建筑 / 景观」改为「建筑 / 景观 / 室内」，前台 `/c/model` 模型侧栏标题同步为「建筑 / 景观 / 室内」，并给三大类加了更清晰的分组标题样式、计数胶囊和子栏目缩进；`src/pages/admin/[...path].astro` 后台上传/筛选用的 `DESIGN_CATEGORY_GROUPS` 同步改为相同顺序，保证后台选择栏目和前台筛选逻辑一致。已跑 `npm run build` 通过。
 - **暗色主题高级感微调 + 客服浮窗改右侧居中可拖动**：`src/styles/global.css` 将暗色从冷黑紫调整为暖黑/细金/低饱和材质感，提亮正文与卡片文字，补强导航、搜索框、排行榜、资源卡片、图片占位和客服面板的暗色质感；`src/layouts/Base.astro` 的客服浮窗从右下角改为默认右侧居中，支持拖拽并用 `localStorage.xdd-cs-pos` 记住位置，拖动时不误打开面板，避免与底部网站公告重叠。已跑 `npm run build` 通过，并用 Chrome/Playwright 验证按钮默认位置、拖动保存和公告不相交。
 - **网站公告改为底部贴边弹窗**：首页原正文流里的大横幅「网站公告」已删除，改为全站 `Base.astro` 底部浮层 `#siteNotice`。用户进入网站后会从浏览器底边浮起，点收起后缩成底部小标签，可再次展开；状态仅记在 `sessionStorage`，新会话会重新弹出。浮层避开左侧导航与右下客服，移动端改为底部整条。关键文件：`src/pages/index.astro`、`src/layouts/Base.astro`、`src/styles/global.css`。已跑 `npm run build` 通过，并确认首页包含 `#siteNotice`、旧正文公告段已移除。
@@ -207,6 +208,9 @@
 - **资源卡片版式重做**：去掉日期/浏览量/下载量(`card-meta`)，标题下新增模型简介 `card-desc`(取 `summary`，空则「暂无简介」，2 行截断)，保留左上角「免费」标签与下载按钮；收紧留白：`.grid-5` 改 `align-items:start`(按内容自然高度，不再拉伸等高把按钮顶到底)、`card-desc` 去 `flex:1` 加 `min-height:2.4em`、`card-body` padding 略收。涉及 `index.astro`、`c/[slug].astro`、`c/model.astro`、`search.astro`、`d/[id].astro`、`global.css`。注：约半数旧资源 summary 为空，显示占位。
 - **🔴 安全加固（全盘审计后）**：①新增内存限流 `lib/ratelimit.ts`（固定窗口+IP，取 x-forwarded-for）；②管理员/会员登录各 15 分钟 10 次、注册 1 小时 5 次防爆破；③公开 AI 搜索 `/api/ai-search` 加限流(每分钟 8 次)+输入截断 200 字，防刷量烧 token；④`member.ts verifyMember` 改 `timingSafeEqual` 恒定时间比签名(原 `!==` 有时序侧信道)。涉及 `lib/ratelimit.ts`(新)、`api/admin/login.ts`、`api/member/login.ts`、`api/member/register.ts`、`api/ai-search.ts`、`lib/member.ts`。审计结论见 HANDOFF 第 9 节。
 - **全站资源卡片统一「免费」+ 软件资源改一行五个**：所有列表卡片左上角角标 `priceLabel` 一律返回「免费」（不再区分 VIP/价格）；首页「软件资源」「薛大大教学(课程)」版块 `grid-4` → `grid-5`（首页四大版块统一一行五个）。涉及 `index.astro`、`c/[slug].astro`、`c/model.astro`、`search.astro`、`ask.astro`。详情页 `d/[id].astro` 的价格/下载逻辑未动。
+
+### 2026-06-28
+- **线上安全+体检审查**（只读，未改线上）：① 应用层安全审查——会话/OAuth/验证码/找回密码/下载白名单/IDOR/限流/XSS 全部达标。② 服务器层发现 MySQL 3306 与宝塔 22732 **对公网暴露**（走阿里云安全组关）、CentOS 7 EOL、PM2 以 root 跑。③ 线上体检发现**旧 PHP SEO 链接全失效**(`/index/download/show/id/*.html` 等被 Google 收录却 404/502)、robots.txt 404 + sitemap 502、部署期 502、缺安全头。→ 优化清单产出 `OPTIMIZE-LIVE-2026-06-28.md`（发 Codex 修复）。④ 服务器约 7G 冗余备份/日志可清（用户暂缓）。
 
 ### 2026-06-18
 - **数据库优雅降级**：`content.ts` 的 `loadChildren/getCategoryTree/getRootCategory/getCategoryName` 加 try/catch（之前直接 query 无保护，MySQL 抖动就整页 500）。现在 DB 临时不可用→渲染空版块而非 500；loadChildren 失败不缓存空表，下次自动重试。**注意：MySQL 在用户机器上容易随 Docker Desktop 关闭而断**，首页报 `ECONNREFUSED 3306` 时先 `docker start xuedda-mysql`。

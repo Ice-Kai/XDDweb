@@ -1,4 +1,4 @@
-import { db } from './db';
+import { db, appPrefix } from './db';
 
 export interface HeroData {
   slides: string[];
@@ -22,7 +22,10 @@ export const DEFAULT_HERO: HeroData = {
 
 export async function getSetting<T>(key: string, fallback: T): Promise<T> {
   try {
-    const [[row]] = await db.query<any[]>('SELECT value FROM xuedda.settings WHERE `key` = ? LIMIT 1', [key]);
+    const [[row]] = await db.query<any[]>(
+      `SELECT value FROM ${appPrefix}settings WHERE \`key\` = ? LIMIT 1`,
+      [key],
+    );
     if (!row || row.value == null || row.value === '') return fallback;
     try {
       return JSON.parse(row.value) as T;
@@ -37,7 +40,7 @@ export async function getSetting<T>(key: string, fallback: T): Promise<T> {
 export async function setSetting(key: string, value: unknown): Promise<void> {
   const str = typeof value === 'string' ? value : JSON.stringify(value);
   await db.query(
-    'INSERT INTO xuedda.settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)',
+    `INSERT INTO ${appPrefix}settings (\`key\`,\`value\`) VALUES (?,?) ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`,
     [key, str],
   );
 }

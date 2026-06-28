@@ -16,5 +16,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (!requestOriginAllowed(context.request)) return fail('非法请求来源', 403);
   }
 
-  return next();
+  const response = await next();
+
+  response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set(
+    'Content-Security-Policy',
+    "default-src 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'self'",
+  );
+
+  return response;
 });

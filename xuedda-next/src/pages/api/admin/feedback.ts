@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { db } from '../../../lib/db';
+import { db, legacyPrefix, appPrefix } from '../../../lib/db';
 import { ok } from '../../../lib/api';
 
 export const GET: APIRoute = async ({ url }) => {
@@ -23,13 +23,13 @@ export const GET: APIRoute = async ({ url }) => {
        f.id,f.member_id,f.title,f.content,f.reply,f.replied_at,f.created_at,
        m.user_name AS member_username,
        m.nickname AS member_nickname
-     FROM xuedda.feedback f
-     LEFT JOIN legacy.lz_member m ON m.id = f.member_id
+     FROM ${appPrefix}feedback f
+     LEFT JOIN ${legacyPrefix}lz_member m ON m.id = f.member_id
      ${where}
      ORDER BY f.id DESC
      LIMIT ? OFFSET ?`,
     [...params, limit, (page - 1) * limit],
   );
-  const [[total]] = await db.query<any[]>(`SELECT COUNT(*) n FROM xuedda.feedback f ${where}`, params);
+  const [[total]] = await db.query<any[]>(`SELECT COUNT(*) n FROM ${appPrefix}feedback f ${where}`, params);
   return ok({ rows, total: Number(total?.n || 0), page, limit });
 };

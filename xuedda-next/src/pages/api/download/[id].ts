@@ -1,7 +1,12 @@
 import type { APIRoute } from 'astro';
 import { cookieValue } from '../../../lib/auth';
-import { getDownloadById, recordMemberDownload } from '../../../lib/content';
-import { getMemberById, isVip, MEMBER_COOKIE, verifyMemberToken } from '../../../lib/member';
+import {
+  DAILY_DOWNLOAD_LIMIT,
+  getDownloadById,
+  getMemberDailyDownloadUsage,
+  recordMemberDownload,
+} from '../../../lib/content';
+import { getMemberById, MEMBER_COOKIE, verifyMemberToken } from '../../../lib/member';
 import { fail, ok } from '../../../lib/api';
 import { clientIp, rateLimit } from '../../../lib/ratelimit';
 import { sanitizeDownloadFiles } from '../../../lib/security';
@@ -17,7 +22,11 @@ export const GET: APIRoute = async ({ params, request }) => {
   const memberId = verifyMemberToken(cookieValue(request.headers, MEMBER_COOKIE));
   const member = memberId ? await getMemberById(memberId) : null;
   if (!member) return fail('请先登录后下载', 401);
-  if (item.just_vip && !isVip(member)) return fail('该资源需要 VIP 会员', 403);
+
+  const usage = await getMemberDailyDownloadUsage(member.id, item.id);
+  if (!usage.alreadyDownloaded && usage.count >= DAILY_DOWNLOAD_LIMIT) {
+    return fail(`今日免费下载次数已用完，每个账号每天最多下载 ${DAILY_DOWNLOAD_LIMIT} 个素材。`, 429);
+  }
 
   const files = item.files?.length
     ? item.files
@@ -27,7 +36,7 @@ export const GET: APIRoute = async ({ params, request }) => {
 
   const visibleFiles = item.hidePass ? files.map((file) => ({ ...file, pass: '' })) : files;
   const safeFiles = sanitizeDownloadFiles(visibleFiles);
-  if (!safeFiles.length) return fail('该资源暂未配置可信下载链接', 404);
+  if (!safeFiles.length) return fail('该资源暂未配置可用下载链接', 404);
 
   try {
     await recordMemberDownload(member.id, item);
@@ -35,5 +44,12 @@ export const GET: APIRoute = async ({ params, request }) => {
     console.warn('record download failed', error);
   }
 
-  return ok({ item: { id: item.id, title: item.title }, files: safeFiles });
+  return ok({
+    item: { id: item.id, title: item.title },
+    files: safeFiles,
+    quota: {
+      limit: DAILY_DOWNLOAD_LIMIT,
+      used: usage.alreadyDownloaded ? usage.count : Math.min(usage.count + 1, DAILY_DOWNLOAD_LIMIT),
+    },
+  });
 };

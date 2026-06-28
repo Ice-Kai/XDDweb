@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { randomBytes } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fail, ok } from '../../../lib/api';
 
@@ -14,6 +14,30 @@ function cleanExt(name: string) {
 function monthKey() {
   const now = new Date();
   return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+async function pathExists(target: string) {
+  try {
+    await access(target);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function uploadTargetDirs(folder: string) {
+  const parts = folder.split('/').filter(Boolean);
+  const dirs = new Set<string>();
+
+  // 本地 dev 读取 public；线上静态资源一般由 dist/client 提供。
+  dirs.add(path.join(process.cwd(), 'public', ...parts));
+
+  const clientRoot = path.join(process.cwd(), 'dist', 'client');
+  if (await pathExists(clientRoot)) {
+    dirs.add(path.join(clientRoot, ...parts));
+  }
+
+  return Array.from(dirs);
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -30,12 +54,14 @@ export const POST: APIRoute = async ({ request }) => {
   if (file.size > maxSize) return fail(kind === 'cover' ? '封面不能超过 8MB' : '测试附件不能超过 80MB', 413);
 
   const folder = `/uploads/admin/${kind}/${monthKey()}`;
-  const targetDir = path.join(process.cwd(), 'public', ...folder.split('/').filter(Boolean));
-  await mkdir(targetDir, { recursive: true });
-
   const filename = `${Date.now()}-${randomBytes(6).toString('hex')}${ext}`;
-  const targetPath = path.join(targetDir, filename);
-  await writeFile(targetPath, Buffer.from(await file.arrayBuffer()));
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const targetDirs = await uploadTargetDirs(folder);
+
+  await Promise.all(targetDirs.map(async (targetDir) => {
+    await mkdir(targetDir, { recursive: true });
+    await writeFile(path.join(targetDir, filename), buffer);
+  }));
 
   return ok({
     url: `${folder}/${filename}`,

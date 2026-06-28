@@ -1,20 +1,27 @@
 const DEV_SESSION_SECRET = 'dev-session-secret-change-me';
 
+const env = {
+  ...import.meta.env,
+  ...(typeof process !== 'undefined' ? process.env : {}),
+};
+
+const isProd = Boolean(import.meta.env.PROD || env.NODE_ENV === 'production');
+
 export function sessionSecret() {
-  const value = String(import.meta.env.SESSION_SECRET || '').trim();
-  if (import.meta.env.PROD && (!value || value === DEV_SESSION_SECRET || value.length < 32)) {
+  const value = String(env.SESSION_SECRET || '').trim();
+  if (isProd && (!value || value === DEV_SESSION_SECRET || value.length < 32)) {
     throw new Error('SESSION_SECRET must be set to a strong value in production.');
   }
   return value || DEV_SESSION_SECRET;
 }
 
 export function secureCookieSuffix() {
-  return import.meta.env.PROD ? '; Secure' : '';
+  return isProd ? '; Secure' : '';
 }
 
 export function publicRegistrationEnabled() {
-  const value = String(import.meta.env.PUBLIC_REGISTRATION_ENABLED || '').trim().toLowerCase();
-  if (import.meta.env.PROD) return ['1', 'true', 'yes', 'on'].includes(value);
+  const value = String(env.PUBLIC_REGISTRATION_ENABLED || '').trim().toLowerCase();
+  if (isProd) return ['1', 'true', 'yes', 'on'].includes(value);
   return value !== 'false';
 }
 
@@ -25,7 +32,7 @@ export function requestOriginAllowed(request: Request) {
   const requestUrl = new URL(request.url);
   if (origin === requestUrl.origin) return true;
 
-  const allowed = String(import.meta.env.ALLOWED_ORIGINS || '')
+  const allowed = String(env.ALLOWED_ORIGINS || '')
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean);
@@ -61,12 +68,13 @@ export function safeDownloadUrl(raw: unknown) {
   if (/^\/uploads\/admin\/[A-Za-z0-9][A-Za-z0-9/_\-.]*$/i.test(text) && !text.includes('..')) {
     return text;
   }
-  const match = text.match(/https:\/\/[^\s"'<>]+/i);
+  const match = text.match(/https?:\/\/[^\s"'<>]+/i);
   if (!match) return '';
   try {
     const url = new URL(match[0]);
-    if (url.protocol !== 'https:') return '';
     if (!allowedHost(url.hostname)) return '';
+    if (url.protocol === 'http:') url.protocol = 'https:';
+    if (url.protocol !== 'https:') return '';
     return url.toString();
   } catch {
     return '';

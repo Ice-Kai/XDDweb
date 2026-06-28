@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { db } from './db';
+import { db, legacyPrefix } from './db';
 import { md5 } from './auth';
 import { secureCookieSuffix, sessionSecret } from './security';
 
@@ -10,6 +10,13 @@ export interface MemberSession {
   level: number;
   integral: number;
   vipExpireAt: string | null;
+}
+
+export interface OAuthMemberProfile {
+  openid: string;
+  nickname?: string;
+  avatar?: string;
+  sex?: number | string;
 }
 
 export const MEMBER_COOKIE = 'xdd_member';
@@ -47,7 +54,10 @@ export function verifyMemberToken(token?: string | null) {
 }
 
 export async function getMemberById(id: number): Promise<MemberSession | null> {
-  const [rows] = await db.query<any[]>('SELECT id,user_name,email,nickname,level,integral,exp_time FROM legacy.lz_member WHERE id = ? LIMIT 1', [id]);
+  const [rows] = await db.query<any[]>(
+    `SELECT id,user_name,email,nickname,level,integral,exp_time FROM ${legacyPrefix}lz_member WHERE id = ? LIMIT 1`,
+    [id],
+  );
   const m = rows[0];
   if (!m) return null;
   return {
@@ -62,22 +72,89 @@ export async function getMemberById(id: number): Promise<MemberSession | null> {
 
 export async function loginMember(username: string, password: string) {
   const [rows] = await db.query<any[]>(
-    'SELECT id,password FROM legacy.lz_member WHERE user_name = ? OR email = ? LIMIT 1',
+    `SELECT id,password FROM ${legacyPrefix}lz_member WHERE user_name = ? OR email = ? LIMIT 1`,
     [username, username],
   );
   const m = rows[0];
   if (!m || String(m.password).toLowerCase() !== legacyPassword(password).toLowerCase()) return null;
-  await db.query('UPDATE legacy.lz_member SET last_login_time = NOW() WHERE id = ?', [m.id]);
+  await db.query(`UPDATE ${legacyPrefix}lz_member SET last_login_time = NOW() WHERE id = ?`, [m.id]);
   return getMemberById(Number(m.id));
 }
 
+export async function findMemberForPasswordReset(identity: string) {
+  const value = String(identity || '').trim();
+  if (!value) return null;
+  const [rows] = await db.query<any[]>(
+    `SELECT id,user_name,email,nickname FROM ${legacyPrefix}lz_member WHERE user_name = ? OR email = ? LIMIT 1`,
+    [value, value],
+  );
+  const m = rows[0];
+  if (!m) return null;
+  return {
+    id: Number(m.id),
+    username: String(m.user_name || ''),
+    email: String(m.email || ''),
+    nickname: String(m.nickname || ''),
+  };
+}
+
 export async function registerMember(username: string, password: string) {
-  const [exists] = await db.query<any[]>('SELECT id FROM legacy.lz_member WHERE user_name = ? OR email = ? LIMIT 1', [username, username]);
-  if (exists[0]) throw new Error('用户名已经存在');
+  const [exists] = await db.query<any[]>(
+    `SELECT id FROM ${legacyPrefix}lz_member WHERE user_name = ? OR email = ? LIMIT 1`,
+    [username, username],
+  );
+  if (exists[0]) throw new Error('用户名已存在');
   const email = username.includes('@') ? username : '';
   const [res] = await db.query<any>(
-    'INSERT INTO legacy.lz_member (user_name,email,password,create_time,update_time,last_login_time,integral,level,user_type) VALUES (?,?,?,NOW(),NOW(),NOW(),0,0,0)',
+    `INSERT INTO ${legacyPrefix}lz_member (user_name,email,password,create_time,update_time,last_login_time,integral,level,user_type) VALUES (?,?,?,NOW(),NOW(),NOW(),0,0,0)`,
     [username, email, legacyPassword(password)],
+  );
+  return getMemberById(Number(res.insertId));
+}
+
+function normalizeSex(value: OAuthMemberProfile['sex']) {
+  if (value === '男') return 1;
+  if (value === '女') return 2;
+  const n = Number(value || 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function cleanNickname(provider: 'qq' | 'wechat', openid: string, nickname?: string) {
+  const value = String(nickname || '').trim().replace(/[\u0000-\u001F\u007F]/g, '');
+  if (value) return value.slice(0, 80);
+  return provider === 'qq' ? `QQ用户${openid.slice(-6)}` : `微信用户${openid.slice(-6)}`;
+}
+
+export async function upsertOAuthMember(provider: 'qq' | 'wechat', profile: OAuthMemberProfile) {
+  const openid = String(profile.openid || '').trim();
+  if (!openid) throw new Error('第三方登录缺少 openid');
+
+  const userType = provider === 'qq' ? 1 : 2;
+  const nickname = cleanNickname(provider, openid, profile.nickname);
+  const avatar = String(profile.avatar || '').trim().slice(0, 500);
+  const sex = normalizeSex(profile.sex);
+
+  const [rows] = await db.query<any[]>(
+    `SELECT id FROM ${legacyPrefix}lz_member WHERE openid = ? LIMIT 1`,
+    [openid],
+  );
+
+  if (rows[0]) {
+    await db.query(
+      `UPDATE ${legacyPrefix}lz_member
+       SET nickname = ?, avatar = ?, sex = ?, user_type = ?, last_login_time = NOW(), update_time = NOW()
+       WHERE id = ?`,
+      [nickname, avatar, sex, userType, rows[0].id],
+    );
+    return getMemberById(Number(rows[0].id));
+  }
+
+  const username = `${provider}_${openid}`.slice(0, 96);
+  const [res] = await db.query<any>(
+    `INSERT INTO ${legacyPrefix}lz_member
+      (user_name,email,password,nickname,avatar,sex,openid,user_type,create_time,update_time,last_login_time,integral,level)
+     VALUES (?,?,?,?,?,?,?,?,NOW(),NOW(),NOW(),0,0)`,
+    [username, '', '', nickname, avatar, sex, openid, userType],
   );
   return getMemberById(Number(res.insertId));
 }
@@ -97,4 +174,23 @@ export function setMemberCookie(token: string) {
 
 export function clearMemberCookie() {
   return `${MEMBER_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secureCookieSuffix()}`;
+}
+
+export function clearMemberCookies(hostname?: string | null) {
+  const expires = 'Thu, 01 Jan 1970 00:00:00 GMT';
+  const suffix = secureCookieSuffix();
+  const base = [
+    `${MEMBER_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Expires=${expires}${suffix}`,
+  ];
+  const host = String(hostname || '').split(':')[0].trim().toLowerCase();
+  if (host && host !== 'localhost' && !/^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+    base.push(`${MEMBER_COOKIE}=; Path=/; Domain=${host}; HttpOnly; SameSite=Lax; Max-Age=0; Expires=${expires}${suffix}`);
+    const parts = host.split('.');
+    if (parts.length > 2) {
+      base.push(`${MEMBER_COOKIE}=; Path=/; Domain=.${parts.slice(-2).join('.')}; HttpOnly; SameSite=Lax; Max-Age=0; Expires=${expires}${suffix}`);
+    } else {
+      base.push(`${MEMBER_COOKIE}=; Path=/; Domain=.${host}; HttpOnly; SameSite=Lax; Max-Age=0; Expires=${expires}${suffix}`);
+    }
+  }
+  return base;
 }

@@ -2,28 +2,24 @@
 import Base from '../../layouts/Base.astro';
 ---
 
-<Base title="会员注册 - 薛大大设计网">
+<Base title="找回密码 - 薛大大设计网">
   <section class="auth-page">
-    <form class="auth-card" id="registerForm">
-      <p class="section-label">MEMBER</p>
-      <h1>注册会员</h1>
-      <p class="auth-desc">注册后每天可免费打开 30 个素材下载链接。</p>
-      <input name="username" placeholder="用户名 / 邮箱 / 手机号" autocomplete="username" required />
-      <input name="password" type="password" placeholder="密码至少 6 位" autocomplete="new-password" required />
+    <form class="auth-card" id="forgotForm">
+      <p class="section-label">ACCOUNT</p>
+      <h1>找回密码</h1>
+      <p class="auth-desc">为了避免账号被冒领，这里会提交找回申请，管理员核验后再联系你处理。</p>
+      <input name="username" placeholder="要找回的用户名 / 邮箱" autocomplete="username" required />
+      <input name="contact" placeholder="手机号 / 邮箱 / 微信号" autocomplete="email" required />
       <div class="auth-captcha">
         <input type="hidden" name="captchaToken" id="captchaToken" />
         <input name="captchaAnswer" id="captchaAnswer" inputmode="numeric" autocomplete="off" placeholder="输入验证码" required />
         <button id="captchaRefresh" type="button">加载中</button>
       </div>
-      <p class="auth-hint">为防止刷号，同一设备和同一 IP 会限制注册频率。</p>
       <p class="auth-error" id="err"></p>
-      <button class="btn-primary" type="submit">注册并进入</button>
-      <div class="auth-oauth" aria-label="第三方登录">
-        <a href="/api/member/oauth/qq/start">QQ 登录</a>
-        <a href="/api/member/oauth/wechat/start">微信登录</a>
-      </div>
+      <button class="btn-primary" type="submit">提交找回申请</button>
       <div class="auth-links">
-        <a href="/member/login">已有账号？去登录</a>
+        <a href="/member/login">返回登录</a>
+        <a href="/member/register">重新注册</a>
       </div>
     </form>
   </section>
@@ -48,24 +44,24 @@ import Base from '../../layouts/Base.astro';
     refresh?.addEventListener('click', loadCaptcha);
     loadCaptcha();
 
-    document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
+    document.getElementById('forgotForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = e.currentTarget as HTMLFormElement;
       const err = document.getElementById('err');
       const data = Object.fromEntries(new FormData(form).entries());
-      const res = await fetch('/api/member/register', {
+      const res = await fetch('/api/member/forgot', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(data),
       });
       const json = await res.json();
-      if (!res.ok || !json.ok) {
-        if (err) err.textContent = json.message || '注册失败';
-        if (json.captcha) loadCaptcha();
-        return;
+      if (err) {
+        err.textContent = json.message || (res.ok ? '申请已提交' : '提交失败');
+        err.classList.toggle('ok', res.ok && json.ok);
       }
-      location.href = '/';
+      if (json.captcha) loadCaptcha();
+      if (res.ok && json.ok) form.reset();
     });
   </script>
 </Base>

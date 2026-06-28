@@ -1,6 +1,19 @@
 import mysql from 'mysql2/promise';
 
-const env = import.meta.env;
+const env = {
+  ...import.meta.env,
+  ...(typeof process !== 'undefined' ? process.env : {}),
+};
+
+function escapeIdentifier(value: string) {
+  return value.replace(/`/g, '``').replace(/[^a-zA-Z0-9_$]/g, '');
+}
+
+const legacyDbName = String(env.LEGACY_DB_NAME || '').trim();
+export const legacyPrefix = legacyDbName ? `\`${escapeIdentifier(legacyDbName)}\`.` : '';
+
+const appDbName = String(env.APP_DB_NAME || '').trim();
+export const appPrefix = appDbName ? `\`${escapeIdentifier(appDbName)}\`.` : '';
 
 export const db = mysql.createPool({
   host: env.DB_HOST || '127.0.0.1',

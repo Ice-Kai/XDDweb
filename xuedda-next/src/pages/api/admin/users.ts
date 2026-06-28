@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro';
-import { db } from '../../../lib/db';
+import { db, legacyPrefix } from '../../../lib/db';
 import { ok } from '../../../lib/api';
 
-// User list / search over the shared legacy.lz_member table (read-only here).
+// User list / search over the shared ${legacyPrefix}lz_member table (read-only here).
 export const GET: APIRoute = async ({ url }) => {
   const q = String(url.searchParams.get('q') || '').trim();
   const page = Math.max(1, Number(url.searchParams.get('page') || 1));
@@ -24,10 +24,10 @@ export const GET: APIRoute = async ({ url }) => {
   }
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
 
-  const [[cnt]] = await db.query<any[]>(`SELECT COUNT(*) n FROM legacy.lz_member ${where}`, params);
+  const [[cnt]] = await db.query<any[]>(`SELECT COUNT(*) n FROM ${legacyPrefix}lz_member ${where}`, params);
   const [rows] = await db.query<any[]>(
     `SELECT id, user_name, email, nickname, level, integral, exp_time, create_time, last_login_time, user_type
-     FROM legacy.lz_member ${where}
+     FROM ${legacyPrefix}lz_member ${where}
      ORDER BY id DESC LIMIT ? OFFSET ?`,
     [...params, limit, (page - 1) * limit],
   );

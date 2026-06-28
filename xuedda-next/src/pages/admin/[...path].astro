@@ -126,6 +126,9 @@
       .cat-opt.active .co-path { color:rgba(0,0,0,.55); }
       .drawer-footer { flex:0 0 auto; display:flex; gap:10px; align-items:center; padding:14px 16px; border-top:1px solid var(--line); background:var(--panel); box-shadow:0 -8px 20px rgba(0,0,0,.05); }
       .drawer-footer .btn.primary { flex:1; min-height:42px; font-size:14px; font-weight:800; }
+      .batch-import-footer { gap:14px; }
+      .batch-import-footer .btn.primary { flex:0 0 220px; }
+      .batch-status { flex:1; min-height:auto; margin:0; color:var(--muted); font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .drawer-overlay { position:fixed; inset:0; z-index:55; background:rgba(20,20,25,.34); }
       .user-drawer { position:fixed; top:0; right:0; z-index:60; width:min(640px,96vw); height:100vh; overflow:auto; border-radius:0; border-left:1px solid var(--line); background:var(--panel); transform:translateX(101%); transition:transform .26s cubic-bezier(.4,0,.2,1); box-shadow:-14px 0 44px rgba(0,0,0,.14); }
       .user-drawer.open { transform:none; }
@@ -243,6 +246,7 @@
       .upload-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; }
       .upload-btn { position:relative; display:inline-flex; align-items:center; justify-content:center; min-height:38px; padding:0 12px; border-radius:8px; border:1px solid var(--gold-border); background:var(--gold-pale); color:var(--gold); font-weight:900; white-space:nowrap; cursor:pointer; }
       .upload-btn input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+      .file-input-hidden { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
       .drawer-actions { grid-column:1 / -1; display:flex; gap:8px; flex-wrap:wrap; padding-top:2px; }
       .category-tree { display:flex; flex-direction:column; gap:0; max-height:calc(100vh - 250px); overflow:auto; padding:8px 6px; }
       /* 层级分明的树：主栏目=分组标题(高/粗/彩块/同色计数)，子栏目=缩进小字+连接符 */
@@ -288,6 +292,15 @@
       .category-table th:nth-child(5),.category-table td:nth-child(5) { width:86px; }
       .category-table th:nth-child(6),.category-table td:nth-child(6) { width:86px; }
       .category-table th:nth-child(7),.category-table td:nth-child(7) { width:116px; }
+      .category-group-row td {
+        padding:10px 14px;
+        background:linear-gradient(90deg,#f8eddc,#fff 72%) !important;
+        border-top:2px solid #ead6b5;
+        border-bottom:1px solid #ead6b5;
+      }
+      .category-group-title { display:flex; align-items:center; gap:10px; }
+      .category-group-title strong { color:#111118; font-size:14px; font-weight:1000; }
+      .category-group-title span { display:inline-flex; align-items:center; height:22px; padding:0 8px; border-radius:999px; background:#fff; color:#a36a12; border:1px solid #efd9b5; font-size:12px; font-weight:900; }
       .sort-input { width:62px; min-height:30px; padding:5px 8px; border-color:transparent; border-radius:999px; background:var(--panel-2); text-align:center; font-weight:900; color:var(--gold); }
       .sort-input:focus { background:var(--dark-2); border-color:var(--gold); }
       .category-name { min-width:300px; }
@@ -415,7 +428,7 @@
                   <label class="field"><span>内容模型</span><select id="catType" class="select"><option value="download">下载资源</option><option value="course">课程</option><option value="article">文章</option><option value="picture">图集</option><option value="mp4">视频</option><option value="question">问答</option><option value="page">单页</option><option value="link">链接</option></select></label>
                   <label class="field"><span>排序</span><input id="catSort" class="input" type="number" value="20" /></label>
                   <label class="field"><span>导航显示</span><select id="catMenu" class="select"><option value="1">显示</option><option value="0">隐藏</option></select></label>
-                  <label class="field wide"><span>封面 URL</span><div class="upload-row"><input id="catCover" class="input" /><label class="upload-btn">上传封面<input id="catCoverUpload" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></label></div></label>
+                  <div class="field wide"><span>封面 URL</span><div class="upload-row"><input id="catCover" class="input" /><button id="catCoverPick" class="upload-btn" type="button">上传封面</button><input id="catCoverUpload" class="file-input-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></div></div>
                   <label class="field wide"><span>关键词</span><input id="catKeywords" class="input" /></label>
                   <label class="field wide"><span>栏目链接/别名</span><input id="catUrl" class="input" /></label>
                   <label class="field wide"><span>描述</span><textarea id="catDescription" class="textarea"></textarea></label>
@@ -453,7 +466,7 @@
                     <button id="batchSelectNone" class="btn ghost small" type="button">取消选择</button>
                     <strong>批量操作</strong>
                     <span class="bm-group"><span class="bm-label">迁移到</span><select id="batchMoveTo" class="select" style="max-width:200px"></select><button id="batchMove" class="btn secondary small" type="button">迁移栏目</button></span>
-                    <button id="batchShow" class="btn ghost small" type="button">批量显示</button>
+                    <button id="batchBulkShow" class="btn ghost small" type="button">批量显示</button>
                     <button id="batchHide" class="btn ghost small" type="button">批量隐藏</button>
                     <button id="batchDelete" class="btn danger small" type="button">批量删除</button>
                     <button id="scanLinks" class="btn ghost small" type="button">扫描本页链接</button>
@@ -499,9 +512,9 @@
                   <section class="upload-step">
                     <div class="upload-step-head"><div class="upload-step-title"><span class="upload-step-index">3</span><span>封面与下载</span></div><span class="upload-step-hint">图片 + 网盘链接</span></div>
                     <div class="upload-step-grid">
-                      <label class="field wide"><span>封面图片</span><div class="upload-row"><input id="fCover" class="input" placeholder="封面 URL 或上传图片自动填入" /><label class="upload-btn">上传图片<input id="coverUpload" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></label></div><small>支持 JPG / PNG / WebP / GIF，最大 8MB。</small></label>
+                      <div class="field wide"><span>封面图片</span><div class="upload-row"><input id="fCover" class="input" placeholder="封面 URL 或上传图片自动填入" /><button id="coverPick" class="upload-btn" type="button">上传图片</button><input id="coverUpload" class="file-input-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></div><small>支持 JPG / PNG / WebP / GIF，最大 8MB。</small></div>
                       <label class="field wide"><span>粘贴网盘分享文本</span><textarea id="fNetdiskRaw" class="textarea" placeholder="粘贴：链接：https://pan.baidu.com/s/... 提取码：abcd"></textarea><small>粘贴后会自动拆出链接和提取码，也可以手动修改。</small></label>
-                      <label class="field wide"><span>百度网盘 / 夸克 / 其他下载链接</span><div class="upload-row"><input id="fFileUrl" class="input" placeholder="https://pan.baidu.com/..." /><label class="upload-btn">上传附件<input id="resourceUpload" type="file" accept=".zip,.rar,.7z,.skp,.max,.dwg,.dxf,.fbx,.obj,.pdf,.txt,.doc,.docx" /></label></div><small>正式资源建议填网盘链接；本地附件用于测试。</small></label>
+                      <div class="field wide"><span>百度网盘 / 夸克 / 其他下载链接</span><div class="upload-row"><input id="fFileUrl" class="input" placeholder="https://pan.baidu.com/..." /><button id="resourcePick" class="upload-btn" type="button">上传附件</button><input id="resourceUpload" class="file-input-hidden" type="file" accept=".zip,.rar,.7z,.skp,.max,.dwg,.dxf,.fbx,.obj,.pdf,.txt,.doc,.docx" /></div><small>正式资源建议填网盘链接；本地附件用于测试。</small></div>
                       <label class="field"><span>提取码</span><input id="fPass" class="input" /></label>
                       <label class="field"><span>文件大小</span><input id="fSize" class="input" placeholder="128 MB" /></label>
                       <label class="field wide"><span>提取码显示</span><select id="fHidePass" class="select"><option value="0">前台显示提取码</option><option value="1">隐藏提取码，只显示下载链接</option></select></label>
@@ -567,7 +580,7 @@
                         <div class="left">
                           <select id="batchAssetKind" class="select"><option value="model">模型素材</option><option value="texture">灯光 / 贴图</option><option value="software">软件参数</option><option value="tutorial">教程视频</option><option value="text">文本 / 文案</option><option value="other">其他资源</option></select>
                           <select id="batchModelFormat" class="select"><option value="SU">SU / SKP</option><option value="MAX">3ds Max</option><option value="PSD">PSD素材</option><option value="D5">D5</option><option value="CAD">CAD</option><option value="TEXT">文本</option><option value="OTHER">其他</option></select>
-                          <select id="batchShow" class="select"><option value="1">显示</option><option value="0">隐藏</option></select>
+                          <select id="batchPublishState" class="select"><option value="1">显示</option><option value="0">隐藏</option></select>
                           <select id="batchHidePass" class="select"><option value="0">显示提取码</option><option value="1">隐藏提取码</option></select>
                         </div>
                         <div class="right">
@@ -581,7 +594,10 @@
                       <div class="batch-rows" id="batchRows"></div>
                     </div>
                   </div>
-                  <div class="drawer-footer"><button id="batchImport" class="btn primary" type="button">压缩并导入</button></div>
+                  <div class="drawer-footer batch-import-footer">
+                    <span id="batchStatus" class="message batch-status" aria-live="polite"></span>
+                    <button id="batchImport" class="btn primary" type="button">压缩并导入</button>
+                  </div>
                 </aside>
               </div>
             </div>
@@ -630,7 +646,24 @@
         </section>
         <section id="logsView" class="view">
           <div class="panel">
-            <div class="panel-head"><div class="panel-title"><h2>操作日志</h2><p>记录后台新增 / 编辑 / 隐藏等动作，方便定位与排查</p></div><button id="logRefresh" class="btn ghost" type="button">刷新</button></div>
+            <div class="panel-head"><div class="panel-title"><h2>操作日志</h2><p>记录后台新增 / 编辑 / 隐藏等动作，方便定位与排查</p></div></div>
+            <div class="toolbar" style="grid-template-columns:180px 150px 1fr repeat(4, auto);padding-top:0;">
+              <input id="logDate" class="input" type="date" title="按日期筛选" />
+              <select id="logAction" class="select" title="按动作筛选">
+                <option value="all">全部动作</option>
+                <option value="create">新增</option>
+                <option value="update">编辑</option>
+                <option value="move">移动 / 排序</option>
+                <option value="show">显示</option>
+                <option value="hide">隐藏</option>
+                <option value="delete">删除</option>
+              </select>
+              <input id="logQ" class="input" placeholder="搜索资源、栏目、操作人或日志内容" />
+              <button id="logSearch" class="btn" type="button">筛选</button>
+              <button id="logToday" class="btn ghost" type="button">今天</button>
+              <button id="logClear" class="btn ghost" type="button">清空</button>
+              <button id="logRefresh" class="btn ghost" type="button">刷新</button>
+            </div>
             <div class="table-wrap">
               <table>
                 <thead><tr><th style="width:150px">时间</th><th style="width:84px">操作</th><th>对象</th><th style="width:120px">操作人</th></tr></thead>
@@ -683,9 +716,23 @@
       function text(value) { return String(value ?? ''); }
       function parseMeta(value) { try { return typeof value === 'string' ? JSON.parse(value || '{}') : (value || {}); } catch { return {}; } }
       function el(tag, className, value) { const node = document.createElement(tag); if (className) node.className = className; if (value != null) node.textContent = text(value); return node; }
-      async function api(url, opts = {}) { const res = await fetch(url, { credentials:'include', ...opts }); const data = await res.json().catch(() => ({})); if (!res.ok || !data.ok) throw new Error(data.message || '请求失败'); return data; }
+      async function api(url, opts = {}) {
+        const res = await fetch(url, { credentials:'include', ...opts });
+        const text = await res.text().catch(() => '');
+        let data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch {}
+        if (!res.ok || !data.ok) {
+          const plain = text.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+          throw new Error(data.message || (plain ? plain.slice(0, 120) : `请求失败（HTTP ${res.status}）`));
+        }
+        return data;
+      }
       function json(method, body) { return { method, headers:{ 'content-type':'application/json' }, body:JSON.stringify(body) }; }
       function setMsg(id, value, kind = '') { const node = $(id); if (!node) return; node.textContent = value || ''; node.className = `message ${kind}`.trim(); }
+      function setBatchMsg(value, kind = '') {
+        setMsg('batchStatus', value, kind);
+        setMsg('contentMsg', value, kind);
+      }
       function byParent() {
         const map = new Map();
         for (const row of state.categories) {
@@ -713,6 +760,15 @@
       function categoryById(id) {
         return state.categories.find((row) => Number(row.id) === Number(id));
       }
+      function isUnderCategory(id, rootId) {
+        let row = categoryById(id);
+        let guard = 0;
+        while (row && guard++ < 12) {
+          if (Number(row.id) === Number(rootId) || Number(row.parent_id || 0) === Number(rootId)) return true;
+          row = categoryById(Number(row.parent_id || 0));
+        }
+        return false;
+      }
       function categoryIdByName(parentId, name) {
         const row = state.categories.find((item) => Number(item.parent_id || 0) === Number(parentId) && String(item.name || '').trim() === name);
         return row ? Number(row.id) : 0;
@@ -727,6 +783,29 @@
           ...group,
           rows: group.ids.map((id) => categoryById(id)).filter(Boolean),
         })).filter((group) => group.rows.length);
+      }
+      function categoryBoardRows() {
+        const map = byParent();
+        const groupedIds = new Set();
+        const out = [];
+        for (const group of groupedDesignCategories()) {
+          out.push({ isGroupHeader: true, name: group.name, count: group.rows.length });
+          for (const row of group.rows) {
+            groupedIds.add(Number(row.id));
+            out.push({
+              ...row,
+              depth: 1,
+              groupName: group.name,
+              hasKids: (map.get(Number(row.id)) || []).length > 0,
+            });
+          }
+        }
+        const others = flatCategories().filter((row) => !groupedIds.has(Number(row.id)) && !isUnderCategory(Number(row.id), 107));
+        if (others.length) {
+          out.push({ isGroupHeader: true, name: '其他栏目', count: others.length });
+          out.push(...others);
+        }
+        return out;
       }
       // 批量上传：可搜索栏目选择器
       function categoryPathName(id) {
@@ -968,7 +1047,7 @@
       function renderCategories() {
         const tbody = $('categoryRows');
         tbody.replaceChildren();
-        const rows = flatCategories();
+        const rows = categoryBoardRows();
         if (!rows.length) {
           const tr = document.createElement('tr');
           const td = el('td', 'empty', '暂无栏目');
@@ -978,6 +1057,19 @@
           return;
         }
         for (const row of rows) {
+          if (row.isGroupHeader) {
+            const tr = document.createElement('tr');
+            tr.className = 'category-group-row';
+            const td = el('td');
+            td.colSpan = 7;
+            const box = el('div', 'category-group-title');
+            box.appendChild(el('strong', '', row.name));
+            box.appendChild(el('span', '', `${row.count || 0} 个栏目`));
+            td.appendChild(box);
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+            continue;
+          }
           const tr = document.createElement('tr');
           tr.className = 'clickable';
           tr.dataset.id = row.id;
@@ -994,7 +1086,9 @@
           const wrap = el('span', 'cat-name-wrap');
           const depth = Number(row.depth || 0);
           const lasts = row.lasts || [];
-          if (depth > 0) {
+          if (row.groupName) {
+            wrap.appendChild(el('span', 'cat-guide', '└─'));
+          } else if (depth > 0) {
             let guide = '';
             for (let i = 0; i < depth; i++) {
               if (i === depth - 1) guide += lasts[i] ? '└─' : '├─';
@@ -1367,6 +1461,7 @@
       }
       async function saveContent(event) {
         event.preventDefault();
+        if ($('fNetdiskRaw').value.trim()) applyNetdiskParse();
         const id = $('contentId').value;
         const url = id ? `/api/admin/content/${id}` : '/api/admin/contents';
         await api(url, json(id ? 'PATCH' : 'POST', formPayload()));
@@ -1405,20 +1500,43 @@
         const form = new FormData();
         form.append('kind', kind);
         form.append('file', file);
-        return api('/api/admin/upload', { method:'POST', body:form });
+        const data = await api('/api/admin/upload', { method:'POST', body:form });
+        if (kind === 'cover' && data.url && String(data.url).startsWith('/')) {
+          const check = await fetch(data.url, { method:'HEAD', cache:'no-store' }).catch(() => null);
+          if (!check?.ok) throw new Error(`封面已上传但图片地址不可访问：${data.url}`);
+        }
+        return data;
+      }
+      function bindFilePicker(buttonId, inputId) {
+        const button = $(buttonId);
+        const input = $(inputId);
+        if (!button || !input) return;
+        button.addEventListener('click', () => input.click());
       }
       async function handleUpload(input, kind, targetId) {
         const file = input.files?.[0];
         if (!file) return;
-        setMsg(state.currentView === 'categories' ? 'categoryMsg' : 'contentMsg', kind === 'cover' ? '正在上传封面...' : '正在上传测试附件...');
+        const triggerId = input.id === 'catCoverUpload' ? 'catCoverPick' : input.id === 'coverUpload' ? 'coverPick' : input.id === 'resourceUpload' ? 'resourcePick' : '';
+        const trigger = triggerId ? $(triggerId) : null;
+        const originalText = trigger?.textContent || '';
+        const messageId = state.currentView === 'categories' || input.id === 'catCoverUpload' ? 'categoryMsg' : 'contentMsg';
+        setMsg(messageId, kind === 'cover' ? '正在上传封面...' : '正在上传测试附件...');
+        if (trigger) {
+          trigger.disabled = true;
+          trigger.textContent = '上传中...';
+        }
         try {
           const data = await uploadFile(kind, file);
           $(targetId).value = data.url || '';
           if (kind === 'resource' && !$('fSize').value) $('fSize').value = `${Math.max(1, Math.round((data.size || file.size) / 1024 / 1024))} MB`;
-          setMsg(state.currentView === 'categories' ? 'categoryMsg' : 'contentMsg', '上传成功，已自动填入链接', 'ok');
+          setMsg(messageId, '上传成功，已自动填入链接', 'ok');
         } catch (error) {
-          setMsg(state.currentView === 'categories' ? 'categoryMsg' : 'contentMsg', error.message || '上传失败', 'error');
+          setMsg(messageId, error.message || '上传失败', 'error');
         } finally {
+          if (trigger) {
+            trigger.disabled = false;
+            trigger.textContent = originalText;
+          }
           input.value = '';
         }
       }
@@ -1468,6 +1586,9 @@
         if (format === 'CAD') return 'CAD 图纸';
         if (format === 'SU') return 'SKP 模型';
         return '';
+      }
+      function batchPublishState() {
+        return Number($('batchPublishState')?.value || 1) ? 1 : 0;
       }
       function batchInput(val, ph, on) { const e = document.createElement('input'); e.className = 'input'; e.value = val || ''; e.placeholder = ph; e.oninput = () => on(e.value); return e; }
       // 全内联样式，不依赖外部 CSS 包（彻底避免缓存/构建导致的样式失效）
@@ -1548,7 +1669,7 @@
           };
           tr.appendChild(bxTd(ty));
           const show = document.createElement('select'); show.style.cssText = BX_INPUT + 'cursor:pointer;';
-          [['1', '显示'], ['0', '隐藏']].forEach(([v, t]) => { const op = document.createElement('option'); op.value = v; op.textContent = t; if (String(item.isShow ?? $('batchShow').value ?? '1') === v) op.selected = true; show.appendChild(op); });
+          [['1', '显示'], ['0', '隐藏']].forEach(([v, t]) => { const op = document.createElement('option'); op.value = v; op.textContent = t; if (String(item.isShow ?? batchPublishState()) === v) op.selected = true; show.appendChild(op); });
           show.onchange = () => { item.isShow = Number(show.value); };
           tr.appendChild(bxTd(show));
           tr.appendChild(bxTd(bxInput(item.summary, '简介（可空）', (v) => { item.summary = v; })));
@@ -1565,10 +1686,11 @@
         const imgs = rawFiles.filter(isImageFile);
         const skipped = rawFiles.length - imgs.length;
         const hadRows = state.batchItems.length > 0;
+        const format = $('batchModelFormat').value || 'SU';
         let cursor = 0;
         for (const f of imgs) {
           while (cursor < state.batchItems.length && state.batchItems[cursor].file) cursor += 1;
-          const item = { file: f, preview: URL.createObjectURL(f), name: f.name || '', mtime: f.lastModified || 0, title: (f.name || '素材').replace(/\.[^.]+$/, ''), link: '', pass: '', size: '', fileType: '', summary: '', isShow: Number($('batchShow').value || 1) };
+          const item = { file: f, preview: URL.createObjectURL(f), name: f.name || '', mtime: f.lastModified || 0, title: (f.name || '素材').replace(/\.[^.]+$/, ''), link: '', pass: '', size: '', fileType: fileTypeForFormat(format), modelFormat: format, summary: '', isShow: batchPublishState() };
           if (cursor < state.batchItems.length) {
             const target = state.batchItems[cursor];
             if (target.preview) URL.revokeObjectURL(target.preview);
@@ -1596,6 +1718,7 @@
         const lines = parseBatchBlocks($('batchBulk').value);
         if (!lines.length) return setMsg('contentMsg', '请先粘贴或导入批量链接文本', 'error');
         if (!state.batchItems.length) {
+          const format = $('batchModelFormat').value || 'SU';
           state.batchItems = lines.map((line, i) => {
             const p = parseBatchLine(line, i);
             return {
@@ -1607,9 +1730,10 @@
               link: p.file_url,
               pass: p.extract_pass,
               size: p.size,
-              fileType: '',
+              fileType: fileTypeForFormat(format),
+              modelFormat: format,
               summary: p.summary || '',
-              isShow: Number($('batchShow').value || 1),
+              isShow: batchPublishState(),
             };
           });
           renderBatchRows();
@@ -1645,21 +1769,31 @@
         setMsg('contentMsg', `简介已应用到全部 ${state.batchItems.length} 项`, 'ok');
       }
       async function batchImportResources() {
-        if (!state.batchItems.length) return setMsg('contentMsg', '请先选择图片', 'error');
+        if (!state.batchItems.length) return setBatchMsg('请先生成表格行或选择图片', 'error');
         const categoryId = Number($('batchCategory').value || 0);
-        if (!categoryId) return setMsg('contentMsg', '请先在第①步选择目标栏目', 'error');
+        if (!categoryId) return setBatchMsg('请先在第①步选择目标栏目', 'error');
         let created = 0;
         for (let i = 0; i < state.batchItems.length; i += 1) {
           const item = state.batchItems[i];
-          setMsg('contentMsg', `正在压缩并导入 ${i + 1}/${state.batchItems.length}…`);
+          applyShareToBatchItem(item, item.link || '');
+          if (!String(item.link || '').trim()) {
+            setBatchMsg(`第 ${i + 1} 行缺少下载链接，请粘贴百度网盘/阿里云盘等链接`, 'error');
+            return;
+          }
+          setBatchMsg(`正在压缩并导入 ${i + 1}/${state.batchItems.length}…`);
           let coverUrl = '';
           if (item.file) {
             const small = await compressImage(item.file);
-            try { const up = await uploadFile('cover', small); coverUrl = up.url || ''; } catch {}
+            const up = await uploadFile('cover', small);
+            coverUrl = up.url || '';
+            if (!coverUrl) {
+              setBatchMsg(`第 ${i + 1} 行封面上传失败，没有返回图片地址`, 'error');
+              return;
+            }
           }
-          applyShareToBatchItem(item, item.link || '');
           const rowModelFormat = item.modelFormat || inferModelFormatFromType(item.fileType, $('batchModelFormat').value || 'SU');
           const rowAssetKind = assetKindForFormat(rowModelFormat, $('batchAssetKind').value || 'model');
+          const rowFileType = item.fileType || fileTypeForFormat(rowModelFormat);
           const payload = {
             ...formPayload(),
             category_id: categoryId,
@@ -1669,17 +1803,17 @@
             size: (item.size || '').toUpperCase(),
             assetKind: rowAssetKind,
             modelFormat: rowModelFormat,
-            fileType: item.fileType || fileTypeForFormat(rowModelFormat),
+            fileType: rowFileType,
             hideExtractPass: Number($('batchHidePass').value || 0),
             cover_url: coverUrl,
             summary: item.summary || '',
-            is_show: Number(item.isShow ?? $('batchShow').value ?? 1),
+            is_show: Number(item.isShow ?? batchPublishState()),
             sort: state.batchItems.length - i,
           };
           await api('/api/admin/contents', json('POST', payload));
           created += 1;
         }
-        setMsg('contentMsg', `批量导入完成：${created} 条素材`, 'ok');
+        setBatchMsg(`批量导入完成：${created} 条素材`, 'ok');
         state.batchItems.forEach((it) => { if (it.preview) URL.revokeObjectURL(it.preview); });
         state.batchItems = [];
         renderBatchRows();
@@ -1884,7 +2018,8 @@
       $('userOverlay').onclick = closeUserDrawer;
 
       // ── 操作日志 + 链接扫描 ──────────────────────────────────
-      const ACTION_NAMES = { create:'新增', update:'编辑', hide:'隐藏', show:'显示', move:'移动', batch:'批量', user:'用户' };
+      const ACTION_NAMES = { create:'新增', update:'编辑', hide:'隐藏', show:'显示', move:'移动', batch:'批量', user:'用户', delete:'删除' };
+      const TARGET_NAMES = { content:'资源', category:'栏目', member:'用户', feedback:'反馈' };
       function buildPager(wrapId, total, limit, page, go) {
         const wrap = $(wrapId);
         wrap.replaceChildren();
@@ -1901,7 +2036,14 @@
       }
       async function loadLogs() {
         setMsg('logMsg', '正在读取日志...');
-        const data = await api(`/api/admin/logs?page=${state.logPage}&limit=30`);
+        const params = new URLSearchParams({ page: String(state.logPage), limit: '30' });
+        const logDate = $('logDate')?.value || '';
+        const logAction = $('logAction')?.value || 'all';
+        const logQ = $('logQ')?.value.trim() || '';
+        if (logDate) params.set('date', logDate);
+        if (logAction && logAction !== 'all') params.set('action', logAction);
+        if (logQ) params.set('q', logQ);
+        const data = await api(`/api/admin/logs?${params.toString()}`);
         state.logRows = data.rows || [];
         const tbody = $('logRows');
         tbody.replaceChildren();
@@ -1913,14 +2055,16 @@
           act.appendChild(el('span', `pill ${r.action === 'hide' ? 'bad' : r.action === 'create' ? 'ok' : 'warn'}`, ACTION_NAMES[r.action] || r.action));
           tr.appendChild(act);
           const obj = el('td');
-          obj.appendChild(el('div', 'resource-title', r.title || `${r.target_type || '对象'} #${r.target_id}`));
+          const targetName = TARGET_NAMES[r.target_type] || r.target_type || '对象';
+          obj.appendChild(el('div', 'resource-title', `${targetName} · ${r.title || `#${r.target_id}`}`));
           if (r.detail) obj.appendChild(el('div', 'resource-sub', r.detail));
           tr.appendChild(obj);
           tr.appendChild(el('td', '', r.admin || 'admin'));
           tbody.appendChild(tr);
         }
         buildPager('logPager', Number(data.total || 0), 30, state.logPage, (p) => { state.logPage = p; loadLogs(); });
-        setMsg('logMsg', `共 ${data.total || 0} 条日志`, 'ok');
+        const scope = [logDate, ACTION_NAMES[logAction] || '', logQ ? `关键词：${logQ}` : ''].filter(Boolean).join(' · ');
+        setMsg('logMsg', `${scope ? `${scope} · ` : ''}共 ${data.total || 0} 条日志`, 'ok');
       }
       async function scanCurrentLinks() {
         const ids = state.contentRows.map((r) => Number(r.id)).filter(Boolean);
@@ -1934,7 +2078,13 @@
           setMsg('contentMsg', `扫描完成：有效 ${s.ok || 0} · 失效 ${s.dead || 0} · 未知 ${s.unknown || 0}`, s.dead ? 'error' : 'ok');
         } catch (e) { setMsg('contentMsg', e.message || '扫描失败', 'error'); }
       }
-      $('logRefresh').onclick = () => { state.logPage = 1; loadLogs(); };
+      $('logRefresh').onclick = () => { loadLogs(); };
+      $('logSearch').onclick = () => { state.logPage = 1; loadLogs(); };
+      $('logClear').onclick = () => { $('logDate').value = ''; $('logAction').value = 'all'; $('logQ').value = ''; state.logPage = 1; loadLogs(); };
+      $('logToday').onclick = () => { $('logDate').value = localDateStr(0); state.logPage = 1; loadLogs(); };
+      $('logDate').onchange = () => { state.logPage = 1; loadLogs(); };
+      $('logAction').onchange = () => { state.logPage = 1; loadLogs(); };
+      $('logQ').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); state.logPage = 1; loadLogs(); } };
       $('scanLinks').onclick = scanCurrentLinks;
 
       $('refreshAll').onclick = () => Promise.all([loadStats(), loadCategories()]);
@@ -1973,9 +2123,13 @@
       $('batchSelectAll').onclick = () => { for (const row of state.contentRows) state.selectedContentIds.add(Number(row.id)); renderContentRows(); };
       $('batchSelectNone').onclick = () => { state.selectedContentIds.clear(); state.lastCheckIndex = -1; renderContentRows(); };
       $('batchMove').onclick = () => batchContent('move');
-      $('batchShow').onclick = () => batchContent('show');
+      $('batchBulkShow').onclick = () => batchContent('show');
       $('batchHide').onclick = () => batchContent('hide');
       $('batchDelete').onclick = () => batchContent('delete');
+      bindFilePicker('catCoverPick', 'catCoverUpload');
+      bindFilePicker('coverPick', 'coverUpload');
+      bindFilePicker('resourcePick', 'resourceUpload');
+      $('catCoverUpload').onchange = (event) => handleUpload(event.currentTarget, 'cover', 'catCover');
       $('coverUpload').onchange = (event) => handleUpload(event.currentTarget, 'cover', 'fCover');
       $('resourceUpload').onchange = (event) => handleUpload(event.currentTarget, 'resource', 'fFileUrl');
       $('batchPick').onchange = (event) => { addBatchFiles(event.currentTarget.files); event.currentTarget.value = ''; };
@@ -2004,13 +2158,21 @@
       $('batchTxt').onchange = async (event) => { const f = event.currentTarget.files?.[0]; if (f) { $('batchBulk').value = await f.text(); setMsg('contentMsg', `已读取 ${f.name}，点「解析并配对」`, 'ok'); } event.currentTarget.value = ''; };
       $('batchOpen').onclick = () => openBatch();
       $('batchImport').onclick = async () => {
+        const btn = $('batchImport');
+        if (btn.disabled) return;
+        btn.disabled = true;
+        const oldText = btn.textContent;
+        btn.textContent = '正在导入…';
         try {
           await batchImportResources();
         } catch (error) {
-          setMsg('contentMsg', error.message || '批量导入失败', 'error');
+          console.error('[batch import failed]', error);
+          setBatchMsg(error.message || '批量导入失败', 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = oldText || '压缩并导入';
         }
       };
-      $('catCoverUpload').onchange = (event) => handleUpload(event.currentTarget, 'cover', 'catCover');
       $('feedbackSearch').onclick = () => { state.feedbackPage = 1; loadFeedback(); };
       $('feedbackRefresh').onclick = loadFeedback;
       $('feedbackReset').onclick = () => { $('feedbackQ').value = ''; $('feedbackStatus').value = 'all'; state.feedbackPage = 1; loadFeedback(); };

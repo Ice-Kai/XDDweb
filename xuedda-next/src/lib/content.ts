@@ -1,4 +1,4 @@
-import { db } from './db';
+import { db, legacyPrefix, appPrefix } from './db';
 
 export interface DownloadItem {
   id: number;
@@ -27,6 +27,8 @@ export interface CatNode {
   name: string;
   children: CatNode[];
   count?: number;
+  isMenu?: boolean;
+  sort?: number;
 }
 
 export const TOP_CATEGORY = {
@@ -86,6 +88,7 @@ export interface DownloadQuery {
   rootCategoryId?: number;
   assetKind?: string;
   modelFormat?: string;
+  includeUnformatted?: boolean;
   excludeModelFormat?: string;
   q?: string;
   sort?: 'newest' | 'popular' | 'downloads';
@@ -158,7 +161,7 @@ export async function getDescendantIds(rootId: number): Promise<number[]> {
     if (!ids.length) break;
     ids.forEach((id) => seen.add(id));
     const [rows] = await db.query<any[]>(
-      `SELECT id FROM legacy.lz_category WHERE parent_id IN (${ids.map(() => '?').join(',')})`,
+      `SELECT id FROM ${legacyPrefix}lz_category WHERE parent_id IN (${ids.map(() => '?').join(',')})`,
       ids,
     );
     frontier = rows.map((r) => Number(r.id));
@@ -168,12 +171,18 @@ export async function getDescendantIds(rootId: number): Promise<number[]> {
 
 export async function getCategoryTree(rootId: number): Promise<CatNode[]> {
   const [rows] = await db.query<any[]>(
-    'SELECT id,parent_id,name FROM legacy.lz_category WHERE parent_id = ? ORDER BY sort ASC, id ASC',
+    `SELECT id,parent_id,name,is_menu,sort FROM ${legacyPrefix}lz_category WHERE parent_id = ? ORDER BY sort ASC, id ASC`,
     [rootId],
   );
   const out: CatNode[] = [];
   for (const row of rows) {
-    out.push({ id: Number(row.id), name: String(row.name || ''), children: await getCategoryTree(Number(row.id)) });
+    out.push({
+      id: Number(row.id),
+      name: String(row.name || ''),
+      isMenu: Number(row.is_menu ?? 1) !== 0,
+      sort: Number(row.sort || 0),
+      children: await getCategoryTree(Number(row.id)),
+    });
   }
   return out;
 }
@@ -198,18 +207,29 @@ async function buildWhere(opts: DownloadQuery) {
   }
 
   if (opts.assetKind) {
-    where.push("JSON_VALID(meta) AND JSON_UNQUOTE(JSON_EXTRACT(meta, '$.asset_kind')) = ?");
+    where.push("JSON_VALID(meta) = 1 AND JSON_UNQUOTE(JSON_EXTRACT(meta, '$.asset_kind')) = ?");
     params.push(opts.assetKind);
   }
 
   if (opts.modelFormat) {
-    where.push("JSON_VALID(meta) AND JSON_UNQUOTE(JSON_EXTRACT(meta, '$.model_format')) = ?");
-    params.push(opts.modelFormat);
+    const modelFormat = String(opts.modelFormat).toUpperCase();
+    if (opts.includeUnformatted) {
+      where.push(`(
+        (JSON_VALID(meta) = 1 AND UPPER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(meta, '$.model_format')), '')) = ?)
+        OR meta IS NULL
+        OR CAST(meta AS CHAR) = ''
+        OR JSON_VALID(meta) = 0
+        OR (JSON_VALID(meta) = 1 AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(meta, '$.model_format')), '') = '')
+      )`);
+    } else {
+      where.push("JSON_VALID(meta) = 1 AND UPPER(JSON_UNQUOTE(JSON_EXTRACT(meta, '$.model_format'))) = ?");
+    }
+    params.push(modelFormat);
   }
 
   if (opts.excludeModelFormat) {
-    where.push("(NOT JSON_VALID(meta) OR JSON_UNQUOTE(JSON_EXTRACT(meta, '$.model_format')) IS NULL OR JSON_UNQUOTE(JSON_EXTRACT(meta, '$.model_format')) <> ?)");
-    params.push(opts.excludeModelFormat);
+    where.push("(meta IS NULL OR CAST(meta AS CHAR) = '' OR JSON_VALID(meta) = 0 OR UPPER(COALESCE(JSON_UNQUOTE(JSON_EXTRACT(meta, '$.model_format')), '')) <> ?)");
+    params.push(String(opts.excludeModelFormat).toUpperCase());
   }
 
   const terms = String(opts.q || '').trim().split(/\s+/).filter(Boolean).slice(0, 6);
@@ -227,7 +247,7 @@ export async function getDownloads(opts: DownloadQuery = {}) {
   const offset = Math.max(0, Number(opts.offset || 0));
   const where = await buildWhere(opts);
   const [rows] = await db.query<any[]>(
-    `SELECT * FROM xuedda.contents WHERE ${where.sql} ORDER BY ${orderBy(opts.sort)} LIMIT ? OFFSET ?`,
+    `SELECT * FROM ${appPrefix}contents WHERE ${where.sql} ORDER BY ${orderBy(opts.sort)} LIMIT ? OFFSET ?`,
     [...where.params, limit, offset],
   );
   return rows.map(toDownload);
@@ -235,7 +255,7 @@ export async function getDownloads(opts: DownloadQuery = {}) {
 
 export async function countDownloads(opts: DownloadQuery = {}) {
   const where = await buildWhere(opts);
-  const [[row]] = await db.query<any[]>(`SELECT COUNT(*) n FROM xuedda.contents WHERE ${where.sql}`, where.params);
+  const [[row]] = await db.query<any[]>(`SELECT COUNT(*) n FROM ${appPrefix}contents WHERE ${where.sql}`, where.params);
   return Number(row?.n || 0);
 }
 
@@ -248,11 +268,11 @@ export async function getHotDownloads(limit = 8) {
 }
 
 export async function getSiteStats() {
-  const [[resources]] = await db.query<any[]>('SELECT COUNT(*) n FROM xuedda.contents WHERE is_show = 1');
-  const [[today]] = await db.query<any[]>('SELECT COUNT(*) n FROM xuedda.contents WHERE DATE(created_at)=CURDATE() AND is_show = 1');
-  const [[categories]] = await db.query<any[]>('SELECT COUNT(*) n FROM legacy.lz_category');
-  const [[members]] = await db.query<any[]>('SELECT COUNT(*) n FROM legacy.lz_member');
-  const [[feedback]] = await db.query<any[]>('SELECT COUNT(*) n FROM xuedda.feedback');
+  const [[resources]] = await db.query<any[]>(`SELECT COUNT(*) n FROM ${appPrefix}contents WHERE is_show = 1`);
+  const [[today]] = await db.query<any[]>(`SELECT COUNT(*) n FROM ${appPrefix}contents WHERE DATE(created_at)=CURDATE() AND is_show = 1`);
+  const [[categories]] = await db.query<any[]>(`SELECT COUNT(*) n FROM ${legacyPrefix}lz_category`);
+  const [[members]] = await db.query<any[]>(`SELECT COUNT(*) n FROM ${legacyPrefix}lz_member`);
+  const [[feedback]] = await db.query<any[]>(`SELECT COUNT(*) n FROM ${appPrefix}feedback`);
   return {
     resources: Number(resources?.n || 0),
     today: Number(today?.n || 0),
@@ -264,19 +284,49 @@ export async function getSiteStats() {
 
 export async function getDownloadById(id: number) {
   if (!Number.isInteger(Number(id))) return null;
-  const [rows] = await db.query<any[]>('SELECT * FROM xuedda.contents WHERE id = ? AND is_show = 1 LIMIT 1', [id]);
+  const [rows] = await db.query<any[]>(`SELECT * FROM ${appPrefix}contents WHERE id = ? AND is_show = 1 LIMIT 1`, [id]);
   return rows[0] ? toDownload(rows[0]) : null;
+}
+
+export const DAILY_DOWNLOAD_LIMIT = 30;
+
+export async function getMemberDailyDownloadUsage(memberId: number, contentId: number) {
+  const uid = Number(memberId);
+  const id = Number(contentId);
+  if (!Number.isInteger(uid) || uid <= 0 || !Number.isInteger(id) || id <= 0) {
+    return { count: 0, alreadyDownloaded: false, limit: DAILY_DOWNLOAD_LIMIT };
+  }
+  const [[usage]] = await db.query<any[]>(
+    `SELECT COUNT(DISTINCT content_id) n
+     FROM ${appPrefix}logs
+     WHERE kind = 'download' AND member_id = ? AND DATE(created_at) = CURDATE()`,
+    [uid],
+  );
+  const [[existing]] = await db.query<any[]>(
+    `SELECT id
+     FROM ${appPrefix}logs
+     WHERE kind = 'download' AND member_id = ? AND content_id = ? AND DATE(created_at) = CURDATE()
+     LIMIT 1`,
+    [uid, id],
+  );
+  return {
+    count: Number(usage?.n || 0),
+    alreadyDownloaded: Boolean(existing?.id),
+    limit: DAILY_DOWNLOAD_LIMIT,
+  };
 }
 
 export async function recordMemberDownload(memberId: number, item: Pick<DownloadItem, 'id' | 'title'>) {
   const id = Number(item.id);
   const uid = Number(memberId);
   if (!Number.isInteger(id) || !Number.isInteger(uid) || id <= 0 || uid <= 0) return;
+  const usage = await getMemberDailyDownloadUsage(uid, id);
+  if (usage.alreadyDownloaded) return;
   await db.query(
-    'INSERT INTO xuedda.logs (kind,member_id,content_type,content_id,remark,created_at) VALUES (?,?,?,?,?,NOW())',
+    `INSERT INTO ${appPrefix}logs (kind,member_id,content_type,content_id,remark,created_at) VALUES (?,?,?,?,?,NOW())`,
     ['download', uid, 'download', id, String(item.title || '').slice(0, 255)],
   );
-  await db.query('UPDATE xuedda.contents SET download_num = download_num + 1 WHERE id = ?', [id]);
+  await db.query(`UPDATE ${appPrefix}contents SET download_num = download_num + 1 WHERE id = ?`, [id]);
 }
 
 export async function getMemberDownloadLogs(memberId: number, limit = 20) {
@@ -292,8 +342,8 @@ export async function getMemberDownloadLogs(memberId: number, limit = 20) {
        c.title,
        c.cover_url,
        c.meta
-     FROM xuedda.logs l
-     LEFT JOIN xuedda.contents c ON c.id = l.content_id
+     FROM ${appPrefix}logs l
+     LEFT JOIN ${appPrefix}contents c ON c.id = l.content_id
      WHERE l.kind = 'download' AND l.member_id = ?
      ORDER BY l.id DESC
      LIMIT ?`,
@@ -326,7 +376,7 @@ export function sectionByCategoryId(id: number) {
 export async function getRootCategory(id: number) {
   let cur = Number(id);
   for (let i = 0; i < 8; i++) {
-    const [[row]] = await db.query<any[]>('SELECT id,parent_id,name FROM legacy.lz_category WHERE id = ? LIMIT 1', [cur]);
+    const [[row]] = await db.query<any[]>(`SELECT id,parent_id,name FROM ${legacyPrefix}lz_category WHERE id = ? LIMIT 1`, [cur]);
     if (!row) break;
     if (Number(row.parent_id) === 0) {
       return { id: Number(row.id), name: String(row.name || ''), slug: SECTION_SLUG_BY_ID[Number(row.id)] || '' };
@@ -337,7 +387,7 @@ export async function getRootCategory(id: number) {
 }
 
 export async function getCategoryName(id: number) {
-  const [[row]] = await db.query<any[]>('SELECT name FROM legacy.lz_category WHERE id = ? LIMIT 1', [id]);
+  const [[row]] = await db.query<any[]>(`SELECT name FROM ${legacyPrefix}lz_category WHERE id = ? LIMIT 1`, [id]);
   return row?.name ? String(row.name) : '';
 }
 
@@ -355,5 +405,6 @@ export function sanitizeHtml(html: string): string {
 export function coverUrl(cover: string): string {
   if (!cover) return '';
   if (/^https?:\/\//i.test(cover)) return cover;
-  return cover.startsWith('/') ? cover : `/${cover}`;
+  const normalized = cover.replace(/\\/g, '/').replace(/^public\//i, '');
+  return normalized.startsWith('/') ? normalized : `/${normalized}`;
 }

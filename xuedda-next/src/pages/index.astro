@@ -1,6 +1,6 @@
 ﻿---
 import Base from '../layouts/Base.astro';
-import { getLatestDownloads, getHotDownloads, coverUrl, TOP_CATEGORY, type DownloadItem } from '../lib/content';
+import { getLatestDownloads, coverUrl, TOP_CATEGORY, type DownloadItem } from '../lib/content';
 import { getSetting, DEFAULT_HERO, type HeroData } from '../lib/settings';
 
 // 首页 Hero：后台可自定义（settings.home_hero），未设置则用默认
@@ -8,25 +8,26 @@ const hero = (await getSetting<HeroData>('home_hero', DEFAULT_HERO)) || DEFAULT_
 const heroSlides = hero.slides?.length ? hero.slides : DEFAULT_HERO.slides;
 
 // 静态发布版：首页各版块从本地内容数组读取。
-const [models, courses, materials, software, hot] = await Promise.all([
+const [models, courses, materials, software, bilibiliUrl] = await Promise.all([
   getLatestDownloads({ rootCategoryId: TOP_CATEGORY.model, limit: 5 }),
   getLatestDownloads({ rootCategoryId: TOP_CATEGORY.video, limit: 5 }),
   getLatestDownloads({ rootCategoryId: TOP_CATEGORY.texture, limit: 5 }),
   getLatestDownloads({ rootCategoryId: TOP_CATEGORY.software, limit: 5 }),
-  getHotDownloads(8),
+  getSetting<string>('bilibili_url', ''),
 ]);
 
-const quickTools = [
-  { name: 'SU模型', logo: '/logos/su.png', href: '/c/model' },
-  { name: 'D5教程', logo: '/logos/d5.png', href: '/c/video' },
-  { name: 'Enscape', logo: '/logos/enscape.png', href: '/c/software' },
-  { name: 'Lumion', logo: '/logos/lumion.png', href: '/c/software' },
-  { name: 'Photoshop', logo: '/logos/ps.png', href: '/c/software' },
-  { name: 'V-Ray', logo: '/logos/vray.png', href: '/c/software' },
-  { name: 'Rhino', logo: '/logos/rhino.png', href: '/c/software' },
-  { name: 'C4D', logo: '/logos/c4d.png', href: '/c/software' },
-  { name: '3ds Max', logo: '/logos/max.png', href: '/c/model?type=max' },
-  { name: 'AutoCAD', logo: '/logos/cad.png', href: '/c/software' },
+const aiImageHref =
+  process.env.AI_IMAGE_URL ||
+  (import.meta.env?.AI_IMAGE_URL as string) ||
+  '/ai-image';
+const aiImageDisabled = true;
+const bilibiliProfileUrl = 'https://space.bilibili.com/218538613?spm_id_from=333.337.search-card.all.click';
+
+const quickEntries = [
+  { name: 'AI 功能', label: 'AI', desc: '生图入口暂未开放，后续独立接入。', href: aiImageHref, action: '暂未开放', disabled: aiImageDisabled },
+  { name: '公众号 / B站链接', label: 'MEDIA', desc: '打开 B站视频主页；公众号二维码暂未放置。', href: bilibiliUrl || bilibiliProfileUrl, action: '打开 B站' },
+  { name: '素材下载', label: 'DL', desc: '进入模型、灯光贴图、软件参数素材库。', href: '/c/model', action: '浏览素材' },
+  { name: '功能反馈', label: 'FB', desc: '提交问题、失效链接和功能建议。', href: '/feedback', action: '提交反馈' },
 ];
 
 function priceLabel(_it: DownloadItem) {
@@ -70,33 +71,21 @@ const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" strok
     <div class="hero-dots">{heroSlides.map((_, i) => <div class={`hero-dot ${i === 0 ? 'active' : ''}`}></div>)}</div>
   </section>
 
-  <!-- 软件快捷入口（真实 logo） -->
-  <div class="quick-nav">
-    <div class="container">
-      <div class="quick-nav-head">
-        <span class="quick-nav-title">常用设计工具与资源入口</span>
-        <span class="quick-nav-sub">快速进入模型、教程与软件专区</span>
-      </div>
-      <div class="quick-nav-inner">
-        {quickTools.map((t) => (
-          <a href={t.href} class="quick-item"><img src={t.logo} alt={t.name} class="qi-logo" />{t.name}</a>
-        ))}
-      </div>
-    </div>
-  </div>
-
-  <!-- 热门排行（置于最新上传之上） -->
+  <!-- 快速入口（置于最新上传之上） -->
   <section class="section">
     <div class="container">
       <div class="section-head reveal">
-        <div><p class="section-label">HOT RANKING</p><h2 class="section-title">热门下载榜</h2><p class="section-desc">最受设计师欢迎的资源，按浏览量排序。</p></div>
+        <div><p class="section-label">QUICK ACCESS</p><h2 class="section-title">快速入口</h2><p class="section-desc">把常用功能集中到这里，少一点栏目，多一点直接可用。</p></div>
       </div>
-      <div class="rank-grid reveal">
-        {hot.map((h, i) => (
-          <a href="#" data-card-id={h.id} class="rank-item">
-            <span class="rank-no">{i + 1}</span>
-            <span class="rank-title">{h.title}</span>
-            <span class="rank-hits">👁 {h.hits}</span>
+      <div class="quick-entry-grid reveal">
+        {quickEntries.map((entry) => (
+          <a href={entry.disabled ? '#' : entry.href} class={`quick-entry-card ${entry.disabled ? 'disabled' : ''}`} aria-disabled={entry.disabled ? 'true' : undefined} data-disabled={entry.disabled ? 'true' : undefined} target={!entry.disabled && entry.href.startsWith('http') ? '_blank' : undefined} rel={!entry.disabled && entry.href.startsWith('http') ? 'noopener' : undefined}>
+            <span class="quick-entry-mark">{entry.label}</span>
+            <span class="quick-entry-copy">
+              <strong>{entry.name}</strong>
+              <em>{entry.desc}</em>
+            </span>
+            <span class="quick-entry-action">{entry.action} <Fragment set:html={arrow} /></span>
           </a>
         ))}
       </div>
@@ -214,4 +203,3 @@ const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" strok
     </div>
   </section>
 </Base>
-
