@@ -7,7 +7,6 @@ import Base from '../../layouts/Base.astro';
     <form class="auth-card" id="registerForm">
       <p class="section-label">MEMBER</p>
       <h1>注册会员</h1>
-      <p class="auth-desc">注册后每天可免费打开 30 个素材下载链接。</p>
       <input name="username" placeholder="用户名 / 邮箱 / 手机号" autocomplete="username" required />
       <input name="password" type="password" placeholder="密码至少 6 位" autocomplete="new-password" required />
       <div class="auth-captcha">
@@ -15,9 +14,12 @@ import Base from '../../layouts/Base.astro';
         <input name="captchaAnswer" id="captchaAnswer" inputmode="numeric" autocomplete="off" placeholder="输入验证码" required />
         <button id="captchaRefresh" type="button">加载中</button>
       </div>
-      <p class="auth-hint">为防止刷号，同一设备和同一 IP 会限制注册频率。</p>
+      <label class="auth-agree">
+        <input type="checkbox" name="agreementAccepted" value="1" required />
+        <span>我已阅读并同意 <a href="/terms" target="_blank" rel="noopener">《用户协议与素材使用规则》</a></span>
+      </label>
       <p class="auth-error" id="err"></p>
-      <button class="btn-primary" type="submit">注册并进入</button>
+      <button class="btn-primary" type="submit">同意并继续</button>
       <div class="auth-oauth" aria-label="第三方登录">
         <a href="/api/member/oauth/qq/start">QQ 登录</a>
         <a href="/api/member/oauth/wechat/start">微信登录</a>
@@ -53,6 +55,10 @@ import Base from '../../layouts/Base.astro';
       const form = e.currentTarget as HTMLFormElement;
       const err = document.getElementById('err');
       const data = Object.fromEntries(new FormData(form).entries());
+      if (!data.agreementAccepted) {
+        if (err) err.textContent = '请先阅读并同意用户协议。';
+        return;
+      }
       const res = await fetch('/api/member/register', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },

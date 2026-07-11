@@ -203,6 +203,7 @@ CREATE TABLE IF NOT EXISTS `logs` (
   `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_kind_member` (`kind`, `member_id`),
+  KEY `idx_download_quota` (`kind`, `member_id`, `created_at`, `content_id`),
   KEY `idx_content` (`content_type`, `content_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

@@ -1,20 +1,21 @@
 ---
 const suggestions = [
-  '确定 AI 能做什么',
-  '生成电商主图',
-  '生成电商场景图',
+  { icon: '▶', t: '确定 AI 能做什么' },
+  { icon: '◨', t: '生成电商主图' },
+  { icon: '❖', t: '生成电商场景图' },
+  { icon: '✦', t: 'Logo 设计' },
+  { icon: '◫', t: 'UGC：生活化上身图' },
 ];
 
 const toolbar = [
-  { k: '+', t: '添加' },
-  { k: '✋', t: '移动' },
-  { k: '⌗', t: '构图' },
-  { k: 'T', t: '文字' },
-  { k: '□', t: '画框' },
-  { k: '◰', t: '贴图' },
-  { k: '◎', t: '角色' },
-  { k: '✦', t: '改图' },
-  { k: '⌘', t: '工作流' },
+  { k: '➤', t: '选择 / 移动', tool: 'select', active: true },
+  { k: '⬚', t: '框选', tool: 'marquee' },
+  { k: '✧', t: '魔棒（点选相近颜色）', tool: 'wand' },
+  { k: '✎', t: '画笔', tool: 'brush' },
+  { k: 'T', t: '文字', tool: 'text' },
+  { k: '◰', t: '贴图（叠加图片）', tool: 'sticker' },
+  { k: '⇪', t: '增加参考图', tool: 'ref' },
+  { k: '↶', t: '撤销', tool: 'undo' },
 ];
 
 const ratios = ['16:9', '1:1', '9:16', '4:3', '3:4'];
@@ -28,11 +29,29 @@ const ratios = ['16:9', '1:1', '9:16', '4:3', '3:4'];
   </head>
   <body>
     <main class="studio">
+      <!-- 画布层 -->
+      <section class="canvas-area">
+        <div class="canvas-empty" id="canvasEmpty">
+          <p class="canvas-hint">输入你的想法开始创作，或按 <kbd>C</kbd> 开始对话</p>
+          <div class="canvas-buttons">
+            <button type="button" id="localUpload">本地上传</button>
+            <button type="button">资源库</button>
+          </div>
+        </div>
+
+        <div class="canvas-result" id="aigCanvas" hidden></div>
+        <div class="canvas-actions" id="canvasActions" hidden>
+          <button id="editPromptBtn" type="button">作为参考改图</button>
+          <a id="downloadCanvas" download="xdesign-ai.png">下载图片</a>
+        </div>
+      </section>
+
+      <!-- 顶栏（悬浮） -->
       <header class="topbar">
         <a class="brand" href="/">
           <span class="brand-mark">XD</span>
-          <strong>XDesign AI</strong>
-          <em>未命名</em>
+          <strong>未命名</strong>
+          <i class="caret">⌄</i>
         </a>
         <div class="top-actions">
           <button id="historyToggle" type="button">本地记录</button>
@@ -41,12 +60,29 @@ const ratios = ['16:9', '1:1', '9:16', '4:3', '3:4'];
         </div>
       </header>
 
-      <aside class="toolrail" aria-label="画布工具">
-        {toolbar.map((tool, i) => (
-          <button type="button" class={i === 0 ? 'active' : ''} title={tool.t}>{tool.k}</button>
+      <!-- 底部居中工具条（悬浮） -->
+      <div class="dock" role="toolbar" aria-label="画布工具">
+        {toolbar.map((tool) => (
+          <button type="button" class={tool.active ? 'active' : ''} data-tool={tool.tool} title={tool.t}>{tool.k}</button>
         ))}
-      </aside>
+      </div>
 
+      <!-- 画笔/文字选项条 -->
+      <div class="tool-opts" id="toolOpts" hidden>
+        <label>颜色 <input type="color" id="toolColor" value="#111111" /></label>
+        <label>大小 <input type="range" id="toolSize" min="4" max="160" value="16" /></label>
+      </div>
+      <button type="button" id="clearSel" class="clear-sel" hidden>清除选区</button>
+
+      <!-- 左下缩放条 -->
+      <div class="zoombar">
+        <button type="button" title="图层">▤</button>
+        <button type="button" title="缩小">−</button>
+        <span class="zoom-val">100%</span>
+        <button type="button" title="放大">+</button>
+      </div>
+
+      <!-- 本地记录（悬浮抽屉） -->
       <aside class="history-panel" id="historyPanel" hidden>
         <div class="history-head">
           <div>
@@ -59,63 +95,42 @@ const ratios = ['16:9', '1:1', '9:16', '4:3', '3:4'];
         <p class="history-empty" id="historyEmpty">暂无记录，生成完成后会自动保存。</p>
       </aside>
 
-      <section class="canvas-area">
-        <div class="canvas-empty" id="canvasEmpty">
-          <div class="upload-illus">
-            <span></span>
-            <span></span>
-            <b>↑</b>
-          </div>
-          <p><i>☺</i> 上传图片，或者直接与 AI 聊聊~</p>
-          <div class="canvas-buttons">
-            <button type="button" id="localUpload">本地上传</button>
-            <button type="button">资源库</button>
-          </div>
-        </div>
-
-        <div class="canvas-result" id="aigCanvas" hidden></div>
-        <div class="canvas-actions" id="canvasActions" hidden>
-          <button id="editPromptBtn" type="button">作为参考改图</button>
-          <a id="downloadCanvas" download="xdesign-ai.png">下载图片</a>
-        </div>
-        <div class="zoom-chip">15% <span>⌄</span></div>
-        <button class="help-chip" type="button">?</button>
-      </section>
-
+      <!-- 右侧对话面板（悬浮卡片） -->
       <aside class="chat-panel">
         <div class="chat-head">
-          <strong>对话</strong>
+          <strong>新对话</strong>
           <div>
-            <button type="button" aria-label="搜索">⌕</button>
-            <button type="button" aria-label="刷新">↻</button>
-            <button type="button" aria-label="收起">→</button>
+            <button type="button" aria-label="历史对话">▦</button>
+            <button type="button" aria-label="分享">↗</button>
+            <button type="button" aria-label="收起">⇥</button>
           </div>
         </div>
 
         <div class="chat-body">
-          <div class="hello">
-            <h1>Hi，<br />今天的你有什么好想法</h1>
-            <p>请尽管提，我来帮你呈现</p>
-          </div>
+          <div class="chat-spacer"></div>
 
-          <div class="suggestions" id="suggestions">
-            {suggestions.map((text) => (
-              <button type="button" data-sample={text}>✧ {text}</button>
-            ))}
-            <button type="button" data-sample="换一组更适合电商和品牌视觉的创作方向">↻ 换一换</button>
+          <div class="skills">
+            <p class="skills-title">试试这些创作方向</p>
+            <div class="suggestions" id="suggestions">
+              {suggestions.map((s) => (
+                <button type="button" data-sample={s.t}><i>{s.icon}</i>{s.t}</button>
+              ))}
+              <button type="button" data-sample="换一组更适合电商和品牌视觉的创作方向"><i>↻</i>换一换</button>
+            </div>
           </div>
 
           <div class="chat-log" id="chatLog"></div>
         </div>
 
         <div class="composer">
-          <textarea id="aigPrompt" rows="3" placeholder="描述你的灵感，支持 @ 输入内容"></textarea>
+          <textarea id="aigPrompt" rows="2" placeholder="输入你的想法，或用 @ 引用素材…"></textarea>
           <div class="ratio-row" id="ratioRow">
             {ratios.map((r, i) => <button type="button" class={i === 0 ? 'active' : ''} data-ratio={r}>{r}</button>)}
           </div>
           <div class="composer-foot">
-            <button class="plus" type="button" id="composerUpload" aria-label="添加参考">+</button>
-            <button class="agent" type="button">∞ Agent⌄</button>
+            <button class="ghost plus" type="button" id="composerUpload" aria-label="添加参考">＋</button>
+            <button class="ghost" type="button" aria-label="面板">◫</button>
+            <button class="agent" type="button">◈ Agent <i>⌄</i></button>
             <button class="voice" type="button" aria-label="语音">◉</button>
             <button class="send" id="aigGo" type="button" aria-label="发送生成">
               <span class="aig-go-text">生成</span>
@@ -127,19 +142,18 @@ const ratios = ['16:9', '1:1', '9:16', '4:3', '3:4'];
       </aside>
 
       <input id="fileInput" type="file" accept="image/*" hidden />
+      <input id="stickerInput" type="file" accept="image/*" hidden />
     </main>
 
     <style>
       :root {
-        --bg: #eef1f4;
+        --bg: #f5f5f6;
         --panel: #ffffff;
-        --text: #25313a;
-        --muted: #8c97a1;
-        --line: #dfe5ea;
-        --blue: #88dff1;
-        --dark: #1c222a;
-        --gold: #d29a35;
-        --canvas: #e9edf1;
+        --text: #1c1c1e;
+        --muted: #9a9aa0;
+        --line: #ebebee;
+        --ink: #17171a;
+        --chip: #f5f6f7;
       }
       * { box-sizing: border-box; }
       [hidden] { display: none !important; }
@@ -147,139 +161,300 @@ const ratios = ['16:9', '1:1', '9:16', '4:3', '3:4'];
       body {
         font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
         color: var(--text);
-        background:
-          radial-gradient(circle at 50% 42%, rgba(255,255,255,.72), transparent 0 170px, transparent 360px),
-          linear-gradient(135deg, rgba(255,255,255,.5), transparent 30%),
-          var(--bg);
+        background: var(--bg);
         overflow: hidden;
       }
       button, textarea { font: inherit; }
       button { cursor: pointer; }
-      .studio {
-        width: 100vw;
-        height: 100vh;
-        display: grid;
-        grid-template-columns: 66px minmax(0, 1fr) 392px;
-        grid-template-rows: 58px minmax(0, 1fr);
+      .studio { width: 100vw; height: 100vh; position: relative; }
+
+      /* ---------- 画布 ---------- */
+      .canvas-area {
+        position: absolute;
+        inset: 0;
         background:
-          radial-gradient(circle at 48% 50%, rgba(255,255,255,.78), transparent 0 210px, transparent 460px),
-          linear-gradient(135deg, rgba(205,216,222,.32), transparent 34%),
-          var(--canvas);
+          radial-gradient(rgba(28, 28, 30, .055) 1px, transparent 1.2px) 0 0 / 22px 22px,
+          var(--bg);
       }
+      .canvas-empty {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(calc(-50% - 180px), -50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        text-align: center;
+      }
+      .canvas-hint {
+        margin: 0;
+        color: #a2a2a8;
+        font-size: 14px;
+        letter-spacing: .02em;
+      }
+      .canvas-hint kbd {
+        display: inline-grid;
+        place-items: center;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 4px;
+        margin: 0 2px;
+        border: 1px solid #dcdce0;
+        border-radius: 5px;
+        background: #fff;
+        color: #6f6f76;
+        font: 700 11px/1 inherit;
+        box-shadow: 0 1px 0 #e6e6ea;
+        vertical-align: 1px;
+      }
+      .canvas-buttons { display: flex; gap: 8px; }
+      .canvas-buttons button {
+        height: 32px;
+        padding: 0 14px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: #fff;
+        color: #55555c;
+        font-size: 13px;
+        box-shadow: 0 1px 2px rgba(20, 20, 25, .04);
+      }
+      .canvas-buttons button:hover { border-color: #d6d6db; color: var(--text); }
+      .canvas-result {
+        position: absolute;
+        inset: 72px 420px 110px 64px;
+        display: grid;
+        place-items: center;
+      }
+      .canvas-result canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+      .canvas-result.loading::after {
+        content: '生成中…';
+        position: relative;
+        z-index: 2;
+        padding: 8px 14px;
+        border-radius: 10px;
+        background: rgba(255,255,255,.92);
+        box-shadow: 0 8px 24px rgba(20, 22, 28, .1);
+        color: #8b8b92;
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .text-editor {
+        position: absolute;
+        z-index: 5;
+        min-width: 140px;
+        border: 1.5px dashed #2e7ac8;
+        border-radius: 6px;
+        outline: 0;
+        background: rgba(255,255,255,.88);
+        padding: 3px 7px;
+        font-weight: 700;
+        color: inherit;
+      }
+      .canvas-actions {
+        position: absolute;
+        left: calc(50% - 180px);
+        bottom: 92px;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 8px;
+      }
+      .canvas-actions button, .canvas-actions a {
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        color: #3a3a40;
+        text-decoration: none;
+        padding: 0 13px;
+        font-size: 13px;
+        box-shadow: 0 8px 24px rgba(20, 22, 28, .08);
+      }
+
+      /* ---------- 顶栏 ---------- */
       .topbar {
-        grid-column: 1 / -1;
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 56px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0 18px 0 16px;
-        border-bottom: 1px solid rgba(209, 217, 224, .82);
-        background: rgba(250, 251, 252, .9);
-        backdrop-filter: blur(20px);
-        z-index: 8;
+        padding: 0 16px;
+        pointer-events: none;
+        z-index: 9;
       }
+      .topbar > * { pointer-events: auto; }
       .brand {
         display: flex;
         align-items: center;
-        gap: 10px;
-        min-width: 0;
+        gap: 9px;
+        height: 38px;
+        padding: 0 12px 0 6px;
+        border-radius: 11px;
         color: var(--text);
         text-decoration: none;
+        background: rgba(255,255,255,.85);
+        border: 1px solid rgba(235,235,238,.9);
+        box-shadow: 0 2px 10px rgba(20, 22, 28, .05);
+        backdrop-filter: blur(12px);
       }
       .brand-mark {
-        width: 32px;
-        height: 32px;
+        width: 26px;
+        height: 26px;
         display: grid;
         place-items: center;
-        border-radius: 11px;
-        background: linear-gradient(145deg, #121820, #252b32);
+        border-radius: 8px;
+        background: var(--ink);
         color: #fff;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 900;
       }
-      .brand strong { font-size: 15px; letter-spacing: .01em; }
-      .brand em {
-        color: var(--muted);
-        font-size: 13px;
-        font-style: normal;
-        padding-left: 4px;
-      }
+      .brand strong { font-size: 13px; font-weight: 600; }
+      .brand .caret { color: var(--muted); font-style: normal; font-size: 11px; }
       .top-actions {
         display: flex;
         align-items: center;
         gap: 8px;
         font-size: 13px;
+        /* 给右侧对话面板让位 */
+        margin-right: 392px;
       }
       .top-actions button, .top-actions .download {
-        height: 32px;
+        height: 34px;
         display: inline-flex;
         align-items: center;
-        border: 1px solid rgba(213, 220, 226, .9);
+        border: 1px solid rgba(235,235,238,.9);
         border-radius: 10px;
-        background: rgba(255,255,255,.72);
-        color: var(--text);
+        background: rgba(255,255,255,.85);
+        color: #3a3a40;
         text-decoration: none;
-        padding: 0 13px;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+        padding: 0 12px;
+        box-shadow: 0 2px 10px rgba(20, 22, 28, .05);
+        backdrop-filter: blur(12px);
       }
-      .top-actions button:hover, .top-actions .download:hover {
-        border-color: #c6d1d9;
-        background: #fff;
-      }
+      .top-actions button:hover, .top-actions .download:hover { border-color: #d9d9de; background: #fff; }
       .download.disabled { opacity: .42; pointer-events: none; }
-      .top-actions .icon-menu {
-        width: 34px;
-        justify-content: center;
-        padding: 0;
-        border-radius: 50%;
-      }
-      .toolrail {
-        grid-row: 2;
-        grid-column: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 2px;
-        padding: 8px;
-        pointer-events: none;
-      }
-      .toolrail::before {
-        content: '';
+      .top-actions .icon-menu { width: 34px; justify-content: center; padding: 0; }
+
+      /* ---------- 底部工具条 ---------- */
+      .dock {
         position: absolute;
-        width: 44px;
-        height: 322px;
-        border-radius: 18px;
+        left: calc(50% - 180px);
+        bottom: 18px;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 5px;
+        border-radius: 14px;
         background: #fff;
-        box-shadow: 0 10px 28px rgba(31, 42, 54, .09);
+        border: 1px solid var(--line);
+        box-shadow: 0 12px 32px rgba(20, 22, 28, .1);
+        z-index: 8;
       }
-      .toolrail button {
-        position: relative;
-        z-index: 1;
+      .dock button {
         width: 36px;
         height: 36px;
         border: 0;
-        border-radius: 11px;
+        border-radius: 10px;
         background: transparent;
-        color: #4c5964;
-        font-weight: 800;
-        pointer-events: auto;
+        color: #5c5c63;
+        font-size: 14px;
       }
-      .toolrail button:hover { background: #f2f5f7; }
-      .toolrail button.active {
-        background: var(--dark);
-        color: #fff;
-      }
-      .history-panel {
-        position: fixed;
-        left: 74px;
-        top: 70px;
-        bottom: 22px;
-        width: 270px;
-        z-index: 7;
+      .dock button:hover { background: #f2f2f4; }
+      .dock button.active { background: var(--ink); color: #fff; }
+
+      /* ---------- 工具选项条 / 清除选区 ---------- */
+      .tool-opts {
+        position: absolute;
+        left: calc(50% - 180px);
+        bottom: 72px;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 8px 14px;
+        border-radius: 12px;
+        background: #fff;
         border: 1px solid var(--line);
-        border-radius: 22px;
-        background: rgba(255,255,255,.94);
-        box-shadow: 0 24px 70px rgba(31, 42, 54, .14);
+        box-shadow: 0 10px 28px rgba(20, 22, 28, .1);
+        z-index: 8;
+        font-size: 12px;
+        color: #55555c;
+      }
+      .tool-opts label { display: inline-flex; align-items: center; gap: 7px; }
+      .tool-opts input[type="color"] {
+        width: 26px;
+        height: 26px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 1px;
+        background: #fff;
+        cursor: pointer;
+      }
+      .tool-opts input[type="range"] { width: 110px; accent-color: var(--ink); }
+      .clear-sel {
+        position: absolute;
+        left: calc(50% + 60px);
+        bottom: 72px;
+        height: 30px;
+        padding: 0 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        color: #55555c;
+        font-size: 12px;
+        box-shadow: 0 10px 28px rgba(20, 22, 28, .1);
+        z-index: 8;
+      }
+      .clear-sel:hover { color: var(--text); border-color: #d6d6db; }
+
+      /* ---------- 左下缩放条 ---------- */
+      .zoombar {
+        position: absolute;
+        left: 16px;
+        bottom: 18px;
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 4px;
+        border-radius: 12px;
+        background: #fff;
+        border: 1px solid var(--line);
+        box-shadow: 0 8px 22px rgba(20, 22, 28, .07);
+        z-index: 8;
+      }
+      .zoombar button {
+        width: 30px;
+        height: 30px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: #6f6f76;
+      }
+      .zoombar button:hover { background: #f2f2f4; }
+      .zoom-val { padding: 0 6px; color: #55555c; font-size: 12px; font-weight: 600; }
+
+      /* ---------- 本地记录 ---------- */
+      .history-panel {
+        position: absolute;
+        left: 16px;
+        top: 66px;
+        bottom: 70px;
+        width: 268px;
+        z-index: 10;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(255,255,255,.97);
+        box-shadow: 0 24px 60px rgba(20, 22, 28, .14);
         padding: 16px;
         overflow: auto;
       }
@@ -290,366 +465,253 @@ const ratios = ['16:9', '1:1', '9:16', '4:3', '3:4'];
         gap: 10px;
         margin-bottom: 14px;
       }
-      .history-head strong { display: block; font-size: 14px; }
+      .history-head strong { display: block; font-size: 13px; }
       .history-head span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
       .history-head button {
         border: 0;
-        background: #f3f6f8;
-        color: #697581;
-        border-radius: 10px;
-        height: 28px;
+        background: var(--chip);
+        color: #6f6f76;
+        border-radius: 8px;
+        height: 26px;
         padding: 0 10px;
+        font-size: 12px;
       }
       .history-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 9px;
+        gap: 8px;
       }
       .history-grid button {
         aspect-ratio: 1;
         border: 1px solid var(--line);
-        border-radius: 14px;
+        border-radius: 10px;
         overflow: hidden;
         padding: 0;
-        background: #f4f6f8;
+        background: #f4f4f6;
       }
-      .history-grid img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-      }
-      .history-empty {
-        margin: 28px 0 0;
-        color: var(--muted);
-        text-align: center;
-        font-size: 13px;
-      }
-      .canvas-area {
-        grid-column: 2;
-        grid-row: 2;
-        position: relative;
-        min-width: 0;
-        overflow: hidden;
-        border-right: 1px solid rgba(208, 216, 224, .76);
-      }
-      .canvas-empty {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -46%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 18px;
-        text-align: center;
-        color: #2f3b45;
-        padding: 34px 38px;
-        border-radius: 30px;
-        background: rgba(255,255,255,.22);
-        box-shadow: inset 0 0 0 1px rgba(255,255,255,.36);
-      }
-      .upload-illus {
-        position: relative;
-        width: 124px;
-        height: 100px;
-      }
-      .upload-illus span {
-        position: absolute;
-        left: 30px;
-        top: 14px;
-        width: 66px;
-        height: 80px;
-        border-radius: 9px;
-        border: 4px solid #fff;
-        background: linear-gradient(180deg, #ebfbff, #d5f7fa);
-        box-shadow: 0 14px 34px rgba(88, 179, 194, .18);
-        transform: rotate(8deg);
-      }
-      .upload-illus span:first-child {
-        left: 16px;
-        top: 26px;
-        transform: rotate(-8deg);
-        opacity: .72;
-      }
-      .upload-illus b {
-        position: absolute;
-        left: 28px;
-        bottom: 0;
-        width: 76px;
-        height: 42px;
-        display: grid;
-        place-items: center;
-        border-radius: 18px;
-        background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.72));
-        color: #9feeff;
-        font-size: 28px;
-        box-shadow: 0 18px 38px rgba(66, 116, 128, .1);
-      }
-      .canvas-empty p {
-        margin: 0;
-        font-size: 15px;
-        font-weight: 700;
-      }
-      .canvas-empty i {
-        display: inline-grid;
-        place-items: center;
-        width: 22px;
-        height: 22px;
-        margin-right: 8px;
-        border-radius: 50%;
-        background: #bdf4f0;
-        color: #0099a8;
-        font-style: normal;
-      }
-      .canvas-buttons { display: flex; gap: 10px; }
-      .canvas-buttons button {
-        min-width: 96px;
-        height: 42px;
-        border: 0;
-        border-radius: 12px;
-        background: #fff;
-        color: #43505b;
-        box-shadow: 0 10px 24px rgba(31, 42, 54, .07);
-      }
-      .canvas-result {
-        position: absolute;
-        inset: 72px 80px;
-        display: grid;
-        place-items: center;
-      }
-      .canvas-result img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-        border-radius: 18px;
-        box-shadow: 0 28px 70px rgba(24, 31, 40, .18);
-      }
-      .canvas-result.loading::after {
-        content: '生成中...';
-        color: #5b6874;
-        font-weight: 700;
-      }
-      .canvas-actions {
-        position: absolute;
-        left: 50%;
-        bottom: 64px;
-        transform: translateX(-50%);
-        display: flex;
-        gap: 10px;
-      }
-      .canvas-actions button, .canvas-actions a {
-        height: 38px;
-        display: inline-flex;
-        align-items: center;
-        border: 0;
-        border-radius: 12px;
-        background: #fff;
-        color: #34424d;
-        text-decoration: none;
-        padding: 0 14px;
-        box-shadow: 0 12px 30px rgba(31, 42, 54, .11);
-      }
-      .zoom-chip, .help-chip {
-        position: absolute;
-        bottom: 16px;
-        height: 34px;
-        border: 0;
-        border-radius: 10px;
-        background: #fff;
-        color: #697581;
-        box-shadow: 0 8px 22px rgba(31, 42, 54, .07);
-      }
-      .zoom-chip {
-        right: 54px;
-        padding: 8px 10px;
-        font-size: 13px;
-      }
-      .help-chip {
-        right: 16px;
-        width: 34px;
-        font-weight: 900;
-      }
+      .history-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .history-empty { margin: 28px 0 0; color: var(--muted); text-align: center; font-size: 13px; }
+
+      /* ---------- 右侧对话面板 ---------- */
       .chat-panel {
-        grid-column: 3;
-        grid-row: 2;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        bottom: 10px;
+        width: 372px;
         display: grid;
-        grid-template-rows: 58px minmax(0, 1fr) auto;
-        border-left: 0;
-        background: rgba(255,255,255,.94);
-        box-shadow: -24px 0 60px rgba(31, 42, 54, .045);
-        min-width: 0;
+        grid-template-rows: 50px minmax(0, 1fr) auto;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--panel);
+        box-shadow: 0 18px 50px rgba(20, 22, 28, .09);
+        z-index: 9;
+        overflow: hidden;
       }
       .chat-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0 20px;
-        border-bottom: 1px solid #edf1f4;
+        padding: 0 16px;
+        border-bottom: 1px solid #f2f2f4;
       }
-      .chat-head strong { font-size: 15px; letter-spacing: .02em; }
+      .chat-head strong { font-size: 13.5px; font-weight: 600; }
       .chat-head button {
         width: 28px;
         height: 28px;
         border: 0;
+        border-radius: 8px;
         background: transparent;
-        color: #6b7883;
+        color: #8b8b92;
+        font-size: 13px;
       }
+      .chat-head button:hover { background: #f2f2f4; color: var(--text); }
       .chat-body {
-        padding: 38px 24px 18px;
+        display: flex;
+        flex-direction: column;
+        padding: 16px;
         overflow: auto;
       }
-      .hello h1 {
-        margin: 0;
-        color: #31485a;
-        font-size: 25px;
-        line-height: 1.28;
-        letter-spacing: 0;
-      }
-      .hello p {
-        margin: 12px 0 28px;
-        color: #adb5bd;
-        font-size: 13px;
+      .chat-spacer { flex: 1 1 auto; min-height: 24px; }
+      .skills { margin-bottom: 4px; }
+      .skills-title {
+        margin: 0 0 12px;
+        color: var(--text);
+        font-size: 12.5px;
+        font-weight: 700;
+        text-align: right;
       }
       .suggestions {
         display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
       }
       .suggestions button {
-        height: 34px;
-        border: 1px solid #e8edf1;
-        border-radius: 999px;
-        background: #fbfcfd;
-        color: #7a8792;
-        padding: 0 14px;
-        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 30px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: #fff;
+        color: #55555c;
+        padding: 0 11px;
+        font-size: 12.5px;
       }
-      .suggestions button:hover {
-        border-color: #bfe5ee;
-        color: #247f92;
-        background: #f5fcfe;
+      .suggestions button i {
+        font-style: normal;
+        font-size: 11px;
+        color: #9a9aa0;
       }
+      .suggestions button:hover { border-color: #d6d6db; color: var(--text); background: #fafafa; }
       .chat-log {
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        margin-top: 24px;
+        gap: 10px;
+        margin-top: 16px;
       }
       .bubble {
         max-width: 92%;
-        padding: 12px 14px;
-        border-radius: 16px;
+        padding: 10px 13px;
+        border-radius: 13px;
         font-size: 13px;
         line-height: 1.7;
       }
       .bubble.user {
         align-self: flex-end;
-        background: #eff8fb;
-        color: #315c67;
+        background: var(--ink);
+        color: #f2f2f4;
+        border-bottom-right-radius: 5px;
       }
       .bubble.ai {
         align-self: flex-start;
-        background: #f6f8fa;
-        color: #55636f;
+        background: var(--chip);
+        color: #4a4a52;
+        border-bottom-left-radius: 5px;
       }
+
+      /* ---------- 输入条 ---------- */
       .composer {
-        margin: 0 16px 16px;
-        border: 1px solid #c9eefa;
-        border-radius: 22px;
+        margin: 0 12px 12px;
+        border: 1px solid #e3e3e7;
+        border-radius: 15px;
         background: #fff;
-        box-shadow: 0 18px 46px rgba(38, 124, 150, .13);
+        box-shadow: 0 6px 20px rgba(20, 22, 28, .05);
         overflow: hidden;
       }
+      .composer:focus-within { border-color: #c9c9cf; }
       .composer textarea {
         width: 100%;
-        min-height: 92px;
+        min-height: 64px;
         border: 0;
         outline: 0;
         resize: none;
-        padding: 18px 18px 6px;
-        color: #24313a;
+        padding: 13px 14px 4px;
+        color: var(--text);
+        font-size: 13.5px;
         line-height: 1.65;
       }
-      .composer textarea::placeholder { color: #bac2c9; }
+      .composer textarea::placeholder { color: #b4b4ba; }
       .ratio-row {
         display: flex;
-        gap: 6px;
-        padding: 0 14px 8px;
+        gap: 5px;
+        padding: 0 12px 6px;
       }
       .ratio-row button {
-        height: 24px;
-        border: 1px solid #edf0f3;
+        height: 22px;
+        border: 1px solid #efeff2;
         border-radius: 999px;
-        background: #f8fafb;
-        color: #7d8790;
-        padding: 0 9px;
+        background: #fafafb;
+        color: #8b8b92;
+        padding: 0 8px;
         font-size: 11px;
         font-weight: 700;
       }
       .ratio-row button.active {
-        border-color: #bdefff;
-        background: #effbff;
-        color: #168aa2;
+        border-color: var(--ink);
+        background: var(--ink);
+        color: #fff;
       }
       .composer-foot {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 8px 12px 12px;
+        gap: 6px;
+        padding: 6px 10px 10px;
       }
-      .composer-foot button {
+      .composer-foot .ghost {
+        width: 28px;
+        height: 28px;
         border: 0;
-        height: 30px;
-        border-radius: 999px;
-      }
-      .plus {
-        width: 30px;
-        background: #f4f7f9;
-        color: #4b5964;
-        font-weight: 900;
-      }
-      .agent {
+        border-radius: 8px;
         background: transparent;
-        color: #2a8fa8;
-        font-weight: 800;
+        color: #6f6f76;
+        font-size: 14px;
       }
+      .composer-foot .ghost:hover { background: #f2f2f4; }
+      .agent {
+        height: 28px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: #55555c;
+        padding: 0 8px;
+        font-size: 12.5px;
+        font-weight: 600;
+      }
+      .agent i { font-style: normal; color: #9a9aa0; font-size: 11px; }
+      .agent:hover { background: #f2f2f4; }
       .voice {
         margin-left: auto;
         width: 30px;
-        background: #1d232a;
+        height: 30px;
+        border: 0;
+        border-radius: 50%;
+        background: var(--ink);
         color: #fff;
+        font-size: 12px;
       }
       .send {
         min-width: 52px;
-        padding: 0 12px;
-        background: #1d232a;
+        height: 30px;
+        padding: 0 13px;
+        border: 0;
+        border-radius: 999px;
+        background: var(--ink);
         color: #fff;
-        font-weight: 800;
+        font-size: 13px;
+        font-weight: 700;
       }
+      .send:hover { background: #000; }
       .send:disabled { opacity: .55; }
       .msg {
         min-height: 16px;
-        margin: -2px 14px 10px;
-        color: #96a0aa;
+        margin: -2px 14px 8px;
+        color: #9a9aa0;
         font-size: 12px;
       }
       .msg.error { color: #d04a3c; }
+
+      /* ---------- 移动端 ---------- */
       @media (max-width: 980px) {
         body { overflow: auto; }
-        .studio {
-          min-height: 100vh;
-          height: auto;
-          grid-template-columns: 54px minmax(0, 1fr);
-          grid-template-rows: 54px minmax(520px, 62vh) auto;
-        }
+        .studio { height: auto; min-height: 100vh; display: flex; flex-direction: column; }
+        .canvas-area { position: relative; inset: auto; height: 56vh; min-height: 380px; }
+        .canvas-empty { transform: translate(-50%, -50%); }
+        .canvas-result { inset: 64px 20px 70px; }
+        .canvas-actions { left: 50%; bottom: 56px; }
+        .topbar { position: absolute; }
+        .top-actions { margin-right: 0; }
+        .dock { left: 50%; bottom: 12px; position: absolute; }
+        .zoombar { display: none; }
         .chat-panel {
-          grid-column: 1 / -1;
-          grid-row: 3;
-          min-height: 520px;
+          position: relative;
+          inset: auto;
+          width: auto;
+          margin: 10px;
+          min-height: 480px;
         }
-        .canvas-area { grid-column: 2; }
+        .history-panel { bottom: auto; max-height: 60vh; }
       }
     </style>
 
@@ -776,18 +838,383 @@ const ratios = ['16:9', '1:1', '9:16', '4:3', '3:4'];
           $('canvasActions').hidden = !src;
         }
 
+        // ===== 画布编辑器（选择/框选/魔棒/画笔/文字/贴图） =====
+        const canvasBox = $('aigCanvas');
+        const view = document.createElement('canvas');
+        canvasBox.appendChild(view);
+        const vctx = view.getContext('2d');
+        let baseImg = null;
+        let objects = [];        // 图像坐标系里的编辑对象
+        let selRect = null;      // 框选 {x,y,w,h}
+        let selMask = null;      // 魔棒选区（原图尺寸 canvas）
+        let selectedObj = null;
+        let tool = 'select';
+        let scale = 1, ox = 0, oy = 0;
+        let drag = null;
+        let dashOffset = 0;
+        let rafId = 0;
+
+        const i2s = (x, y) => [ox + x * scale, oy + y * scale];
+        const s2i = (x, y) => [(x - ox) / scale, (y - oy) / scale];
+
+        function fitView() {
+          const r = canvasBox.getBoundingClientRect();
+          const w = Math.max(1, Math.round(r.width));
+          const h = Math.max(1, Math.round(r.height));
+          if (view.width !== w) view.width = w;
+          if (view.height !== h) view.height = h;
+          if (baseImg) {
+            scale = Math.min(view.width / baseImg.naturalWidth, view.height / baseImg.naturalHeight);
+            ox = (view.width - baseImg.naturalWidth * scale) / 2;
+            oy = (view.height - baseImg.naturalHeight * scale) / 2;
+          }
+        }
+
+        function drawObj(c, o, s, dx, dy) {
+          if (o.type === 'stroke') {
+            c.strokeStyle = o.color;
+            c.lineWidth = Math.max(.5, o.size * s);
+            c.lineCap = 'round';
+            c.lineJoin = 'round';
+            c.beginPath();
+            o.points.forEach(([px, py], i) => {
+              const X = dx + px * s, Y = dy + py * s;
+              i ? c.lineTo(X, Y) : c.moveTo(X, Y);
+            });
+            c.stroke();
+          } else if (o.type === 'text') {
+            c.fillStyle = o.color;
+            c.font = `700 ${o.size * s}px "Microsoft YaHei", sans-serif`;
+            c.textBaseline = 'top';
+            c.fillText(o.text, dx + o.x * s, dy + o.y * s);
+          } else if (o.type === 'sticker') {
+            c.drawImage(o.img, dx + o.x * s, dy + o.y * s, o.w * s, o.h * s);
+          }
+        }
+
+        function objBox(o) {
+          if (o.type === 'text') {
+            vctx.font = `700 ${o.size}px "Microsoft YaHei", sans-serif`;
+            return { x: o.x, y: o.y, w: vctx.measureText(o.text).width, h: o.size * 1.2 };
+          }
+          if (o.type === 'sticker') return { x: o.x, y: o.y, w: o.w, h: o.h };
+          const xs = o.points.map((p) => p[0]);
+          const ys = o.points.map((p) => p[1]);
+          const x = Math.min(...xs), y = Math.min(...ys);
+          return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+        }
+
+        function render() {
+          fitView();
+          vctx.clearRect(0, 0, view.width, view.height);
+          if (!baseImg) return;
+          vctx.drawImage(baseImg, ox, oy, baseImg.naturalWidth * scale, baseImg.naturalHeight * scale);
+          objects.forEach((o) => drawObj(vctx, o, scale, ox, oy));
+          if (drag?.type === 'stroke') drawObj(vctx, drag.obj, scale, ox, oy);
+          if (selMask) {
+            vctx.globalAlpha = .38;
+            vctx.drawImage(selMask, ox, oy, baseImg.naturalWidth * scale, baseImg.naturalHeight * scale);
+            vctx.globalAlpha = 1;
+          }
+          const rect = drag?.type === 'marquee' ? drag.rect : selRect;
+          if (rect) {
+            const [x, y] = i2s(rect.x, rect.y);
+            vctx.save();
+            vctx.lineWidth = 1.5;
+            vctx.setLineDash([6, 4]);
+            vctx.lineDashOffset = -dashOffset;
+            vctx.strokeStyle = '#1c1c1e';
+            vctx.strokeRect(x, y, rect.w * scale, rect.h * scale);
+            vctx.lineDashOffset = -dashOffset + 5;
+            vctx.strokeStyle = '#fff';
+            vctx.strokeRect(x, y, rect.w * scale, rect.h * scale);
+            vctx.restore();
+          }
+          if (selectedObj) {
+            const b = objBox(selectedObj);
+            const [x, y] = i2s(b.x, b.y);
+            vctx.save();
+            vctx.strokeStyle = '#2e7ac8';
+            vctx.lineWidth = 1.5;
+            vctx.setLineDash([4, 3]);
+            vctx.strokeRect(x - 4, y - 4, b.w * scale + 8, b.h * scale + 8);
+            vctx.restore();
+          }
+        }
+
+        function tick() {
+          dashOffset = (dashOffset + .5) % 10;
+          render();
+          rafId = (selRect || selMask || drag) ? requestAnimationFrame(tick) : 0;
+        }
+        function ensureTick() { if (!rafId) rafId = requestAnimationFrame(tick); }
+
+        function magicWand(ixRaw, iyRaw) {
+          const MAXD = 1024;
+          const f = Math.min(1, MAXD / Math.max(baseImg.naturalWidth, baseImg.naturalHeight));
+          const w = Math.max(1, Math.round(baseImg.naturalWidth * f));
+          const h = Math.max(1, Math.round(baseImg.naturalHeight * f));
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          const cx = c.getContext('2d', { willReadFrequently: true });
+          cx.drawImage(baseImg, 0, 0, w, h);
+          let data;
+          try {
+            data = cx.getImageData(0, 0, w, h).data;
+          } catch {
+            setMsg('该图片受跨域保护，魔棒不可用。', true);
+            return;
+          }
+          const sx = Math.min(w - 1, Math.max(0, Math.round(ixRaw * f)));
+          const sy = Math.min(h - 1, Math.max(0, Math.round(iyRaw * f)));
+          const si = (sy * w + sx) * 4;
+          const r0 = data[si], g0 = data[si + 1], b0 = data[si + 2];
+          const TOL = 34 * 3;
+          const mask = new Uint8Array(w * h);
+          const stack = [sx + sy * w];
+          mask[stack[0]] = 1;
+          while (stack.length) {
+            const p = stack.pop();
+            const px = p % w, py = (p / w) | 0;
+            for (let d = 0; d < 4; d++) {
+              const nx = px + (d === 0) - (d === 1);
+              const ny = py + (d === 2) - (d === 3);
+              if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+              const n = nx + ny * w;
+              if (mask[n]) continue;
+              const q = n * 4;
+              if (Math.abs(data[q] - r0) + Math.abs(data[q + 1] - g0) + Math.abs(data[q + 2] - b0) <= TOL) {
+                mask[n] = 1;
+                stack.push(n);
+              }
+            }
+          }
+          const mc = document.createElement('canvas');
+          mc.width = w; mc.height = h;
+          const out = mc.getContext('2d').createImageData(w, h);
+          for (let i = 0; i < mask.length; i++) {
+            if (!mask[i]) continue;
+            out.data[i * 4] = 46; out.data[i * 4 + 1] = 122; out.data[i * 4 + 2] = 200; out.data[i * 4 + 3] = 255;
+          }
+          mc.getContext('2d').putImageData(out, 0, 0);
+          const full = document.createElement('canvas');
+          full.width = baseImg.naturalWidth;
+          full.height = baseImg.naturalHeight;
+          const fx = full.getContext('2d');
+          fx.imageSmoothingEnabled = false;
+          fx.drawImage(mc, 0, 0, full.width, full.height);
+          selMask = full;
+          selRect = null;
+          $('clearSel').hidden = false;
+          ensureTick();
+          setMsg('已用魔棒选中相近颜色区域，Esc 或「清除选区」取消。');
+        }
+
+        function hitTest(ix, iy) {
+          for (let i = objects.length - 1; i >= 0; i--) {
+            const b = objBox(objects[i]);
+            if (ix >= b.x - 6 && iy >= b.y - 6 && ix <= b.x + b.w + 6 && iy <= b.y + b.h + 6) return objects[i];
+          }
+          return null;
+        }
+
+        function openTextEditor(sx, sy, ix, iy) {
+          const input = document.createElement('input');
+          input.className = 'text-editor';
+          input.style.left = `${sx}px`;
+          input.style.top = `${sy}px`;
+          input.style.color = $('toolColor').value;
+          input.style.fontSize = `${Math.max(13, +$('toolSize').value * scale)}px`;
+          input.placeholder = '输入文字，回车确认';
+          canvasBox.appendChild(input);
+          input.focus();
+          let done = false;
+          const commit = (save) => {
+            if (done) return;
+            done = true;
+            const text = input.value.trim();
+            input.remove();
+            if (save && text) {
+              const o = { type: 'text', x: ix, y: iy, text, color: $('toolColor').value, size: +$('toolSize').value };
+              objects.push(o);
+              selectedObj = o;
+              render();
+            }
+          };
+          input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') commit(true);
+            if (event.key === 'Escape') commit(false);
+            event.stopPropagation();
+          });
+          input.addEventListener('blur', () => commit(true));
+        }
+
+        function setTool(next) {
+          tool = next;
+          document.querySelectorAll('.dock button[data-tool]').forEach((b) => b.classList.toggle('active', b.dataset.tool === next));
+          $('toolOpts').hidden = !(next === 'brush' || next === 'text');
+          if (next === 'brush') $('toolSize').value = 16;
+          if (next === 'text') $('toolSize').value = 48;
+          view.style.cursor = { marquee: 'crosshair', wand: 'crosshair', brush: 'crosshair', text: 'text' }[next] || 'default';
+        }
+
+        view.addEventListener('pointerdown', (event) => {
+          if (!baseImg) return;
+          const r = view.getBoundingClientRect();
+          const sx = event.clientX - r.left, sy = event.clientY - r.top;
+          const [ix, iy] = s2i(sx, sy);
+          view.setPointerCapture(event.pointerId);
+          if (tool === 'select') {
+            selectedObj = hitTest(ix, iy);
+            drag = selectedObj ? { type: 'move', last: [ix, iy] } : null;
+            render();
+          } else if (tool === 'marquee') {
+            selMask = null;
+            drag = { type: 'marquee', start: [ix, iy], rect: { x: ix, y: iy, w: 0, h: 0 } };
+            ensureTick();
+          } else if (tool === 'brush') {
+            drag = { type: 'stroke', obj: { type: 'stroke', points: [[ix, iy]], color: $('toolColor').value, size: +$('toolSize').value } };
+            ensureTick();
+          } else if (tool === 'wand') {
+            magicWand(ix, iy);
+          } else if (tool === 'text') {
+            openTextEditor(sx, sy, ix, iy);
+          }
+        });
+        view.addEventListener('pointermove', (event) => {
+          if (!drag) return;
+          const r = view.getBoundingClientRect();
+          const [ix, iy] = s2i(event.clientX - r.left, event.clientY - r.top);
+          if (drag.type === 'move' && selectedObj) {
+            const dx = ix - drag.last[0], dy = iy - drag.last[1];
+            drag.last = [ix, iy];
+            if (selectedObj.type === 'stroke') selectedObj.points = selectedObj.points.map(([px, py]) => [px + dx, py + dy]);
+            else { selectedObj.x += dx; selectedObj.y += dy; }
+            render();
+          } else if (drag.type === 'marquee') {
+            drag.rect = {
+              x: Math.min(ix, drag.start[0]),
+              y: Math.min(iy, drag.start[1]),
+              w: Math.abs(ix - drag.start[0]),
+              h: Math.abs(iy - drag.start[1]),
+            };
+          } else if (drag.type === 'stroke') {
+            drag.obj.points.push([ix, iy]);
+          }
+        });
+        view.addEventListener('pointerup', () => {
+          if (drag?.type === 'marquee') {
+            selRect = drag.rect.w > 4 && drag.rect.h > 4 ? drag.rect : null;
+            $('clearSel').hidden = !selRect;
+          }
+          if (drag?.type === 'stroke' && drag.obj.points.length > 1) objects.push(drag.obj);
+          drag = null;
+          render();
+        });
+        view.addEventListener('wheel', (event) => {
+          if (!selectedObj) return;
+          event.preventDefault();
+          const k = event.deltaY < 0 ? 1.08 : 0.92;
+          if (selectedObj.type === 'sticker') { selectedObj.w *= k; selectedObj.h *= k; }
+          else if (selectedObj.type === 'text') selectedObj.size = Math.max(8, selectedObj.size * k);
+          else selectedObj.size = Math.max(1, selectedObj.size * k);
+          render();
+        }, { passive: false });
+
+        document.querySelector('.dock').addEventListener('click', (event) => {
+          const btn = event.target.closest('button[data-tool]');
+          if (!btn) return;
+          const next = btn.dataset.tool;
+          if (next === 'ref') { uploadReference(); return; }
+          if (next === 'undo') {
+            const removed = objects.pop();
+            if (removed === selectedObj) selectedObj = null;
+            render();
+            return;
+          }
+          if (next !== 'select' && !baseImg) {
+            setMsg('画布还是空的，先生成或上传一张图。', true);
+            return;
+          }
+          if (next === 'sticker') { $('stickerInput').click(); return; }
+          setTool(next);
+        });
+
+        $('stickerInput').addEventListener('change', (event) => {
+          const file = event.target.files?.[0];
+          event.target.value = '';
+          if (!file || !baseImg) return;
+          const img = new Image();
+          img.onload = () => {
+            const w = baseImg.naturalWidth * .3;
+            const h = w * img.naturalHeight / img.naturalWidth;
+            const o = { type: 'sticker', img, x: (baseImg.naturalWidth - w) / 2, y: (baseImg.naturalHeight - h) / 2, w, h };
+            objects.push(o);
+            selectedObj = o;
+            setTool('select');
+            render();
+            setMsg('贴图已放到画布中央：拖动调位置，滚轮调大小。');
+          };
+          img.src = URL.createObjectURL(file);
+        });
+
+        $('clearSel').addEventListener('click', () => {
+          selRect = null;
+          selMask = null;
+          $('clearSel').hidden = true;
+          render();
+        });
+        document.addEventListener('keydown', (event) => {
+          const tag = document.activeElement?.tagName;
+          if (tag === 'TEXTAREA' || tag === 'INPUT') return;
+          if (event.key === 'Escape') {
+            selRect = null; selMask = null; selectedObj = null;
+            $('clearSel').hidden = true;
+            render();
+          }
+          if ((event.key === 'Delete' || event.key === 'Backspace') && selectedObj) {
+            objects = objects.filter((o) => o !== selectedObj);
+            selectedObj = null;
+            render();
+          }
+        });
+        window.addEventListener('resize', render);
+
+        function compositeImage() {
+          if (!baseImg) return '';
+          const c = document.createElement('canvas');
+          c.width = baseImg.naturalWidth;
+          c.height = baseImg.naturalHeight;
+          const cx = c.getContext('2d');
+          cx.drawImage(baseImg, 0, 0);
+          objects.forEach((o) => drawObj(cx, o, 1, 0, 0));
+          try { return c.toDataURL('image/png'); } catch { return ''; }
+        }
+        ['downloadCurrent', 'downloadCanvas'].forEach((id) => {
+          $(id).addEventListener('click', () => {
+            if (!objects.length) return;
+            const url = compositeImage();
+            if (url) $(id).href = url;
+          });
+        });
+
         function showImage(src, prompt = '') {
           currentImage = src;
           currentPrompt = prompt || currentPrompt;
           $('canvasEmpty').hidden = true;
-          const canvas = $('aigCanvas');
-          canvas.hidden = false;
-          canvas.classList.remove('loading');
-          canvas.innerHTML = '';
-          const img = document.createElement('img');
+          canvasBox.hidden = false;
+          canvasBox.classList.remove('loading');
+          const img = new Image();
+          img.onload = () => {
+            baseImg = img;
+            objects = [];
+            selRect = null;
+            selMask = null;
+            selectedObj = null;
+            $('clearSel').hidden = true;
+            render();
+          };
           img.src = src;
-          img.alt = '生成结果';
-          canvas.appendChild(img);
           setDownload(src);
         }
 
@@ -859,7 +1286,6 @@ const ratios = ['16:9', '1:1', '9:16', '4:3', '3:4'];
           $('aigGo').disabled = true;
           $('canvasEmpty').hidden = true;
           $('aigCanvas').hidden = false;
-          $('aigCanvas').innerHTML = '';
           $('aigCanvas').classList.add('loading');
           setDownload('');
           addBubble(prompt, 'user');
@@ -921,6 +1347,8 @@ const ratios = ['16:9', '1:1', '9:16', '4:3', '3:4'];
             '确定 AI 能做什么': '帮我梳理一下这个 AI 工作台可以完成哪些设计任务，按电商、品牌、空间、素材整理分类。',
             '生成电商主图': '生成一张高级感电商主图，产品居中，浅色背景，柔和阴影，适合详情页首屏。',
             '生成电商场景图': '生成一张生活方式电商场景图，产品自然融入桌面环境，真实摄影质感，清爽高级。',
+            'Logo 设计': '为一个现代设计品牌生成简洁 Logo 概念图，黑白为主，几何字母组合，留白充足。',
+            'UGC：生活化上身图': '生成一张生活化 UGC 风格上身图，自然光，手机随手拍质感，真实生活场景。',
           };
           $('aigPrompt').value = map[text] || text;
           $('aigPrompt').focus();
@@ -951,6 +1379,14 @@ const ratios = ['16:9', '1:1', '9:16', '4:3', '3:4'];
         $('aigGo').addEventListener('click', generate);
         $('aigPrompt').addEventListener('keydown', (event) => {
           if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') generate();
+        });
+        // 按 C 聚焦对话输入（Lovart 同款快捷键）
+        document.addEventListener('keydown', (event) => {
+          if (event.key.toLowerCase() !== 'c' || event.ctrlKey || event.metaKey || event.altKey) return;
+          const tag = document.activeElement?.tagName;
+          if (tag === 'TEXTAREA' || tag === 'INPUT') return;
+          event.preventDefault();
+          $('aigPrompt').focus();
         });
         refreshHistory();
       })();

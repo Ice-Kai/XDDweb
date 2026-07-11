@@ -200,6 +200,8 @@
       .input:focus,.select:focus,.textarea:focus { border-color:#18181b; box-shadow:0 0 0 3px rgba(24,24,27,.08); }
       .table-wrap { overflow:auto; max-height:calc(100vh - 250px); background:var(--panel); }
       .category-board .table-wrap { max-height:calc(100vh - 218px); }
+      .category-searchbar { display:flex; align-items:center; gap:8px; padding:12px 14px; border-bottom:1px solid var(--line); background:var(--panel-2); }
+      .category-searchbar .input { flex:1; min-width:180px; background:#fff; }
       /* Excel 风网格表：清晰分行线 + 淡竖向网格 + 隔行底色 + 粗表头 */
       table { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
       th { position:sticky; top:0; z-index:1; background:#eef0f3; color:#3f3f46; font-size:11px; letter-spacing:.05em; text-transform:uppercase; font-weight:800; border-bottom:2px solid #d4d4d8; }
@@ -244,6 +246,7 @@
       .choice-grid .select,.choice-grid .input { min-height:40px; }
       .batchbar strong { color:var(--ink); font-size:12px; margin-right:2px; }
       .upload-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; }
+      .size-picker { display:grid; grid-template-columns:minmax(0,1fr) 88px; gap:8px; }
       .upload-btn { position:relative; display:inline-flex; align-items:center; justify-content:center; min-height:38px; padding:0 12px; border-radius:8px; border:1px solid var(--gold-border); background:var(--gold-pale); color:var(--gold); font-weight:900; white-space:nowrap; cursor:pointer; }
       .upload-btn input { position:absolute; inset:0; opacity:0; cursor:pointer; }
       .file-input-hidden { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
@@ -320,9 +323,24 @@
       .feedback-meta { display:flex; gap:8px; flex-wrap:wrap; color:var(--muted); font-size:12px; }
       .feedback-body,.feedback-reply { white-space:pre-wrap; line-height:1.7; }
       .feedback-reply { border:1px solid var(--gold-border); border-radius:8px; background:var(--gold-pale); padding:10px; }
+      .notice-admin-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; }
+      .notice-admin-card { border:1px solid var(--line); border-radius:12px; background:var(--panel-2); overflow:hidden; }
+      .notice-admin-card.full { grid-column:1 / -1; }
+      .notice-admin-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line); background:var(--panel); }
+      .notice-admin-head h3 { margin:0; font-size:15px; font-weight:900; color:var(--ink); }
+      .notice-admin-head p { margin:3px 0 0; color:var(--muted); font-size:12px; }
+      .notice-admin-rows { display:grid; gap:10px; padding:14px; }
+      .notice-edit-row { display:grid; grid-template-columns:1fr 130px auto; gap:8px; padding:12px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+      .notice-edit-row textarea { grid-column:1 / -1; min-height:72px; resize:vertical; }
+      .notice-edit-row .row-actions { justify-content:flex-end; }
+      .notice-popup-grid { display:grid; grid-template-columns:130px 1fr 1fr; gap:12px; padding:14px; }
+      .notice-popup-preview { width:100%; aspect-ratio:4/3; border-radius:12px; border:1px dashed var(--line); background:linear-gradient(135deg,#f8f5ef,#fff); object-fit:cover; }
+      .notice-popup-grid .wide { grid-column:2 / -1; }
+      .notice-savebar { display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:12px 14px; border-top:1px solid var(--line); background:var(--panel); }
 
       @media (max-width:1280px) {
         .board,.board.wide-left { grid-template-columns:1fr; }
+        .notice-admin-grid { grid-template-columns:1fr; }
         .material-console,.material-grid { grid-template-columns:1fr; }
         .material-side { position:static; max-height:none; }
         .editor { position:static; max-height:none; }
@@ -363,8 +381,9 @@
           <button class="nav-btn" data-view="categories" type="button"><span class="nav-left"><span class="nav-ico">02</span><span class="nav-text">栏目管理</span></span><span class="nav-count" id="navCategoryCount">-</span></button>
           <button class="nav-btn" data-view="contents" type="button"><span class="nav-left"><span class="nav-ico">03</span><span class="nav-text">资源管理</span></span><span class="nav-count" id="navResourceCount">-</span></button>
           <button class="nav-btn" data-view="feedback" type="button"><span class="nav-left"><span class="nav-ico">04</span><span class="nav-text">反馈管理</span></span><span class="nav-count" id="navFeedbackCount">-</span></button>
-          <button class="nav-btn" data-view="users" type="button"><span class="nav-left"><span class="nav-ico">05</span><span class="nav-text">用户管理</span></span><span class="nav-count" id="navUserCount">-</span></button>
-          <button class="nav-btn" data-view="logs" type="button"><span class="nav-left"><span class="nav-ico">06</span><span class="nav-text">操作日志</span></span><span class="nav-count" id="navLogCount"></span></button>
+          <button class="nav-btn" data-view="notices" type="button"><span class="nav-left"><span class="nav-ico">05</span><span class="nav-text">消息公告</span></span><span class="nav-count" id="navNoticeCount">3</span></button>
+          <button class="nav-btn" data-view="users" type="button"><span class="nav-left"><span class="nav-ico">06</span><span class="nav-text">用户管理</span></span><span class="nav-count" id="navUserCount">-</span></button>
+          <button class="nav-btn" data-view="logs" type="button"><span class="nav-left"><span class="nav-ico">07</span><span class="nav-text">操作日志</span></span><span class="nav-count" id="navLogCount"></span></button>
         </nav>
         <div class="side-note">现在按旧 PHP 流程：先维护栏目树，再在指定栏目下新增/编辑资源，支持排序、显示状态、批量移动和分类上传。</div>
       </aside>
@@ -409,6 +428,10 @@
               <div class="panel-head">
                 <div class="panel-title"><h2>栏目树</h2><p>新增、编辑、删除、排序和导航显示</p></div>
                 <div class="row-actions"><button id="newRootCategory" class="btn" type="button">新增一级栏目</button><button id="saveCategorySort" class="btn secondary" type="button">保存排序</button></div>
+              </div>
+              <div class="category-searchbar">
+                <input id="categoryQ" class="input" placeholder="搜索栏目名称、ID、路径…" />
+                <button id="categoryClear" class="btn ghost small" type="button">清空</button>
               </div>
               <div class="table-wrap">
                 <table class="category-table">
@@ -466,6 +489,7 @@
                     <button id="batchSelectNone" class="btn ghost small" type="button">取消选择</button>
                     <strong>批量操作</strong>
                     <span class="bm-group"><span class="bm-label">迁移到</span><select id="batchMoveTo" class="select" style="max-width:200px"></select><button id="batchMove" class="btn secondary small" type="button">迁移栏目</button></span>
+                    <span class="bm-group"><span class="bm-label">改类型</span><select id="batchTypeTo" class="select" style="max-width:140px"><option value="">选择类型…</option><option value="SU">SU / SKP</option><option value="MAX">3ds Max</option><option value="PSD">PSD素材</option><option value="D5">D5</option><option value="CAD">CAD</option><option value="TEXT">文本</option><option value="OTHER">其他</option></select><button id="batchType" class="btn secondary small" type="button">批量改类型</button></span>
                     <button id="batchBulkShow" class="btn ghost small" type="button">批量显示</button>
                     <button id="batchHide" class="btn ghost small" type="button">批量隐藏</button>
                     <button id="batchDelete" class="btn danger small" type="button">批量删除</button>
@@ -516,7 +540,7 @@
                       <label class="field wide"><span>粘贴网盘分享文本</span><textarea id="fNetdiskRaw" class="textarea" placeholder="粘贴：链接：https://pan.baidu.com/s/... 提取码：abcd"></textarea><small>粘贴后会自动拆出链接和提取码，也可以手动修改。</small></label>
                       <div class="field wide"><span>百度网盘 / 夸克 / 其他下载链接</span><div class="upload-row"><input id="fFileUrl" class="input" placeholder="https://pan.baidu.com/..." /><button id="resourcePick" class="upload-btn" type="button">上传附件</button><input id="resourceUpload" class="file-input-hidden" type="file" accept=".zip,.rar,.7z,.skp,.max,.dwg,.dxf,.fbx,.obj,.pdf,.txt,.doc,.docx" /></div><small>正式资源建议填网盘链接；本地附件用于测试。</small></div>
                       <label class="field"><span>提取码</span><input id="fPass" class="input" /></label>
-                      <label class="field"><span>文件大小</span><input id="fSize" class="input" placeholder="128 MB" /></label>
+                      <label class="field"><span>文件大小</span><div class="size-picker"><input id="fSize" class="input" type="number" min="0" step="0.01" placeholder="128" /><select id="fSizeUnit" class="select"><option value="KB">KB</option><option value="MB" selected>MB</option><option value="GB">GB</option></select></div></label>
                       <label class="field wide"><span>提取码显示</span><select id="fHidePass" class="select"><option value="0">前台显示提取码</option><option value="1">隐藏提取码，只显示下载链接</option></select></label>
                     </div>
                   </section>
@@ -618,6 +642,53 @@
           </div>
         </section>
 
+        <section id="noticesView" class="view">
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title"><h2>消息公告</h2><p>维护前台铃铛里的版本公告、官方消息，以及进站弹窗配图</p></div>
+              <button id="noticeReload" class="btn ghost" type="button">刷新</button>
+            </div>
+            <div class="panel-body">
+              <div class="notice-admin-grid">
+                <div class="notice-admin-card">
+                  <div class="notice-admin-head">
+                    <div><h3>版本公告</h3><p>显示在铃铛抽屉的「版本公告」标签</p></div>
+                    <button id="noticeAddVersion" class="btn secondary small" type="button">新增</button>
+                  </div>
+                  <div id="noticeVersionRows" class="notice-admin-rows"></div>
+                </div>
+
+                <div class="notice-admin-card">
+                  <div class="notice-admin-head">
+                    <div><h3>官方消息</h3><p>显示在铃铛抽屉的「官方消息」标签</p></div>
+                    <button id="noticeAddOfficial" class="btn secondary small" type="button">新增</button>
+                  </div>
+                  <div id="noticeOfficialRows" class="notice-admin-rows"></div>
+                </div>
+
+                <div class="notice-admin-card full">
+                  <div class="notice-admin-head">
+                    <div><h3>官方弹窗</h3><p>开启后用户进入网站会看到，可配置标题、文案、跳转和配图</p></div>
+                    <label class="check-inline"><input id="noticePopupEnabled" type="checkbox" /> 开启弹窗</label>
+                  </div>
+                  <div class="notice-popup-grid">
+                    <img id="noticePopupPreview" class="notice-popup-preview" alt="弹窗配图预览" />
+                    <label class="field"><span>弹窗标题</span><input id="noticePopupTitle" class="input" placeholder="官方消息" /></label>
+                    <label class="field"><span>按钮文案</span><input id="noticePopupCta" class="input" placeholder="知道了" /></label>
+                    <label class="field wide"><span>弹窗正文</span><textarea id="noticePopupBody" class="textarea" placeholder="支持换行，前台会逐行显示。"></textarea></label>
+                    <div class="field wide"><span>配图 URL</span><div class="upload-row"><input id="noticePopupImage" class="input" placeholder="/uploads/admin/cover/..." /><button id="noticePopupPick" class="upload-btn" type="button">上传配图</button><input id="noticePopupUpload" class="file-input-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></div></div>
+                    <label class="field wide"><span>跳转链接（可留空）</span><input id="noticePopupLink" class="input" placeholder="/c/model 或 https://..." /></label>
+                  </div>
+                  <div class="notice-savebar">
+                    <p id="noticeMsg" class="message"></p>
+                    <button id="noticeSave" class="btn" type="button">保存消息配置</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section id="usersView" class="view">
           <div class="panel">
             <div class="panel-head"><div class="panel-title"><h2>用户管理</h2><p>共享 legacy 会员表（11.8 万）· 积分 / 会员 / 下载记录 / 登录时间</p></div><button id="userRefresh" class="btn ghost" type="button">刷新</button></div>
@@ -697,14 +768,25 @@
 
     <script>
       const $ = (id) => document.getElementById(id);
-      const state = { admin:null, stats:{}, categories:[], contentRows:[], selectedContentIds:new Set(), contentPage:1, feedbackPage:1, currentView:'dashboard', activeCategoryId:0, batchItems:[], expandedCats:new Set(), userRows:[], userPage:1, currentUserId:0, logRows:[], logPage:1, linkStatus:{}, lastCheckIndex:-1 };
+      const state = { admin:null, stats:{}, categories:[], contentRows:[], selectedContentIds:new Set(), contentPage:1, feedbackPage:1, currentView:'dashboard', activeCategoryId:0, batchItems:[], expandedCats:new Set(), userRows:[], userPage:1, currentUserId:0, logRows:[], logPage:1, linkStatus:{}, lastCheckIndex:-1, noticeSettings:null };
       const viewCopy = {
         dashboard:['工作台','站点数据与近期维护动作'],
         categories:['栏目管理','新增、删减、排序和管理分类树'],
         contents:['资源管理','按栏目上传、筛选、移动和维护资源'],
         feedback:['反馈管理','处理用户反馈与下载诉求'],
+        notices:['消息公告','编辑版本公告、官方消息与进站弹窗'],
         users:['用户管理','积分、会员、下载记录与登录时间'],
         logs:['操作日志','后台新增 / 编辑 / 隐藏等动作记录'],
+      };
+      const DEFAULT_NOTICE_SETTINGS = {
+        version: [
+          { title:'全新「控制台」上线，账单与数据一目了然', body:'原【消费记录】全面升级为【控制台】，账单与下载任务管理更清晰。', date:'2026-05-15', enabled:true },
+          { title:'新增 MAX 模型分区与「智能分类」', body:'模型栏目新增 MAX 分区，SU 模型按智能大类归整，查找更快。', date:'2026-05-13', enabled:true },
+        ],
+        official: [
+          { title:'素材下载规则更新', body:'全站素材免费下载，登录账号后每天可下载 30 个素材。', date:'2026-06-28', enabled:true },
+        ],
+        popup: { enabled:false, title:'官方消息', body:'资源库整理更新中，模型、贴图、PSD素材、软件参数与视频教程会陆续补全。', image:'', link:'', cta:'知道了' },
       };
       const modelNames = { download:'下载资源', course:'课程', article:'文章', picture:'图集', link:'链接', video:'观看', mp4:'视频', question:'问答', page:'单页' };
       const DESIGN_CATEGORY_GROUPS = [
@@ -890,6 +972,7 @@
         if (name === 'categories') renderCategories();
         if (name === 'contents') loadContents();
         if (name === 'feedback') loadFeedback();
+        if (name === 'notices') loadNotices();
         if (name === 'users') loadUsers();
         if (name === 'logs') loadLogs();
       }
@@ -1044,13 +1127,40 @@
         state.contentPage = 1;
         loadContents();
       }
+      function categorySearchValue() {
+        return String($('categoryQ')?.value || '').trim().toLowerCase();
+      }
+      function categorySearchText(row) {
+        return `${row.id || ''} ${row.name || ''} ${row.groupName || ''} ${categoryPathName(row.id)}`.toLowerCase();
+      }
+      function filteredCategoryBoardRows() {
+        const q = categorySearchValue();
+        const rows = categoryBoardRows();
+        if (!q) return rows;
+        const out = [];
+        let header = null;
+        for (const row of rows) {
+          if (row.isGroupHeader) {
+            header = row;
+            continue;
+          }
+          if (categorySearchText(row).includes(q)) {
+            if (header) {
+              out.push(header);
+              header = null;
+            }
+            out.push(row);
+          }
+        }
+        return out;
+      }
       function renderCategories() {
         const tbody = $('categoryRows');
         tbody.replaceChildren();
-        const rows = categoryBoardRows();
+        const rows = filteredCategoryBoardRows();
         if (!rows.length) {
           const tr = document.createElement('tr');
-          const td = el('td', 'empty', '暂无栏目');
+          const td = el('td', 'empty', categorySearchValue() ? '没有匹配的栏目' : '暂无栏目');
           td.colSpan = 7;
           tr.appendChild(td);
           tbody.appendChild(tr);
@@ -1342,7 +1452,7 @@
         if (parsed.url) item.link = parsed.url;
         else item.link = String(value || '').trim();
         if (parsed.pass) item.pass = parsed.pass;
-        if (parsed.size) item.size = parsed.size.toUpperCase();
+        if (parsed.size) item.size = normalizeBatchSize(parsed.size);
         if (parsed.summary) item.summary = parsed.summary;
         if (parsed.title && (options.forceTitle || !item.title || /^批量素材\s*\d+$/i.test(item.title))) item.title = parsed.title;
         return parsed;
@@ -1351,7 +1461,11 @@
         const parsed = parseShareText($('fNetdiskRaw').value);
         if (parsed.url) $('fFileUrl').value = parsed.url;
         if (parsed.pass) $('fPass').value = parsed.pass;
-        if (parsed.size && !$('fSize').value) $('fSize').value = parsed.size.toUpperCase();
+        if (parsed.size && !$('fSize').value) {
+          const sizeParts = splitSizeValue(parsed.size);
+          $('fSize').value = sizeParts.value;
+          $('fSizeUnit').value = sizeParts.unit || 'MB';
+        }
         if (parsed.title && !$('fTitle').value) $('fTitle').value = parsed.title;
       }
       function parseBatchLine(line, index) {
@@ -1365,7 +1479,7 @@
           title: titlePart || parsed.title || `批量素材 ${index + 1}`,
           file_url: parsed.url,
           extract_pass: parsed.pass || passPart?.replace(/^(?:提取码|访问码|密码|pwd|pass|code)[:：\s]*/i, '') || '',
-          size: (parsed.size || sizePart || '').toUpperCase(),
+          size: normalizeBatchSize(parsed.size || sizePart || ''),
           summary: parsed.summary || summaryPart?.replace(/^(?:简介|摘要|说明|描述)[:：]\s*/i, '') || '',
         };
       }
@@ -1388,6 +1502,7 @@
       function resetContentForm() {
         $('contentId').value = '';
         for (const id of ['fTitle','fKeywords','fSummary','fCover','fNetdiskRaw','fFileUrl','fPass','fFileType','fSize','fPrice','fIntegral','fBody']) $(id).value = '';
+        $('fSizeUnit').value = 'MB';
         $('fAssetKind').value = 'model';
         $('fModelFormat').value = 'SU';
         $('fHidePass').value = '0';
@@ -1423,7 +1538,9 @@
         $('fAssetKind').value = meta.asset_kind || 'model';
         $('fModelFormat').value = meta.model_format || 'SU';
         $('fFileType').value = meta.file_type || '';
-        $('fSize').value = meta.file_size || '';
+        const sizeParts = splitSizeValue(meta.file_size || '');
+        $('fSize').value = sizeParts.value;
+        $('fSizeUnit').value = sizeParts.unit || 'MB';
         $('fHidePass').value = meta.hide_extract_pass ? '1' : '0';
         $('fPrice').value = row.price_money || 0;
         $('fIntegral').value = row.price_integral || 0;
@@ -1448,7 +1565,7 @@
           assetKind:$('fAssetKind').value,
           modelFormat:$('fModelFormat').value,
           fileType:$('fFileType').value,
-          size:$('fSize').value,
+          size:joinSizeValue($('fSize').value, $('fSizeUnit').value),
           hideExtractPass:Number($('fHidePass').value || 0),
           price_money:Number($('fPrice').value || 0),
           price_integral:Number($('fIntegral').value || 0),
@@ -1489,11 +1606,19 @@
           const name = sel.options[sel.selectedIndex]?.textContent?.trim() || `栏目${categoryId}`;
           if (!confirm(`确认把选中的 ${ids.length} 个资源迁移到「${name}」？`)) return;
         }
+        let modelFormat = '';
+        if (action === 'type') {
+          const sel = $('batchTypeTo');
+          modelFormat = String(sel?.value || '').trim();
+          if (!modelFormat) return setMsg('contentMsg', '请先选择要改成的素材类型', 'error');
+          const name = sel.options[sel.selectedIndex]?.textContent?.trim() || modelFormat;
+          if (!confirm(`确认把选中的 ${ids.length} 个资源类型改成「${name}」？`)) return;
+        }
         if (action === 'delete' && !confirm(`确认删除选中的 ${ids.length} 个资源？此操作不可撤销。`)) return;
-        const payload = { action, ids, category_id:categoryId };
+        const payload = { action, ids, category_id:categoryId, model_format:modelFormat };
         await api('/api/admin/contents', json('PATCH', payload));
         state.selectedContentIds.clear(); state.lastCheckIndex = -1;
-        setMsg('contentMsg', action === 'move' ? '已迁移选中资源' : action === 'delete' ? '已删除选中资源' : '批量操作完成', 'ok');
+        setMsg('contentMsg', action === 'move' ? '已迁移选中资源' : action === 'type' ? '已批量修正素材类型' : action === 'delete' ? '已删除选中资源' : '批量操作完成', 'ok');
         await Promise.all([loadContents(), loadStats()]);
       }
       async function uploadFile(kind, file) {
@@ -1526,7 +1651,8 @@
           trigger.textContent = '上传中...';
         }
         try {
-          const data = await uploadFile(kind, file);
+          const uploadSource = kind === 'cover' ? await compressImage(file) : file;
+          const data = await uploadFile(kind, uploadSource);
           $(targetId).value = data.url || '';
           if (kind === 'resource' && !$('fSize').value) $('fSize').value = `${Math.max(1, Math.round((data.size || file.size) / 1024 / 1024))} MB`;
           setMsg(messageId, '上传成功，已自动填入链接', 'ok');
@@ -1591,12 +1717,60 @@
         return Number($('batchPublishState')?.value || 1) ? 1 : 0;
       }
       function batchInput(val, ph, on) { const e = document.createElement('input'); e.className = 'input'; e.value = val || ''; e.placeholder = ph; e.oninput = () => on(e.value); return e; }
+      function splitSizeValue(value, fallbackUnit = 'MB') {
+        const raw = String(value || '').trim().toUpperCase();
+        const match = raw.match(/(\d+(?:\.\d+)?)\s*(KB|MB|GB|K|M|G)?/i);
+        const unitMap = { K: 'KB', M: 'MB', G: 'GB', KB: 'KB', MB: 'MB', GB: 'GB' };
+        return {
+          value: match?.[1] || '',
+          unit: unitMap[match?.[2]?.toUpperCase?.()] || fallbackUnit || 'MB',
+        };
+      }
+      function joinSizeValue(value, unit) {
+        const n = String(value || '').trim().replace(/[^\d.]/g, '');
+        const u = String(unit || 'MB').toUpperCase();
+        return n ? `${n} ${['KB', 'MB', 'GB'].includes(u) ? u : 'MB'}` : '';
+      }
+      function normalizeBatchSize(value) {
+        const parts = splitSizeValue(value || '');
+        return joinSizeValue(parts.value, parts.unit);
+      }
       // 全内联样式，不依赖外部 CSS 包（彻底避免缓存/构建导致的样式失效）
       const BX_CELL = 'border:1px solid #e3e3e8;padding:5px 7px;vertical-align:middle;';
       const BX_INPUT = 'width:100%;box-sizing:border-box;border:1px solid #d6d6db;border-radius:6px;padding:7px 9px;font-size:13px;background:#fff;color:#18181b;';
       function bxInput(val, ph, on, extra) {
         const e = document.createElement('input'); e.value = val || ''; e.placeholder = ph;
         e.style.cssText = BX_INPUT + (extra || ''); e.oninput = () => on(e.value); return e;
+      }
+      function bxSizeInput(item) {
+        const parts = splitSizeValue(item.size || '');
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'display:grid;grid-template-columns:minmax(54px,1fr) 64px;gap:5px;width:100%;align-items:center;';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.inputMode = 'decimal';
+        input.value = parts.value;
+        input.placeholder = '128';
+        input.style.cssText = BX_INPUT + 'padding-left:7px;padding-right:7px;';
+        const unit = document.createElement('select');
+        unit.style.cssText = BX_INPUT + 'padding-left:5px;padding-right:5px;cursor:pointer;';
+        ['KB', 'MB', 'GB'].forEach((name) => {
+          const op = document.createElement('option');
+          op.value = name;
+          op.textContent = name;
+          if (parts.unit === name) op.selected = true;
+          unit.appendChild(op);
+        });
+        const sync = () => {
+          const parsed = splitSizeValue(input.value, unit.value);
+          input.value = parsed.value;
+          if (parsed.unit) unit.value = parsed.unit;
+          item.size = joinSizeValue(parsed.value, unit.value);
+        };
+        input.oninput = sync;
+        unit.onchange = sync;
+        wrap.append(input, unit);
+        return wrap;
       }
       function bxTd(child, w) {
         const td = document.createElement('td'); td.style.cssText = BX_CELL + (w ? `width:${w};` : ''); td.appendChild(child); return td;
@@ -1610,7 +1784,7 @@
         table.style.cssText = 'width:100%;border-collapse:collapse;table-layout:fixed;font-size:13px;background:#fff;';
         // 表头
         const thead = document.createElement('thead'); const htr = document.createElement('tr');
-        [['#', '46px'], ['名称', '15%'], ['封面', '104px'], ['下载信息（粘贴整段百度网盘分享）', '31%'], ['大小', '96px'], ['类型', '128px'], ['显示', '88px'], ['简介', ''], ['', '44px']].forEach(([h, w]) => {
+        [['#', '46px'], ['名称', '15%'], ['封面', '104px'], ['下载信息（粘贴整段百度网盘分享）', '31%'], ['大小', '132px'], ['类型', '128px'], ['显示', '88px'], ['简介', ''], ['', '44px']].forEach(([h, w]) => {
           const th = document.createElement('th'); th.textContent = h;
           th.style.cssText = `border:1px solid #e3e3e8;background:#eef0f3;color:#3f3f46;font-weight:800;font-size:12px;text-align:left;padding:9px 8px;${w ? `width:${w};` : ''}`;
           htr.appendChild(th);
@@ -1660,7 +1834,7 @@
           parsedTitleHint.style.cssText = 'font-size:11px;color:#c9963c;line-height:1.35;';
           linkWrap.appendChild(parsedTitleHint);
           tr.appendChild(bxTd(linkWrap));
-          tr.appendChild(bxTd(bxInput(item.size, '128 MB', (v) => { item.size = v; })));
+          tr.appendChild(bxTd(bxSizeInput(item)));
           const ty = document.createElement('select'); ty.style.cssText = BX_INPUT + 'cursor:pointer;';
           BATCH_TYPES.forEach((o) => { const op = document.createElement('option'); op.value = o; op.textContent = o || '自动'; if ((item.fileType || '') === o) op.selected = true; ty.appendChild(op); });
           ty.onchange = () => {
@@ -1745,7 +1919,7 @@
           const p = parseBatchLine(lines[i], i);
           item.link = p.file_url || item.link;
           item.pass = p.extract_pass || item.pass;
-          item.size = (p.size || item.size || '').toUpperCase();
+          item.size = normalizeBatchSize(p.size || item.size || '');
           item.summary = p.summary || item.summary || '';
           if (p.title && (!item.title || /^素材|批量素材|^[^一-龥a-z0-9]/i.test(item.title))) item.title = p.title;
           n += 1;
@@ -1800,7 +1974,7 @@
             title: item.title || `素材 ${i + 1}`,
             file_url: item.link || '',
             extract_pass: item.pass || '',
-            size: (item.size || '').toUpperCase(),
+            size: normalizeBatchSize(item.size || ''),
             assetKind: rowAssetKind,
             modelFormat: rowModelFormat,
             fileType: rowFileType,
@@ -1857,6 +2031,136 @@
         actions.appendChild(clear);
         card.appendChild(actions);
         return card;
+      }
+      function cloneNoticeSettings(value) {
+        const source = value && typeof value === 'object' ? value : DEFAULT_NOTICE_SETTINGS;
+        return {
+          version: Array.isArray(source.version) ? source.version.map((x) => ({ ...x })) : DEFAULT_NOTICE_SETTINGS.version.map((x) => ({ ...x })),
+          official: Array.isArray(source.official) ? source.official.map((x) => ({ ...x })) : DEFAULT_NOTICE_SETTINGS.official.map((x) => ({ ...x })),
+          popup: { ...DEFAULT_NOTICE_SETTINGS.popup, ...(source.popup || {}) },
+        };
+      }
+      async function loadNotices() {
+        setMsg('noticeMsg', '正在读取消息配置...');
+        const data = await api('/api/admin/settings?key=notice_messages');
+        state.noticeSettings = cloneNoticeSettings(data.value);
+        renderNotices();
+        setMsg('noticeMsg', '已读取消息配置', 'ok');
+      }
+      function noticeDate() {
+        return new Date().toISOString().slice(0, 10);
+      }
+      function renderNoticeRows(kind) {
+        const wrap = $(kind === 'version' ? 'noticeVersionRows' : 'noticeOfficialRows');
+        if (!wrap) return;
+        const rows = state.noticeSettings?.[kind] || [];
+        wrap.replaceChildren();
+        rows.forEach((row, index) => wrap.appendChild(noticeRow(kind, row, index)));
+        if (!rows.length) wrap.appendChild(el('div', 'empty', '暂无消息，点击右上角新增。'));
+      }
+      function noticeRow(kind, row, index) {
+        const box = el('div', 'notice-edit-row');
+        const title = el('input', 'input');
+        title.value = row.title || '';
+        title.placeholder = '标题';
+        const date = el('input', 'input');
+        date.type = 'date';
+        date.value = row.date || noticeDate();
+        const enabled = el('label', 'check-inline');
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.checked = row.enabled !== false;
+        enabled.append(check, document.createTextNode(' 显示'));
+        const body = el('textarea', 'textarea');
+        body.value = row.body || '';
+        body.placeholder = '消息正文';
+        const actions = el('div', 'row-actions');
+        const del = el('button', 'btn danger small', '删除');
+        del.type = 'button';
+        del.onclick = () => {
+          state.noticeSettings[kind].splice(index, 1);
+          renderNoticeRows(kind);
+        };
+        actions.appendChild(del);
+        const sync = () => {
+          row.title = title.value.trim();
+          row.date = date.value || noticeDate();
+          row.enabled = check.checked;
+          row.body = body.value.trim();
+        };
+        title.addEventListener('input', sync);
+        date.addEventListener('input', sync);
+        check.addEventListener('change', sync);
+        body.addEventListener('input', sync);
+        box.append(title, date, enabled, body, actions);
+        return box;
+      }
+      function renderNotices() {
+        if (!state.noticeSettings) state.noticeSettings = cloneNoticeSettings(null);
+        renderNoticeRows('version');
+        renderNoticeRows('official');
+        const popup = state.noticeSettings.popup || {};
+        $('noticePopupEnabled').checked = !!popup.enabled;
+        $('noticePopupTitle').value = popup.title || '';
+        $('noticePopupBody').value = popup.body || '';
+        $('noticePopupImage').value = popup.image || '';
+        $('noticePopupLink').value = popup.link || '';
+        $('noticePopupCta').value = popup.cta || '知道了';
+        const preview = $('noticePopupPreview');
+        preview.src = popup.image || '';
+        preview.style.display = popup.image ? 'block' : 'none';
+      }
+      function collectNotices() {
+        if (!state.noticeSettings) state.noticeSettings = cloneNoticeSettings(null);
+        state.noticeSettings.popup = {
+          enabled: $('noticePopupEnabled').checked,
+          title: $('noticePopupTitle').value.trim() || '官方消息',
+          body: $('noticePopupBody').value.trim(),
+          image: $('noticePopupImage').value.trim(),
+          link: $('noticePopupLink').value.trim(),
+          cta: $('noticePopupCta').value.trim() || '知道了',
+        };
+        for (const key of ['version', 'official']) {
+          state.noticeSettings[key] = (state.noticeSettings[key] || [])
+            .map((row) => ({
+              title: String(row.title || '').trim(),
+              body: String(row.body || '').trim(),
+              date: String(row.date || noticeDate()).trim(),
+              enabled: row.enabled !== false,
+            }))
+            .filter((row) => row.title || row.body);
+        }
+        return state.noticeSettings;
+      }
+      function addNotice(kind) {
+        if (!state.noticeSettings) state.noticeSettings = cloneNoticeSettings(null);
+        state.noticeSettings[kind].unshift({ title:'', body:'', date:noticeDate(), enabled:true });
+        renderNoticeRows(kind);
+      }
+      async function saveNotices() {
+        setMsg('noticeMsg', '正在保存...');
+        await api('/api/admin/settings', json('POST', { key:'notice_messages', value:collectNotices() }));
+        setMsg('noticeMsg', '消息配置已保存，刷新前台即可看到。', 'ok');
+      }
+      async function uploadNoticePopupImage(input) {
+        const file = input.files?.[0];
+        if (!file) return;
+        const btn = $('noticePopupPick');
+        const oldText = btn?.textContent || '';
+        try {
+          if (btn) { btn.disabled = true; btn.textContent = '上传中...'; }
+          setMsg('noticeMsg', '正在上传弹窗配图...');
+          const data = await uploadFile('cover', file);
+          $('noticePopupImage').value = data.url || '';
+          $('noticePopupPreview').src = data.url || '';
+          $('noticePopupPreview').style.display = data.url ? 'block' : 'none';
+          setMsg('noticeMsg', '配图已上传，记得点击保存消息配置。', 'ok');
+        } catch (error) {
+          setMsg('noticeMsg', error.message || '配图上传失败', 'error');
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = oldText; }
+          input.value = '';
+        }
       }
       function syncUploadType() {
         const format = $('fModelFormat').value;
@@ -2095,6 +2399,8 @@
       const _addChild = $('addUploadChildCategory'); if (_addChild) _addChild.onclick = () => { setView('categories'); resetCategoryForm(Number($('fCategory').value || state.activeCategoryId || 0)); };
       $('newRootCategory').onclick = () => resetCategoryForm(0);
       $('resetCategory').onclick = () => resetCategoryForm();
+      $('categoryQ').oninput = () => renderCategories();
+      $('categoryClear').onclick = () => { $('categoryQ').value = ''; renderCategories(); };
       $('newChildCategory').onclick = () => resetCategoryForm(Number($('catId').value || 0));
       $('categoryForm').onsubmit = saveCategory;
       $('deleteCategory').onclick = deleteCategory;
@@ -2123,15 +2429,27 @@
       $('batchSelectAll').onclick = () => { for (const row of state.contentRows) state.selectedContentIds.add(Number(row.id)); renderContentRows(); };
       $('batchSelectNone').onclick = () => { state.selectedContentIds.clear(); state.lastCheckIndex = -1; renderContentRows(); };
       $('batchMove').onclick = () => batchContent('move');
+      $('batchType').onclick = () => batchContent('type');
       $('batchBulkShow').onclick = () => batchContent('show');
       $('batchHide').onclick = () => batchContent('hide');
       $('batchDelete').onclick = () => batchContent('delete');
       bindFilePicker('catCoverPick', 'catCoverUpload');
       bindFilePicker('coverPick', 'coverUpload');
       bindFilePicker('resourcePick', 'resourceUpload');
+      bindFilePicker('noticePopupPick', 'noticePopupUpload');
       $('catCoverUpload').onchange = (event) => handleUpload(event.currentTarget, 'cover', 'catCover');
       $('coverUpload').onchange = (event) => handleUpload(event.currentTarget, 'cover', 'fCover');
       $('resourceUpload').onchange = (event) => handleUpload(event.currentTarget, 'resource', 'fFileUrl');
+      $('noticePopupUpload').onchange = (event) => uploadNoticePopupImage(event.currentTarget);
+      $('noticePopupImage').oninput = () => {
+        const url = $('noticePopupImage').value.trim();
+        $('noticePopupPreview').src = url;
+        $('noticePopupPreview').style.display = url ? 'block' : 'none';
+      };
+      $('noticeAddVersion').onclick = () => addNotice('version');
+      $('noticeAddOfficial').onclick = () => addNotice('official');
+      $('noticeReload').onclick = loadNotices;
+      $('noticeSave').onclick = saveNotices;
       $('batchPick').onchange = (event) => { addBatchFiles(event.currentTarget.files); event.currentTarget.value = ''; };
       $('batchPickDir').onchange = (event) => { addBatchFiles(event.currentTarget.files); event.currentTarget.value = ''; };
       $('batchModelFormat').onchange = () => {

@@ -1,32 +1,50 @@
 ---
 import Base from '../../layouts/Base.astro';
+import { getSetting } from '../../lib/settings';
+
+const customerQr = await getSetting<string>('cs_qr', '/img/customer-service-qr.jpg');
 ---
 
 <Base title="找回密码 - 薛大大设计网">
-  <section class="auth-page">
-    <form class="auth-card" id="forgotForm">
+  <section class="auth-page forgot-page">
+    <form class="auth-card forgot-card" id="forgotForm">
       <p class="section-label">ACCOUNT</p>
       <h1>找回密码</h1>
-      <p class="auth-desc">为了避免账号被冒领，这里会提交找回申请，管理员核验后再联系你处理。</p>
+      <p class="auth-desc">提交账号与联系方式后，后台会生成找回申请。为避免账号被冒领，密码重置需要人工核验。</p>
+
       <input name="username" placeholder="要找回的用户名 / 邮箱" autocomplete="username" required />
-      <input name="contact" placeholder="手机号 / 邮箱 / 微信号" autocomplete="email" required />
+      <input name="contact" placeholder="手机 / 邮箱 / 微信号（用于核验联系）" autocomplete="email" required />
+
       <div class="auth-captcha">
         <input type="hidden" name="captchaToken" id="captchaToken" />
         <input name="captchaAnswer" id="captchaAnswer" inputmode="numeric" autocomplete="off" placeholder="输入验证码" required />
         <button id="captchaRefresh" type="button">加载中</button>
       </div>
+
       <p class="auth-error" id="err"></p>
       <button class="btn-primary" type="submit">提交找回申请</button>
+
+      <div class="forgot-result" id="forgotResult" hidden>
+        <div>
+          <strong>申请已记录</strong>
+          <span>编号：<b id="forgotTicket">-</b></span>
+        </div>
+        <p>请扫码联系客服，并发送这个编号。管理员核验后会协助你重置密码。</p>
+        <img src={customerQr || '/img/customer-service-qr.jpg'} alt="客服二维码" />
+      </div>
+
       <div class="auth-links">
         <a href="/member/login">返回登录</a>
         <a href="/member/register">重新注册</a>
       </div>
     </form>
   </section>
+
   <script>
     const token = document.getElementById('captchaToken') as HTMLInputElement | null;
     const answer = document.getElementById('captchaAnswer') as HTMLInputElement | null;
     const refresh = document.getElementById('captchaRefresh') as HTMLButtonElement | null;
+
     async function loadCaptcha() {
       if (!token || !answer || !refresh) return;
       refresh.textContent = '刷新中';
@@ -41,6 +59,7 @@ import Base from '../../layouts/Base.astro';
         refresh.textContent = '刷新验证码';
       }
     }
+
     refresh?.addEventListener('click', loadCaptcha);
     loadCaptcha();
 
@@ -48,20 +67,46 @@ import Base from '../../layouts/Base.astro';
       e.preventDefault();
       const form = e.currentTarget as HTMLFormElement;
       const err = document.getElementById('err');
+      const result = document.getElementById('forgotResult') as HTMLElement | null;
+      const ticket = document.getElementById('forgotTicket');
+      const button = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
       const data = Object.fromEntries(new FormData(form).entries());
-      const res = await fetch('/api/member/forgot', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(data),
-      });
-      const json = await res.json();
-      if (err) {
-        err.textContent = json.message || (res.ok ? '申请已提交' : '提交失败');
-        err.classList.toggle('ok', res.ok && json.ok);
+
+      if (button) {
+        button.disabled = true;
+        button.textContent = '提交中...';
       }
-      if (json.captcha) loadCaptcha();
-      if (res.ok && json.ok) form.reset();
+
+      try {
+        const res = await fetch('/api/member/forgot', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(data),
+        });
+        const json = await res.json();
+        if (err) {
+          err.textContent = json.message || (res.ok ? '申请已提交' : '提交失败');
+          err.classList.toggle('ok', res.ok && json.ok);
+        }
+        if (json.captcha) loadCaptcha();
+        if (res.ok && json.ok) {
+          if (ticket) ticket.textContent = json.ticket || '-';
+          if (result) result.hidden = false;
+          form.reset();
+          loadCaptcha();
+        }
+      } catch {
+        if (err) {
+          err.textContent = '网络异常，请稍后再试';
+          err.classList.remove('ok');
+        }
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.textContent = '提交找回申请';
+        }
+      }
     });
   </script>
 </Base>

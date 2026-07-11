@@ -25,6 +25,15 @@ function secret() {
   return sessionSecret();
 }
 
+function sanitizeLegacyText(value: unknown, max = 80) {
+  return String(value || '')
+    .normalize('NFKC')
+    .replace(/[\u0000-\u001F\u007F]/g, '')
+    .replace(/[\u{10000}-\u{10FFFF}]/gu, '')
+    .trim()
+    .slice(0, max);
+}
+
 function sign(payload: string) {
   return crypto.createHmac('sha256', secret()).update(payload).digest('hex');
 }
@@ -120,7 +129,7 @@ function normalizeSex(value: OAuthMemberProfile['sex']) {
 }
 
 function cleanNickname(provider: 'qq' | 'wechat', openid: string, nickname?: string) {
-  const value = String(nickname || '').trim().replace(/[\u0000-\u001F\u007F]/g, '');
+  const value = sanitizeLegacyText(nickname, 80);
   if (value) return value.slice(0, 80);
   return provider === 'qq' ? `QQ用户${openid.slice(-6)}` : `微信用户${openid.slice(-6)}`;
 }

@@ -41,7 +41,7 @@ function normalizeFormat(value: unknown, fallback = 'SU') {
 function defaultFileType(format: string) {
   if (format === 'MAX') return 'MAX 模型';
   if (format === 'PSD') return 'PSD 素材';
-  if (format === 'TEXT') return '文本参考';
+  if (format === 'TEXT') return '文案参考';
   if (format === 'D5') return 'D5 教程';
   if (format === 'CAD') return 'CAD 图纸';
   return 'SKP 模型';
@@ -251,6 +251,27 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
     await db.query(`UPDATE ${appPrefix}contents SET is_show=1, updated_at=NOW() WHERE id IN (${placeholders})`, ids);
     await logAction({ admin: (locals as any).admin?.name, action: 'show', targetType: 'content', title: `批量显示 ${ids.length} 条资源`, detail: `资源 ID：${ids.slice(0, 20).join(', ')}${ids.length > 20 ? '...' : ''}` });
     return ok({ updated: ids.length });
+  }
+
+  if (body.action === 'type') {
+    const modelFormat = normalizeFormat(body.model_format ?? body.modelFormat, '');
+    if (!modelFormat) return fail('请选择目标素材类型');
+    const assetKind = normalizeAssetKind(body.asset_kind ?? body.assetKind, modelFormat);
+    const fileType = cleanText(body.file_type ?? body.fileType, 60) || defaultFileType(modelFormat);
+    await db.query(
+      `UPDATE ${appPrefix}contents
+       SET meta = JSON_SET(
+             CASE WHEN JSON_VALID(meta) THEN meta ELSE JSON_OBJECT() END,
+             '$.asset_kind', ?,
+             '$.model_format', ?,
+             '$.file_type', ?
+           ),
+           updated_at=NOW()
+       WHERE id IN (${placeholders})`,
+      [assetKind, modelFormat, fileType, ...ids],
+    );
+    await logAction({ admin: (locals as any).admin?.name, action: 'batch', targetType: 'content', title: `批量改类型 ${ids.length} 条资源`, detail: `类型：${modelFormat} / ${fileType}；资源 ID：${ids.slice(0, 20).join(', ')}${ids.length > 20 ? '...' : ''}` });
+    return ok({ updated: ids.length, model_format: modelFormat, asset_kind: assetKind, file_type: fileType });
   }
 
   if (body.action === 'delete') {

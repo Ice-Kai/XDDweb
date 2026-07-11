@@ -1,6 +1,6 @@
 ﻿---
 import Base from '../../layouts/Base.astro';
-import { getCategoryTree, getDownloads, coverUrl, SECTIONS, type CatNode, type DownloadItem } from '../../lib/content';
+import { getCategoryTree, getDownloads, coverUrl, groupSoftwareCategories, SECTIONS, type CatNode, type DownloadItem } from '../../lib/content';
 
 const slug = Astro.params.slug as string;
 const section = SECTIONS[slug];
@@ -11,10 +11,11 @@ const category = Number(sp.get('category')) || 0;
 const sort = (sp.get('sort') as 'newest' | 'popular' | 'downloads') || 'newest';
 const q = sp.get('q') || '';
 const format = (sp.get('format') || '').toLowerCase();
-const textureMode = slug === 'texture' && format === 'psd' ? 'psd' : 'normal';
+const textureMode = slug === 'texture' && format === 'psd' ? 'psd' : slug === 'texture' && format === 'text' ? 'text' : 'normal';
 const downloadFilters = {
-  categoryId: category || undefined,
-  rootCategoryId: category ? undefined : section.id,
+  categoryId: textureMode === 'text' ? undefined : category || undefined,
+  rootCategoryId: textureMode === 'text' ? undefined : category ? undefined : section.id,
+  assetKind: textureMode === 'text' ? 'text' : undefined,
   modelFormat: textureMode === 'psd' ? 'PSD' : undefined,
   excludeModelFormat: slug === 'texture' && textureMode !== 'psd' ? 'PSD' : undefined,
   q, sort, limit: 30,
@@ -33,8 +34,10 @@ function isPsdNode(node: CatNode): boolean {
   return /psd|photoshop/i.test(node.name) || node.children.some(isPsdNode);
 }
 const visibleTree = slug === 'texture'
-  ? tree.filter((node) => textureMode === 'psd' ? isPsdNode(node) : !isPsdNode(node))
+  ? (textureMode === 'text' ? [] : tree.filter((node) => textureMode === 'psd' ? isPsdNode(node) : !isPsdNode(node)))
   : tree;
+const softwareGroups = slug === 'software' ? groupSoftwareCategories(tree) : [];
+const mobileTopFilters = slug === 'software' ? softwareGroups : visibleTree.map((top) => ({ key: String(top.id), name: top.name, children: top.children }));
 const activeName = category ? findName(tree, category) : `全部${section.name}`;
 const base = `/c/${slug}`;
 const qs = (over: Record<string, string | number | undefined>) => {
@@ -42,7 +45,7 @@ const qs = (over: Record<string, string | number | undefined>) => {
   const cat = over.category ?? (category || undefined);
   const s = over.sort ?? sort;
   const query = over.q ?? (q || undefined);
-  const fmt = over.format ?? (textureMode === 'psd' ? 'psd' : undefined);
+  const fmt = over.format ?? (textureMode === 'psd' ? 'psd' : textureMode === 'text' ? 'text' : undefined);
   if (cat) u.set('category', String(cat));
   if (s && s !== 'newest') u.set('sort', String(s));
   if (query) u.set('q', String(query));
@@ -56,26 +59,160 @@ function priceLabel(_it: DownloadItem) {
 }
 const isCourse = section.type === 'course';
 const catClass = isCourse ? 'cat-d5' : section.id === 91 ? 'cat-mat' : section.id === 88 ? 'cat-inter' : 'cat-arch';
-const pageName = textureMode === 'psd' ? 'PSD素材' : section.name;
+const cleanNames: Record<string, string> = {
+  texture: '平面素材',
+  software: '软件资源',
+  video: '视频教程',
+  other: '其他资源',
+  news: '网站公告',
+  qa: '问答整理',
+};
+const pageName = textureMode === 'psd' ? 'PSD素材' : textureMode === 'text' ? '文案参考' : (cleanNames[slug] || section.name);
 const sorts: { k: 'newest' | 'popular' | 'downloads'; t: string }[] = [
   { k: 'newest', t: '最新' }, { k: 'popular', t: '最热' }, { k: 'downloads', t: '下载' },
 ];
 ---
 <Base title={`${section.name} — 薛大大设计网`}>
-  <div class="container">
+  <section class={`m-list ${isCourse ? 'm-video-list' : ''}`}>
+    <header class="m-page-head center">
+      <a class="m-icon-btn" href="/" aria-label="返回首页">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
+      <strong>{pageName}</strong>
+      <a class="m-icon-btn" href="/search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      </a>
+    </header>
+
+    {isCourse ? (
+      <a class="m-feature-video" href={items[0] ? `/d/${items[0].id}` : '#'}>
+        <span><svg viewBox="0 0 24 24"><path d="M10 8l6 4-6 4z"/></svg></span>
+        <strong>{items[0]?.title || 'D5 / SketchUp 系统教程'}</strong>
+        <em>免费课程 · 正在更新</em>
+      </a>
+    ) : null}
+
+    {slug === 'texture' ? (
+      <nav class="m-tabs">
+        <a href={qs({ format: '', category: '' })} class={textureMode === 'normal' ? 'active' : ''}>平面素材</a>
+        <a href={qs({ format: 'psd', category: '' })} class={textureMode === 'psd' ? 'active' : ''}>PSD素材</a>
+        <a href={qs({ format: 'text', category: '' })} class={textureMode === 'text' ? 'active' : ''}>文案参考</a>
+      </nav>
+    ) : null}
+
+    {textureMode !== 'text' ? (
+      <nav class="m-chip-tabs">
+        <a href={qs({ category: '' })} class={!category ? 'active' : ''}>全部</a>
+        {mobileTopFilters.map((top) => {
+          const topChildren = top.children || [];
+          const first = topChildren[0];
+          const active = slug === 'software'
+            ? topChildren.some((child) => child.id === category)
+            : category === Number(top.key);
+          return <a href={slug === 'software' ? qs({ category: first?.id || '' }) : qs({ category: Number(top.key) })} class={active ? 'active' : ''}>{top.name}</a>;
+        })}
+      </nav>
+    ) : null}
+
+    {textureMode !== 'text' ? <details class="m-filter-panel" aria-label={`${pageName}完整分类`}>
+      <summary class="m-filter-trigger">
+        <span><b>分类</b><em>{activeName}</em></span>
+        <i></i>
+      </summary>
+      <div class="m-order-filter">
+        <nav class="m-order-left">
+          <a href={qs({ category: '' })} class={!category ? 'active' : ''}>全部{pageName}</a>
+          {mobileTopFilters.map((top) => {
+            const topChildren = top.children || [];
+            const first = topChildren[0];
+            const topId = Number(top.key);
+            const isActive = slug === 'software'
+              ? topChildren.some((child) => child.id === category)
+              : category === topId || topChildren.some((child) => child.id === category);
+            return <a href={slug === 'software' ? qs({ category: first?.id || '' }) : qs({ category: topId })} class={isActive ? 'active' : ''}>{top.name}<small>{topChildren.length}</small></a>;
+          })}
+        </nav>
+        <div class="m-order-right">
+          {mobileTopFilters.map((top) => {
+            const topChildren = top.children || [];
+            const topId = Number(top.key);
+            const isActive = slug === 'software'
+              ? topChildren.some((child) => child.id === category)
+              : category === topId || topChildren.some((child) => child.id === category);
+            if (!isActive) return null;
+            return (
+              <div class="m-order-group">
+                {category ? <span class="m-order-current">当前：{activeName}</span> : null}
+                {slug !== 'software' ? <a href={qs({ category: topId })} class={`m-order-all ${category === topId ? 'active' : ''}`}>全部{top.name}</a> : null}
+                <div class="m-order-grid">
+                  {topChildren.map((child) => (
+                    <a href={qs({ category: child.id })} class={category === child.id ? 'active' : ''}>{child.name}</a>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          {!category ? (
+            <div class="m-order-hint">选择左侧大类后查看下级栏目</div>
+          ) : null}
+        </div>
+      </div>
+    </details> : null}
+
+    <div class="m-list-control">
+      <span>共 {items.length}{items.length === 30 ? '+' : ''} 个资源</span>
+      <div>{sorts.map((s) => <a href={qs({ sort: s.k })} class={sort === s.k ? 'active' : ''}>{s.t}</a>)}</div>
+    </div>
+
+    {items.length === 0 ? (
+      <div class="m-empty">暂无{pageName}资源，上传后会自动显示{q ? `（搜索：${q}）` : ''}</div>
+    ) : isCourse ? (
+      <div class="m-video-stack">
+        {items.map((m) => (
+          <a href={`/d/${m.id}`} class="m-video-row">
+            <span class="m-video-thumb">
+              {coverUrl(m.cover) ? <img src={coverUrl(m.cover)} alt={m.title} loading="lazy" /> : <i>VIDEO</i>}
+              <b></b>
+            </span>
+            <span class="m-video-copy">
+              <strong>{m.title}</strong>
+              <em>薛大大 · {m.hits || 0} 次播放</em>
+              <i>免费</i>
+            </span>
+          </a>
+        ))}
+      </div>
+    ) : (
+      <div class="m-card-grid">
+        {items.map((m) => (
+          <a href={`/d/${m.id}`} class="m-asset-card">
+            <span class="m-cover texture">
+              {coverUrl(m.cover) ? <img src={coverUrl(m.cover)} alt={m.title} loading="lazy" /> : <i>{textureMode === 'text' ? 'TEXT' : slug === 'texture' ? 'MATERIAL' : 'PREVIEW'}</i>}
+              <b>{priceLabel(m)}</b>
+            </span>
+            <strong>{m.title}</strong>
+            <span class="m-asset-meta">{m.size || (textureMode === 'text' ? '文档' : slug === 'texture' ? '4K' : '-- MB')} · {m.fileType || pageName}</span>
+          </a>
+        ))}
+      </div>
+    )}
+  </section>
+
+  <div class="container desktop-page">
     <div class="mpage-bc" style="padding-top:18px;">
       <a href="/">首页</a> <span>/</span> <b>{pageName}{category ? ` · ${activeName}` : ''}</b>
     </div>
 
     {slug === 'texture' ? (
       <div class="mtabs">
-        <a href={qs({ format: '', category: '' })} class={`mtab ${textureMode !== 'psd' ? 'active' : ''}`}>灯光贴图</a>
+        <a href={qs({ format: '', category: '' })} class={`mtab ${textureMode === 'normal' ? 'active' : ''}`}>平面素材</a>
         <a href={qs({ format: 'psd', category: '' })} class={`mtab ${textureMode === 'psd' ? 'active' : ''}`}>PSD素材</a>
+        <a href={qs({ format: 'text', category: '' })} class={`mtab ${textureMode === 'text' ? 'active' : ''}`}>文案参考</a>
       </div>
     ) : null}
 
     <div class="mpage">
-      <aside class="filter-side">
+      {textureMode !== 'text' ? <aside class="filter-side">
         <div class="filter-card">
           <div class="filter-head">
             <span class="fi"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg></span>
@@ -83,32 +220,46 @@ const sorts: { k: 'newest' | 'popular' | 'downloads'; t: string }[] = [
           </div>
           <nav class="filter-nav">
             <a href={qs({ category: '' })} class={`filter-link ${!category ? 'active' : ''}`}>全部{pageName}</a>
-            {visibleTree.map((top) => (
-              <div class="filter-group">
-                <a href={qs({ category: top.id })} class={`filter-link ${category === top.id ? 'active' : ''}`}>
-                  {top.name}{top.children.length ? <span style="font-size:11px;color:var(--text-lo)">{top.children.length}</span> : null}
-                </a>
-                {top.children.length > 0 && (
-                  <div class="filter-children">
-                    {top.children.map((c) => (
-                      <a href={qs({ category: c.id })} class={`filter-link ${category === c.id ? 'active' : ''}`}>{c.name}</a>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+            {slug === 'software' ? (
+              softwareGroups.map((group) => (
+                <div class="filter-det">
+                  <span class={`filter-link filter-group-link ${group.children.some((child) => child.id === category) ? 'active' : ''}`}>
+                    {group.name}<span class="filter-count">{group.children.length}</span>
+                  </span>
+                  {group.children.map((c) => (
+                    <a href={qs({ category: c.id })} class={`filter-link sub ${category === c.id ? 'active' : ''}`}>{c.name}</a>
+                  ))}
+                </div>
+              ))
+            ) : (
+              visibleTree.map((top) => (
+                <div class="filter-group">
+                  <a href={qs({ category: top.id })} class={`filter-link ${category === top.id ? 'active' : ''}`}>
+                    {top.name}{top.children.length ? <span style="font-size:11px;color:var(--text-lo)">{top.children.length}</span> : null}
+                  </a>
+                  {top.children.length > 0 && (
+                    <div class="filter-children">
+                      {top.children.map((c) => (
+                        <a href={qs({ category: c.id })} class={`filter-link ${category === c.id ? 'active' : ''}`}>{c.name}</a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </nav>
         </div>
-      </aside>
+      </aside> : null}
 
       <div class="mpage-main">
         <div class="toolbar">
           <form action={base} method="get">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-lo)"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-            <input name="q" value={q} placeholder={`搜索${section.name}…`} />
+            <input name="q" value={q} placeholder={`搜索${pageName}…`} />
             {category ? <input type="hidden" name="category" value={category} /> : null}
             {sort !== 'newest' ? <input type="hidden" name="sort" value={sort} /> : null}
             {textureMode === 'psd' ? <input type="hidden" name="format" value="psd" /> : null}
+            {textureMode === 'text' ? <input type="hidden" name="format" value="text" /> : null}
           </form>
           <div class="sort-group">
             {sorts.map((s) => (<a href={qs({ sort: s.k })} class={`sort-btn ${sort === s.k ? 'active' : ''}`}>{s.t}</a>))}
@@ -120,21 +271,21 @@ const sorts: { k: 'newest' | 'popular' | 'downloads'; t: string }[] = [
         ) : (
           <div class="grid-5">
             {items.map((m) => (
-              <a href="#" data-card-id={m.id} class="card reveal visible">
-                <div class="card-img-wrap">
+              <article data-card-id={m.id} class="card reveal visible">
+                <button class="card-img-wrap" type="button" data-preview-src={coverUrl(m.cover)} data-preview-title={m.title} aria-label={`预览 ${m.title}`}>
                   {coverUrl(m.cover) ? <img src={coverUrl(m.cover)} alt={m.title} loading="lazy" /> : null}
                   <span class={`card-cat ${catClass}`}>{priceLabel(m)}</span>
                   {isCourse && <div class="course-play"><div class="play-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="#0d0900"><polygon points="5 3 19 12 5 21 5 3"/></svg></div></div>}
-                </div>
+                </button>
                 <div class="card-body">
                   <h3 class="card-title">{m.title}</h3>
                   <p class="card-desc">{m.summary || '暂无简介'}</p>
                   <div class="card-footer download-footer">
                     <span class="card-size">{m.size || '-- MB'}</span>
-                    <span class="card-foot-r"><span class="card-type">{m.fileType || section.name}</span><span class="btn-dl" data-dl data-download-id={m.id} role="button" tabindex="0">下载</span></span>
+                    <span class="card-foot-r"><span class="card-type">{m.fileType || pageName}</span><span class="btn-dl" data-dl data-download-id={m.id} role="button" tabindex="0">下载</span></span>
                   </div>
                 </div>
-              </a>
+              </article>
             ))}
           </div>
         )}

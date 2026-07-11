@@ -28,7 +28,10 @@ async function pathExists(target: string) {
 async function uploadTargetDirs(folder: string) {
   const parts = folder.split('/').filter(Boolean);
   const dirs = new Set<string>();
-
+  const explicitRoot = String(process.env.UPLOADS_ROOT || '').trim();
+  if (explicitRoot) {
+    dirs.add(path.join(explicitRoot, ...parts.slice(1)));
+  }
   // 本地 dev 读取 public；线上静态资源一般由 dist/client 提供。
   dirs.add(path.join(process.cwd(), 'public', ...parts));
 

@@ -43,7 +43,7 @@ export const TOP_CATEGORY = {
 
 export const SECTIONS: Record<string, { id: number; name: string; en: string; type: 'download' | 'course' | 'article' }> = {
   model: { id: 107, name: '模型', en: 'SU MODEL', type: 'download' },
-  texture: { id: 91, name: '灯光和贴图', en: 'MATERIAL', type: 'download' },
+  texture: { id: 91, name: '平面素材', en: 'GRAPHIC MATERIAL', type: 'download' },
   software: { id: 88, name: '软件和参数', en: 'SOFTWARE', type: 'download' },
   video: { id: 89, name: '视频教程', en: 'COURSE', type: 'course' },
   other: { id: 339, name: '其他相关', en: 'OTHERS', type: 'download' },
@@ -74,6 +74,101 @@ export const MAX_GROUPS: { key: string; name: string; ids: number[] }[] = [
   { key: 'model', name: '模型', ids: [212] },
 ];
 
+export const SOFTWARE_GROUPS = [
+  { key: 'modeling', name: '建模软件' },
+  { key: 'renderer', name: '渲染器' },
+  { key: 'graphic', name: '平面软件' },
+  { key: 'other', name: '其他软件' },
+] as const;
+
+export type SoftwareGroupKey = typeof SOFTWARE_GROUPS[number]['key'];
+
+const SOFTWARE_GENERIC_LABELS = new Set([
+  '软件',
+  '插件',
+  '参数',
+  '模板',
+  '渲染器',
+  '材质',
+  '教程',
+  '素材',
+  '资产库',
+  '材质资产库',
+  '快捷键模板',
+]);
+
+function softwareGroupForText(raw: string): SoftwareGroupKey {
+  const text = String(raw || '').toLowerCase().replace(/\s+/g, '');
+  if (/(vray|v-ray|vary|enscape|lumion|corona|d5|renderer|render|渲染|渲染器)/i.test(text)) return 'renderer';
+  if (/(adobe|photoshop|ps|illustrator|indesign|cdr|coreldraw|office|ppt|excel|word|平面|后期|图像|图片|排版)/i.test(text)) return 'graphic';
+  if (/(sketchup|sketch|su|cad|autocad|天正|rhino|revit|3ds|max|3dmax|c4d|cinema|maya|blender|layout|建模|模型)/i.test(text)) return 'modeling';
+  return 'other';
+}
+
+function explicitSoftwareGroupKey(name: string): SoftwareGroupKey | null {
+  const text = String(name || '').toLowerCase().replace(/\s+/g, '');
+  if (/(建模软件|寤烘ā杞欢)/.test(text)) return 'modeling';
+  if (/^(渲染器|娓叉煋鍣?)$/.test(text)) return 'renderer';
+  if (/(平面软件|骞抽潰杞欢)/.test(text)) return 'graphic';
+  if (/(其他软件|鍏朵粬杞欢)/.test(text)) return 'other';
+  return null;
+}
+
+export function groupSoftwareCategories(tree: CatNode[]) {
+  const explicit = new Map<SoftwareGroupKey, CatNode>();
+  for (const node of tree || []) {
+    if (!node || node.isMenu === false) continue;
+    const key = explicitSoftwareGroupKey(node.name);
+    if (key && !explicit.has(key)) explicit.set(key, node);
+  }
+  if (explicit.size) {
+    return SOFTWARE_GROUPS.map((group) => {
+      const node = explicit.get(group.key);
+      return {
+        ...group,
+        children: (node?.children || []).filter((child) => child.isMenu !== false),
+      };
+    }).filter((group) => group.children.length);
+  }
+
+  const buckets = new Map<SoftwareGroupKey, CatNode[]>(
+    SOFTWARE_GROUPS.map((group) => [group.key, []]),
+  );
+  const seen = new Set<number>();
+
+  const add = (key: SoftwareGroupKey, node: CatNode) => {
+    const id = Number(node.id);
+    if (!Number.isFinite(id) || seen.has(id) || node.isMenu === false) return;
+    seen.add(id);
+    buckets.get(key)?.push(node);
+  };
+
+  const walk = (nodes: CatNode[], parents: CatNode[] = []) => {
+    for (const node of nodes || []) {
+      if (!node || node.isMenu === false) continue;
+      const children = (node.children || []).filter((child) => child.isMenu !== false);
+      const name = String(node.name || '').trim();
+      const fullPath = [...parents.map((item) => item.name), name].join(' ');
+      const byName = softwareGroupForText(name);
+      const byPath = softwareGroupForText(fullPath);
+      const key = byName !== 'other' ? byName : byPath;
+      const isTop = parents.length === 0;
+      const isGenericLeaf = parents.length > 0 && !children.length && SOFTWARE_GENERIC_LABELS.has(name.toLowerCase());
+      const isSpecific = byName !== 'other' || byPath !== 'other';
+
+      if (!isGenericLeaf && (isTop || children.length > 0 || isSpecific)) add(key, node);
+      walk(children, [...parents, node]);
+    }
+  };
+
+  walk(tree);
+
+  return SOFTWARE_GROUPS.map((group) => ({
+    ...group,
+    children: buckets.get(group.key) || [],
+  })).filter((group) => group.children.length);
+}
+
 export function modelGroupByKey(key: string) {
   return MODEL_GROUPS.find((g) => g.key === key);
 }
@@ -87,6 +182,7 @@ export interface DownloadQuery {
   categoryIds?: number[];
   rootCategoryId?: number;
   assetKind?: string;
+  assetKinds?: string[];
   modelFormat?: string;
   includeUnformatted?: boolean;
   excludeModelFormat?: string;
@@ -97,6 +193,11 @@ export interface DownloadQuery {
 }
 
 type ContentRow = Record<string, any>;
+
+function isMissingCategoryTable(error: unknown) {
+  const anyErr = error as { code?: string; message?: string };
+  return anyErr?.code === 'ER_NO_SUCH_TABLE' && String(anyErr.message || '').includes('lz_category');
+}
 
 function parseMeta(raw: unknown): Record<string, any> {
   if (!raw) return {};
@@ -125,7 +226,13 @@ function normalFileType(row: ContentRow, meta: Record<string, any>) {
 
 function normalSize(meta: Record<string, any>) {
   const value = meta.file_size || meta.fileSize || meta.size || meta.files?.[0]?.fileSize || meta.files?.[0]?.size || '';
-  return value ? String(value) : '';
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const compact = raw.replace(/\s+/g, '').toUpperCase();
+  const match = compact.match(/^(\d+(?:\.\d+)?)(KB|MB|GB|K|M|G)?$/);
+  if (!match) return raw.replace(/\b(kb|mb|gb)\b/gi, (unit) => unit.toUpperCase());
+  const unitMap: Record<string, string> = { K: 'KB', M: 'MB', G: 'GB', KB: 'KB', MB: 'MB', GB: 'GB' };
+  return `${match[1]} ${unitMap[match[2] || 'MB']}`;
 }
 
 function toDownload(row: ContentRow): DownloadItem {
@@ -160,20 +267,32 @@ export async function getDescendantIds(rootId: number): Promise<number[]> {
     const ids = frontier.filter((id) => Number.isInteger(id) && !seen.has(id));
     if (!ids.length) break;
     ids.forEach((id) => seen.add(id));
-    const [rows] = await db.query<any[]>(
-      `SELECT id FROM ${legacyPrefix}lz_category WHERE parent_id IN (${ids.map(() => '?').join(',')})`,
-      ids,
-    );
+    let rows: any[] = [];
+    try {
+      [rows] = await db.query<any[]>(
+        `SELECT id FROM ${legacyPrefix}lz_category WHERE parent_id IN (${ids.map(() => '?').join(',')})`,
+        ids,
+      );
+    } catch (error) {
+      if (isMissingCategoryTable(error)) return [...seen];
+      throw error;
+    }
     frontier = rows.map((r) => Number(r.id));
   }
   return [...seen];
 }
 
 export async function getCategoryTree(rootId: number): Promise<CatNode[]> {
-  const [rows] = await db.query<any[]>(
-    `SELECT id,parent_id,name,is_menu,sort FROM ${legacyPrefix}lz_category WHERE parent_id = ? ORDER BY sort ASC, id ASC`,
-    [rootId],
-  );
+  let rows: any[] = [];
+  try {
+    [rows] = await db.query<any[]>(
+      `SELECT id,parent_id,name,is_menu,sort FROM ${legacyPrefix}lz_category WHERE parent_id = ? ORDER BY sort ASC, id ASC`,
+      [rootId],
+    );
+  } catch (error) {
+    if (isMissingCategoryTable(error)) return [];
+    throw error;
+  }
   const out: CatNode[] = [];
   for (const row of rows) {
     out.push({
@@ -209,6 +328,13 @@ async function buildWhere(opts: DownloadQuery) {
   if (opts.assetKind) {
     where.push("JSON_VALID(meta) = 1 AND JSON_UNQUOTE(JSON_EXTRACT(meta, '$.asset_kind')) = ?");
     params.push(opts.assetKind);
+  }
+  if (opts.assetKinds?.length) {
+    const kinds = opts.assetKinds.map((item) => String(item || '').trim()).filter(Boolean);
+    if (kinds.length) {
+      where.push(`JSON_VALID(meta) = 1 AND JSON_UNQUOTE(JSON_EXTRACT(meta, '$.asset_kind')) IN (${kinds.map(() => '?').join(',')})`);
+      params.push(...kinds);
+    }
   }
 
   if (opts.modelFormat) {
@@ -270,13 +396,19 @@ export async function getHotDownloads(limit = 8) {
 export async function getSiteStats() {
   const [[resources]] = await db.query<any[]>(`SELECT COUNT(*) n FROM ${appPrefix}contents WHERE is_show = 1`);
   const [[today]] = await db.query<any[]>(`SELECT COUNT(*) n FROM ${appPrefix}contents WHERE DATE(created_at)=CURDATE() AND is_show = 1`);
-  const [[categories]] = await db.query<any[]>(`SELECT COUNT(*) n FROM ${legacyPrefix}lz_category`);
+  let categoryCount = 0;
+  try {
+    const [[categories]] = await db.query<any[]>(`SELECT COUNT(*) n FROM ${legacyPrefix}lz_category`);
+    categoryCount = Number(categories?.n || 0);
+  } catch (error) {
+    if (!isMissingCategoryTable(error)) throw error;
+  }
   const [[members]] = await db.query<any[]>(`SELECT COUNT(*) n FROM ${legacyPrefix}lz_member`);
   const [[feedback]] = await db.query<any[]>(`SELECT COUNT(*) n FROM ${appPrefix}feedback`);
   return {
     resources: Number(resources?.n || 0),
     today: Number(today?.n || 0),
-    categories: Number(categories?.n || 0),
+    categories: categoryCount,
     members: Number(members?.n || 0),
     feedback: Number(feedback?.n || 0),
   };
@@ -297,36 +429,50 @@ export async function getMemberDailyDownloadUsage(memberId: number, contentId: n
     return { count: 0, alreadyDownloaded: false, limit: DAILY_DOWNLOAD_LIMIT };
   }
   const [[usage]] = await db.query<any[]>(
-    `SELECT COUNT(DISTINCT content_id) n
+    `SELECT
+       COUNT(DISTINCT content_id) AS n,
+       MAX(CASE WHEN content_id = ? THEN 1 ELSE 0 END) AS already
      FROM ${appPrefix}logs
-     WHERE kind = 'download' AND member_id = ? AND DATE(created_at) = CURDATE()`,
-    [uid],
-  );
-  const [[existing]] = await db.query<any[]>(
-    `SELECT id
-     FROM ${appPrefix}logs
-     WHERE kind = 'download' AND member_id = ? AND content_id = ? AND DATE(created_at) = CURDATE()
-     LIMIT 1`,
-    [uid, id],
+     WHERE kind = 'download'
+       AND member_id = ?
+       AND created_at >= CURDATE()
+       AND created_at < DATE_ADD(CURDATE(), INTERVAL 1 DAY)`,
+    [id, uid],
   );
   return {
     count: Number(usage?.n || 0),
-    alreadyDownloaded: Boolean(existing?.id),
+    alreadyDownloaded: Boolean(Number(usage?.already || 0)),
     limit: DAILY_DOWNLOAD_LIMIT,
   };
 }
 
-export async function recordMemberDownload(memberId: number, item: Pick<DownloadItem, 'id' | 'title'>) {
+export async function recordMemberDownload(memberId: number, item: Pick<DownloadItem, 'id' | 'title'>, alreadyChecked = false) {
   const id = Number(item.id);
   const uid = Number(memberId);
   if (!Number.isInteger(id) || !Number.isInteger(uid) || id <= 0 || uid <= 0) return;
-  const usage = await getMemberDailyDownloadUsage(uid, id);
-  if (usage.alreadyDownloaded) return;
-  await db.query(
-    `INSERT INTO ${appPrefix}logs (kind,member_id,content_type,content_id,remark,created_at) VALUES (?,?,?,?,?,NOW())`,
-    ['download', uid, 'download', id, String(item.title || '').slice(0, 255)],
+  if (!alreadyChecked) {
+    const usage = await getMemberDailyDownloadUsage(uid, id);
+    if (usage.alreadyDownloaded) return;
+  }
+  const [res] = await db.query<any>(
+    `INSERT INTO ${appPrefix}logs (kind,member_id,content_type,content_id,remark,created_at)
+     SELECT ?,?,?,?,?,NOW()
+     FROM DUAL
+     WHERE NOT EXISTS (
+       SELECT 1
+       FROM ${appPrefix}logs
+       WHERE kind = 'download'
+         AND member_id = ?
+         AND content_id = ?
+         AND created_at >= CURDATE()
+         AND created_at < DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+       LIMIT 1
+     )`,
+    ['download', uid, 'download', id, String(item.title || '').slice(0, 255), uid, id],
   );
-  await db.query(`UPDATE ${appPrefix}contents SET download_num = download_num + 1 WHERE id = ?`, [id]);
+  if (Number(res?.affectedRows || 0) > 0) {
+    await db.query(`UPDATE ${appPrefix}contents SET download_num = download_num + 1 WHERE id = ?`, [id]);
+  }
 }
 
 export async function getMemberDownloadLogs(memberId: number, limit = 20) {

@@ -2,13 +2,101 @@
 import Base from '../../layouts/Base.astro';
 ---
 
-<Base title="会员中心 - 薛大大设计网">
-  <section class="member-page">
+<Base title="我的 - 薛大大设计网">
+  <section class="m-mine">
+    <header class="m-page-head loose">
+      <div>
+        <strong>我的</strong>
+        <span>积分、下载记录和账号服务</span>
+      </div>
+      <a class="m-icon-btn" href="/member/login" aria-label="账号设置">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.8 1.8 0 0 0 .36 2l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.8 1.8 0 0 0-2-.36 1.8 1.8 0 0 0-1.1 1.66V21a2 2 0 1 1-4 0v-.09a1.8 1.8 0 0 0-1.1-1.66 1.8 1.8 0 0 0-2 .36l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.8 1.8 0 0 0 .36-2 1.8 1.8 0 0 0-1.66-1.1H3a2 2 0 1 1 0-4h.09a1.8 1.8 0 0 0 1.66-1.1 1.8 1.8 0 0 0-.36-2l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.8 1.8 0 0 0 2 .36A1.8 1.8 0 0 0 10.34 3V3a2 2 0 1 1 4 0v.09a1.8 1.8 0 0 0 1.1 1.66 1.8 1.8 0 0 0 2-.36l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.8 1.8 0 0 0-.36 2 1.8 1.8 0 0 0 1.66 1.1H21a2 2 0 1 1 0 4h-.09A1.8 1.8 0 0 0 19.4 15z"/></svg>
+      </a>
+    </header>
+
+    <div class="m-profile-card">
+      <div class="m-avatar">薛</div>
+      <div class="m-profile-copy">
+        <strong id="mMobileName">设计师</strong>
+        <span id="mMobileLevel">普通会员</span>
+      </div>
+      <a id="mMobileLoginLink" href="/member/login">登录</a>
+      <div class="m-profile-stats">
+        <span><b id="mMobileDownloadCount">0</b><em>下载</em></span>
+        <span><b id="mMobileIntegralMini">0</b><em>积分</em></span>
+        <span><b>30</b><em>日额度</em></span>
+      </div>
+    </div>
+
+    <div class="m-points-card">
+      <div>
+        <span>我的积分</span>
+        <strong id="mMobileIntegral">0</strong>
+      </div>
+      <button type="button">签到领积分</button>
+      <nav>
+        <a href="#points"><svg viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18M5 4h14v18H5z"/></svg><span>积分明细</span></a>
+        <a href="#downloads"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg><span>下载额度</span></a>
+        <a href="/feedback"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg><span>反馈</span></a>
+      </nav>
+    </div>
+
+    <div class="m-service-grid" aria-label="常用服务">
+      <a href="#downloads">
+        <span><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></span>
+        <strong>下载记录</strong>
+        <em>最近打开的资源</em>
+      </a>
+      <a href="#points">
+        <span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M8 11h8"/></svg></span>
+        <strong>我的积分</strong>
+        <em>积分与额度</em>
+      </a>
+      <a href="/feedback">
+        <span><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></span>
+        <strong>帮助反馈</strong>
+        <em>问题和建议</em>
+      </a>
+      <a href="/member/forgot">
+        <span><svg viewBox="0 0 24 24"><path d="M12 17v.01"/><path d="M17 8a5 5 0 0 0-10 0v3H5v10h14V11h-2z"/></svg></span>
+        <strong>找回密码</strong>
+        <em>忘记密码处理</em>
+      </a>
+    </div>
+
+    <div class="m-menu-card">
+      <a href="/member/login"><span>账号设置</span><i></i></a>
+      <a href="/member/vip"><span>会员权益</span><i></i></a>
+      <a href="/feedback"><span>功能反馈</span><i></i></a>
+    </div>
+
+    <section class="m-download-card" id="downloads">
+      <div class="m-block-title">
+        <strong>下载记录</strong>
+        <button type="button" id="mReloadDownloads">刷新</button>
+      </div>
+      <div class="m-download-list" id="mMobileDownloadList">
+        <p>正在读取下载记录...</p>
+      </div>
+    </section>
+
+    <section class="m-download-card" id="points">
+      <div class="m-block-title">
+        <strong>积分明细</strong>
+        <span>当前积分 <b id="mMobileIntegralTail">0</b></span>
+      </div>
+      <div class="m-points-note">积分功能后续接入签到、兑换和任务记录，这里先作为个人中心入口保留。</div>
+    </section>
+
+    <a class="m-logout" href="/api/member/logout?next=/">退出登录</a>
+  </section>
+
+  <section class="member-page desktop-page" id="desktop-downloads">
     <div class="container member-sheet">
       <div class="member-head compact">
         <p class="section-label">MEMBER CENTER</p>
         <h1>下载记录</h1>
-        <p>按时间记录你打开过的素材链接，方便回查。每天最多可打开 30 个素材下载链接。</p>
+        <p>按时间记录你打开过的素材链接，方便回查。每个账号每天最多打开 30 个素材下载链接。</p>
       </div>
 
       <div class="member-toolbar">
@@ -65,32 +153,140 @@ import Base from '../../layouts/Base.astro';
     .member-table-head { height:54px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 16px; border-bottom:1px solid var(--border); }
     .member-table-head strong { color:var(--text-hi); font-size:16px; font-weight:900; }
     .member-table-head button { height:34px; padding:0 14px; border:1px solid var(--border); border-radius:8px; background:var(--bg-elevated); color:var(--text-md); font-family:var(--font-base); font-weight:800; cursor:pointer; }
-    .member-table-head button:hover { border-color:var(--gold); color:var(--gold); }
     .member-table-wrap { overflow:auto; }
     .member-download-table { width:100%; min-width:860px; border-collapse:separate; border-spacing:0; font-size:13px; }
     .member-download-table th { height:42px; padding:0 12px; background:var(--bg-elevated); color:var(--text-lo); font-weight:900; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap; }
     .member-download-table td { height:48px; padding:8px 12px; color:var(--text-md); border-bottom:1px solid var(--border); vertical-align:middle; }
     .member-download-table tr:last-child td { border-bottom:none; }
-    .member-download-table tbody tr:hover td { background:rgba(201,150,60,.06); }
     .member-col-index { width:64px; color:var(--text-lo); font-family:var(--font-mono); }
     .member-resource-title { max-width:520px; color:var(--text-hi); font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .member-tag { display:inline-flex; align-items:center; min-height:24px; padding:2px 8px; border-radius:999px; background:var(--bg-elevated); color:var(--text-md); font-size:12px; white-space:nowrap; }
     .member-status { color:#18a058; font-weight:800; }
     .member-status.off { color:var(--text-lo); }
     .member-open { display:inline-flex; align-items:center; justify-content:center; height:30px; padding:0 12px; border:1px solid rgba(201,150,60,.35); border-radius:7px; background:rgba(201,150,60,.1); color:var(--gold); font-size:12px; font-weight:900; text-decoration:none; white-space:nowrap; }
-    .member-open:hover { background:var(--gold); color:#0d0900; }
     .member-open.disabled { opacity:.45; cursor:not-allowed; pointer-events:none; }
     .member-empty { height:72px !important; text-align:center !important; color:var(--text-lo) !important; }
+
     @media (max-width:760px) {
-      .member-toolbar { grid-template-columns:1fr; }
-      .member-sheet { padding-left:14px; padding-right:14px; }
+      .m-service-grid {
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:12px;
+        margin:12px 16px 0;
+      }
+      .m-service-grid a {
+        min-height:112px;
+        display:flex;
+        flex-direction:column;
+        justify-content:center;
+        gap:5px;
+        padding:14px;
+        border:1px solid #eee;
+        border-radius:18px;
+        background:#fff;
+        box-shadow:0 3px 12px rgba(20,20,30,.04);
+      }
+      .m-service-grid span {
+        width:38px;
+        height:38px;
+        display:grid;
+        place-items:center;
+        border-radius:13px;
+        background:#eaf2fb;
+        color:#2e7ac8;
+      }
+      .m-service-grid svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.9; }
+      .m-service-grid strong { color:#161616; font-size:14px; font-weight:900; }
+      .m-service-grid em { color:#9aa0a6; font-size:11px; font-style:normal; }
+      .m-download-card {
+        margin:12px 16px 0;
+        padding:14px;
+        border:1px solid #eee;
+        border-radius:18px;
+        background:#fff;
+        box-shadow:0 3px 12px rgba(20,20,30,.04);
+      }
+      .m-block-title {
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        margin-bottom:10px;
+      }
+      .m-block-title strong { color:#161616; font-size:15px; font-weight:900; }
+      .m-block-title button {
+        height:30px;
+        padding:0 11px;
+        border:0;
+        border-radius:999px;
+        background:#eaf2fb;
+        color:#2e7ac8;
+        font-size:12px;
+        font-weight:900;
+      }
+      .m-block-title span { color:#9aa0a6; font-size:12px; }
+      .m-block-title b { color:#2e7ac8; }
+      .m-download-list {
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+      }
+      .m-download-list p,
+      .m-points-note {
+        margin:0;
+        color:#9aa0a6;
+        font-size:12px;
+        line-height:1.7;
+      }
+      .m-download-item {
+        display:grid;
+        grid-template-columns:1fr auto;
+        gap:6px 10px;
+        align-items:center;
+        padding:10px 0;
+        border-top:1px solid #f4f4f5;
+      }
+      .m-download-item:first-child { border-top:0; padding-top:0; }
+      .m-download-item strong {
+        min-width:0;
+        color:#1c1c1c;
+        font-size:12.5px;
+        line-height:1.45;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+      }
+      .m-download-item span {
+        color:#9aa0a6;
+        font-size:11px;
+      }
+      .m-download-item a {
+        grid-row:1 / span 2;
+        grid-column:2;
+        display:flex;
+        align-items:center;
+        height:30px;
+        padding:0 10px;
+        border-radius:999px;
+        background:#2e7ac8;
+        color:#fff;
+        font-size:11px;
+        font-weight:900;
+      }
     }
   </style>
 
   <script>
     const tbody = document.getElementById('downloadRows');
+    const mobileList = document.getElementById('mMobileDownloadList');
     const countNode = document.getElementById('mDownloadCount');
+    const mobileCountNode = document.getElementById('mMobileDownloadCount');
     const text = (value) => String(value ?? '');
+
+    function setText(id, value) {
+      const node = document.getElementById(id);
+      if (node) node.textContent = text(value);
+    }
 
     function emptyRow(message) {
       if (!tbody) return;
@@ -104,6 +300,14 @@ import Base from '../../layouts/Base.astro';
       tbody.appendChild(tr);
     }
 
+    function emptyMobileDownloads(message) {
+      if (!mobileList) return;
+      mobileList.replaceChildren();
+      const p = document.createElement('p');
+      p.textContent = message;
+      mobileList.appendChild(p);
+    }
+
     function cell(className, value) {
       const td = document.createElement('td');
       if (className) td.className = className;
@@ -111,10 +315,35 @@ import Base from '../../layouts/Base.astro';
       return td;
     }
 
+    function renderMobileDownloads(rows) {
+      if (!mobileList) return;
+      mobileList.replaceChildren();
+      if (!rows.length) {
+        emptyMobileDownloads('还没有下载记录。');
+        return;
+      }
+      rows.slice(0, 6).forEach((row) => {
+        const item = document.createElement('div');
+        item.className = 'm-download-item';
+        const title = document.createElement('strong');
+        title.textContent = row.title || '资源已下架';
+        const meta = document.createElement('span');
+        meta.textContent = `${row.fileType || '资源'} · ${row.downloadedAt || '--'}`;
+        const open = document.createElement('a');
+        open.href = row.available && row.contentId ? `/d/${row.contentId}` : '#';
+        open.textContent = row.available && row.contentId ? '打开' : '失效';
+        if (!row.available || !row.contentId) open.style.opacity = '.45';
+        item.append(title, meta, open);
+        mobileList.appendChild(item);
+      });
+    }
+
     function renderDownloads(rows) {
+      if (countNode) countNode.textContent = String(rows.length);
+      if (mobileCountNode) mobileCountNode.textContent = String(rows.length);
+      renderMobileDownloads(rows);
       if (!tbody) return;
       tbody.replaceChildren();
-      if (countNode) countNode.textContent = String(rows.length);
       if (!rows.length) {
         emptyRow('还没有下载记录。');
         return;
@@ -154,22 +383,39 @@ import Base from '../../layouts/Base.astro';
 
     async function loadMemberCenter() {
       emptyRow('正在读取下载记录...');
+      emptyMobileDownloads('正在读取下载记录...');
       try {
         const [me, downloads] = await Promise.all([
           fetch('/api/member/me', { credentials: 'include' }).then((r) => r.json()),
           fetch('/api/member/downloads?limit=50', { credentials: 'include' }).then((r) => r.json()),
         ]);
-        if (!me.member) { location.href = '/member/login'; return; }
-        document.getElementById('mName').textContent = me.member.nickname || me.member.username;
-        document.getElementById('mLevel').textContent = me.isVip ? 'VIP会员' : '普通会员';
-        document.getElementById('mIntegral').textContent = String(me.member.integral || 0);
+        if (!me.member) {
+          emptyRow('请先登录后查看下载记录。');
+          emptyMobileDownloads('登录后可以查看下载记录、积分和每日额度。');
+          return;
+        }
+        const name = me.member.nickname || me.member.username || '设计师';
+        const level = me.isVip ? 'VIP 会员' : '普通会员';
+        const integral = me.member.integral || 0;
+        setText('mName', name);
+        setText('mLevel', level);
+        setText('mIntegral', integral);
+        setText('mMobileName', name);
+        setText('mMobileLevel', level);
+        setText('mMobileIntegral', integral);
+        setText('mMobileIntegralMini', integral);
+        setText('mMobileIntegralTail', integral);
+        const loginLink = document.getElementById('mMobileLoginLink');
+        if (loginLink) loginLink.textContent = '已登录';
         renderDownloads(downloads.rows || []);
       } catch {
         emptyRow('下载记录读取失败，请刷新后重试。');
+        emptyMobileDownloads('下载记录读取失败，请刷新后重试。');
       }
     }
 
     document.getElementById('reloadDownloads')?.addEventListener('click', loadMemberCenter);
+    document.getElementById('mReloadDownloads')?.addEventListener('click', loadMemberCenter);
     loadMemberCenter();
   </script>
 </Base>

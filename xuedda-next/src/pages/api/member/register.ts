@@ -19,7 +19,7 @@ function registerDeviceCookie(deviceId: string) {
 }
 
 export const POST: APIRoute = async ({ request }) => {
-  if (!publicRegistrationEnabled()) return fail('当前测试环境暂未开放公开注册', 403);
+  if (!publicRegistrationEnabled()) return fail('当前暂未开放公开注册', 403);
 
   const ip = clientIp(request);
   const deviceId = cookieValue(request.headers, REGISTER_DEVICE_COOKIE) || randomUUID();
@@ -30,7 +30,7 @@ export const POST: APIRoute = async ({ request }) => {
     rateLimit(`member-register-hour-device:${deviceId}`, 2, 60 * 60 * 1000),
   ];
   if (limits.some((item) => !item.ok)) {
-    return fail('注册太频繁，请稍后再试。后续会接入阿里云真人验证进一步拦截刷号。', 429);
+    return fail('注册太频繁，请稍后再试。', 429);
   }
 
   const body = await readJson<{
@@ -38,7 +38,13 @@ export const POST: APIRoute = async ({ request }) => {
     password?: string;
     captchaToken?: string;
     captchaAnswer?: string;
+    agreementAccepted?: string | boolean | number;
   }>(request);
+
+  const accepted = body.agreementAccepted === true || body.agreementAccepted === 1 || body.agreementAccepted === '1' || body.agreementAccepted === 'true' || body.agreementAccepted === 'on';
+  if (!accepted) {
+    return fail('请先阅读并同意用户协议。', 400);
+  }
 
   if (!verifyCaptcha(String(body.captchaToken || ''), String(body.captchaAnswer || ''))) {
     return fail('验证码错误或已过期，请重新输入', 400, { captcha: true });

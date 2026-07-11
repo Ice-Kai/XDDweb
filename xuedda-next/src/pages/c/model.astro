@@ -3,7 +3,14 @@ import Base from '../../layouts/Base.astro';
 import { getCategoryTree, getDownloads, countDownloads, getDescendantIds, coverUrl, MODEL_GROUPS, modelGroupByKey, type CatNode, type DownloadItem } from '../../lib/content';
 
 const sp = Astro.url.searchParams;
-const type = (sp.get('type') || 'su') as 'su' | 'max' | 'text';
+const rawType = (sp.get('type') || 'su').toLowerCase();
+if (rawType === 'text') {
+  const next = new URLSearchParams(Astro.url.searchParams);
+  next.delete('type');
+  next.set('format', 'text');
+  return Astro.redirect(`/c/texture?${next.toString()}`);
+}
+const type = (rawType === 'max' ? 'max' : 'su') as 'su' | 'max';
 const group = sp.get('group') || '';
 const category = Number(sp.get('category')) || 0;
 const sort = (sp.get('sort') as 'newest' | 'popular' | 'downloads') || 'newest';
@@ -49,9 +56,6 @@ if (type === 'max') {
   } else {
     filter = { rootCategoryId: 107, modelFormat: 'SU', includeUnformatted: true };
   }
-} else if (type === 'text') {
-  filter = { assetKind: 'text' };
-  activeLabel = '文本 · 文案参考';
 }
 if (filter) {
   const opts = { ...filter, q, sort };
@@ -83,20 +87,100 @@ function priceLabel(_it: DownloadItem) { return '免费'; }
 const sorts: { k: 'newest' | 'popular' | 'downloads'; t: string }[] = [{ k: 'newest', t: '最新' }, { k: 'popular', t: '最热' }, { k: 'downloads', t: '下载' }];
 ---
 <Base title="模型 — 薛大大设计网">
-  <div class="container">
+  <section class="m-list">
+    <header class="m-page-head center">
+      <a class="m-icon-btn" href="/" aria-label="返回首页">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
+      <strong>模型素材</strong>
+      <a class="m-icon-btn" href="/search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      </a>
+    </header>
+
+    <nav class="m-tabs">
+      <a href={qs({ type: 'su', group: '', category: '' })} class={type === 'su' ? 'active' : ''}>SU模型</a>
+      <a href={qs({ type: 'max', group: '', category: '' })} class={type === 'max' ? 'active' : ''}>MAX模型</a>
+    </nav>
+
+    <nav class="m-chip-tabs">
+      <a href={qs({ group: '', category: '' })} class={!group && !category ? 'active' : ''}>全部</a>
+      {groupedFilters.map((top) => <a href={qs({ group: top.key, category: '' })} class={group === top.key ? 'active' : ''}>{top.name}</a>)}
+    </nav>
+
+    <details class="m-filter-panel" aria-label="完整模型分类">
+      <summary class="m-filter-trigger">
+        <span><b>分类</b><em>{activeLabel}</em></span>
+        <i></i>
+      </summary>
+      <div class="m-order-filter">
+        <nav class="m-order-left">
+          <a href={qs({ group: '', category: '' })} class={!group && !category ? 'active' : ''}>{type === 'max' ? '全部 MAX' : '全部模型'}</a>
+          {groupedFilters.map((top) => {
+            const isActive = group === top.key || top.children.some((child) => child.id === category);
+            return <a href={qs({ group: top.key, category: '' })} class={isActive ? 'active' : ''}>{top.name}<small>{top.children.length}</small></a>;
+          })}
+        </nav>
+        <div class="m-order-right">
+          {groupedFilters.map((top) => {
+            const isActive = group === top.key || top.children.some((child) => child.id === category);
+            if (!isActive) return null;
+            return (
+              <div class="m-order-group">
+                {category ? <span class="m-order-current">当前：{activeLabel}</span> : null}
+                <a href={qs({ group: top.key, category: '' })} class={`m-order-all ${group === top.key ? 'active' : ''}`}>全部{top.name}</a>
+                <div class="m-order-grid">
+                  {top.children.map((child) => (
+                    <a href={qs({ category: child.id, group: '' })} class={category === child.id ? 'active' : ''}>{child.name}</a>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          {!group && !category ? (
+            <div class="m-order-hint">选择左侧大类后查看下级栏目</div>
+          ) : null}
+        </div>
+      </div>
+    </details>
+
+    <div class="m-list-control">
+      <span>共 {total} 个模型</span>
+      <div>
+        {sorts.map((s) => <a href={qs({ sort: s.k })} class={sort === s.k ? 'active' : ''}>{s.t}</a>)}
+      </div>
+    </div>
+
+    {items.length === 0 ? (
+      <div class="m-empty">该分类暂无资源{q ? `（搜索：${q}）` : ''}</div>
+    ) : (
+      <div class="m-card-grid">
+        {items.map((m) => (
+          <a href={`/d/${m.id}`} class="m-asset-card">
+            <span class="m-cover">
+              {coverUrl(m.cover) ? <img src={coverUrl(m.cover)} alt={m.title} loading="lazy" /> : <i>MODEL</i>}
+              <b>{priceLabel(m)}</b>
+            </span>
+            <strong>{m.title}</strong>
+            <span class="m-asset-meta">{m.size || '-- MB'} · {m.fileType || (type === 'max' ? 'MAX 模型' : 'SKP 模型')}</span>
+          </a>
+        ))}
+      </div>
+    )}
+  </section>
+
+  <div class="container desktop-page">
     <div class="mpage-bc" style="padding-top:18px;">
-      <a href="/">首页</a> <span>/</span> <b>模型{type === 'max' ? ' · MAX' : type === 'text' ? ' · 文本' : (group || category ? ` · ${activeLabel}` : '')}</b>
+      <a href="/">首页</a> <span>/</span> <b>模型{type === 'max' ? ' · MAX' : (group || category ? ` · ${activeLabel}` : '')}</b>
     </div>
 
     <!-- 类型分区 -->
     <div class="mtabs">
       <a href={qs({ type: 'su', group: '', category: '' })} class={`mtab ${type === 'su' ? 'active' : ''}`}>SU模型</a>
       <a href={qs({ type: 'max', group: '', category: '' })} class={`mtab ${type === 'max' ? 'active' : ''}`}>MAX模型</a>
-      <a href={qs({ type: 'text', group: '', category: '' })} class={`mtab ${type === 'text' ? 'active' : ''}`}>文本 · 文案参考</a>
     </div>
 
-    <div class={`mpage ${type === 'text' ? 'mpage-text' : ''}`}>
-      {type !== 'text' ? (
+    <div class="mpage">
         <aside class="filter-side">
           <div class="filter-card">
             <div class="filter-head">
@@ -116,13 +200,11 @@ const sorts: { k: 'newest' | 'popular' | 'downloads'; t: string }[] = [{ k: 'new
             </nav>
           </div>
         </aside>
-      ) : null}
-
         <div class="mpage-main">
           <div class="toolbar">
             <form action="/c/model" method="get">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-lo)"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-              <input name="q" value={q} placeholder={type === 'text' ? '搜索文本 / 文案参考…' : '搜索模型…'} />
+              <input name="q" value={q} placeholder="搜索模型…" />
               {type !== 'su' ? <input type="hidden" name="type" value={type} /> : null}
               {group ? <input type="hidden" name="group" value={group} /> : null}
               {category ? <input type="hidden" name="category" value={category} /> : null}
@@ -133,24 +215,24 @@ const sorts: { k: 'newest' | 'popular' | 'downloads'; t: string }[] = [{ k: 'new
           </div>
 
           {items.length === 0 ? (
-            <div class="mpage-empty">{type === 'max' ? `暂无 MAX 模型素材${q ? `（搜索：${q}）` : ''}，上传后会自动显示。` : type === 'text' ? `暂无文本 / 文案参考${q ? `（搜索：${q}）` : ''}，上传后会自动显示。` : `该分类暂无资源${q ? `（搜索：${q}）` : ''}`}</div>
+            <div class="mpage-empty">{type === 'max' ? `暂无 MAX 模型素材${q ? `（搜索：${q}）` : ''}，上传后会自动显示。` : `该分类暂无资源${q ? `（搜索：${q}）` : ''}`}</div>
           ) : (
             <div class="grid-5">
               {items.map((m) => (
-                <a href="#" data-card-id={m.id} class="card reveal visible">
-                  <div class="card-img-wrap">
+                <article data-card-id={m.id} class="card reveal visible">
+                  <button class="card-img-wrap" type="button" data-preview-src={coverUrl(m.cover)} data-preview-title={m.title} aria-label={`预览 ${m.title}`}>
                     {coverUrl(m.cover) ? <img src={coverUrl(m.cover)} alt={m.title} loading="lazy" /> : null}
                     <span class={`card-cat ${type === 'max' ? 'cat-inter' : 'cat-arch'}`}>{priceLabel(m)}</span>
-                  </div>
+                  </button>
                   <div class="card-body">
                     <h3 class="card-title">{m.title}</h3>
                     <p class="card-desc">{m.summary || '暂无简介'}</p>
                     <div class="card-footer download-footer">
                       <span class="card-size">{m.size || '-- MB'}</span>
-                      <span class="card-foot-r"><span class="card-type">{m.fileType || (type === 'max' ? 'MAX 模型' : type === 'text' ? '文案参考' : 'SKP 模型')}</span><span class="btn-dl" data-dl data-download-id={m.id} role="button" tabindex="0">下载</span></span>
+                      <span class="card-foot-r"><span class="card-type">{m.fileType || (type === 'max' ? 'MAX 模型' : 'SKP 模型')}</span><span class="btn-dl" data-dl data-download-id={m.id} role="button" tabindex="0">下载</span></span>
                     </div>
                   </div>
-                </a>
+                </article>
               ))}
             </div>
           )}

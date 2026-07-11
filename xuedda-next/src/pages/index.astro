@@ -22,11 +22,45 @@ const aiImageHref =
   '/ai-image';
 const aiImageDisabled = true;
 const bilibiliProfileUrl = 'https://space.bilibili.com/218538613?spm_id_from=333.337.search-card.all.click';
+const mobileCategoryCards = [
+  {
+    title: '模型素材',
+    desc: '建筑 · 室内 · 景观',
+    href: '/c/model',
+    tone: 'cool',
+    cover: coverUrl(models[0]?.cover || ''),
+    icon: 'M12 2 3 7v10l9 5 9-5V7z|M3 7l9 5 9-5M12 12v10',
+  },
+  {
+    title: '平面素材',
+    desc: '贴图 · PSD · 文案',
+    href: '/c/texture',
+    tone: 'warm',
+    cover: coverUrl(materials[0]?.cover || ''),
+    icon: 'rect|circle|image',
+  },
+  {
+    title: '视频教程',
+    desc: 'D5 · SU 系统课',
+    href: '/c/video',
+    tone: 'cool',
+    cover: coverUrl(courses[0]?.cover || ''),
+    icon: 'video',
+  },
+  {
+    title: '软件资源',
+    desc: '安装包 · 参数',
+    href: '/c/software',
+    tone: 'warm',
+    cover: coverUrl(software[0]?.cover || ''),
+    icon: 'grid',
+  },
+];
 
 const quickEntries = [
   { name: 'AI 功能', label: 'AI', desc: '生图入口暂未开放，后续独立接入。', href: aiImageHref, action: '暂未开放', disabled: aiImageDisabled },
   { name: '公众号 / B站链接', label: 'MEDIA', desc: '打开 B站视频主页；公众号二维码暂未放置。', href: bilibiliUrl || bilibiliProfileUrl, action: '打开 B站' },
-  { name: '素材下载', label: 'DL', desc: '进入模型、灯光贴图、软件参数素材库。', href: '/c/model', action: '浏览素材' },
+  { name: '素材下载', label: 'DL', desc: '进入模型、平面素材、软件参数素材库。', href: '/c/model', action: '浏览素材' },
   { name: '功能反馈', label: 'FB', desc: '提交问题、失效链接和功能建议。', href: '/feedback', action: '提交反馈' },
 ];
 
@@ -48,6 +82,98 @@ function sizeLabel(it: DownloadItem) {
 const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
 ---
 <Base>
+  <!-- 手机首页（仅手机端显示，桌面 display:none；还原 design 稿） -->
+  <section class="m-home" aria-label="手机首页">
+    <header class="mh-greet">
+      <div class="mh-hello">
+        <strong>你好，设计师</strong>
+        <span>今天想找哪类素材？</span>
+      </div>
+      <button class="mh-bell" type="button" data-notice-open aria-label="公告">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <i class="mh-dot"></i>
+      </button>
+    </header>
+    <form class="mh-search" action="/search" method="get">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input name="q" placeholder="搜索模型 / 贴图 / 教程" />
+    </form>
+
+    <h2 class="mh-h">浏览分类</h2>
+    <div class="mh-cats">
+      {mobileCategoryCards.map((card) => (
+        <a class={`mh-cat ${card.tone}`} href={card.href} target={card.external ? '_blank' : undefined} rel={card.external ? 'noopener' : undefined}>
+          {card.cover ? <img class="mh-cat-img" src={card.cover} alt={card.title} loading="lazy" /> : null}
+          <span class="mh-cat-ovl"></span>
+          <span class="mh-cat-ico">
+            {card.icon === 'rect|circle|image' ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.8"/><path d="m21 16-5-5L5 21"/></svg>
+            ) : card.icon === 'video' ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M10 9l5 3-5 3z" fill="currentColor"/></svg>
+            ) : card.icon === 'grid' ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg>
+            )}
+          </span>
+          <span class="mh-cat-t"><strong>{card.title}</strong><em>{card.desc}</em></span>
+        </a>
+      ))}
+    </div>
+
+    <h2 class="mh-h">快速入口</h2>
+    <div class="mh-quick scroll">
+      <a class="mh-q" href="/c/model">
+        <span class="mh-q-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 19h14"/></svg></span>
+        <span class="mh-q-name">素材下载</span>
+      </a>
+      <a class="mh-q is-off" href="#" aria-disabled="true" data-disabled="true">
+        <span class="mh-q-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l1.7 4.1L18 9l-4.3 1.9L12 15l-1.7-4.1L6 9l4.3-1.9z"/><path d="M19 14l.8 1.9 2 .8-2 .8L19 20l-.8-1.7-2-.8 2-.8z"/></svg></span>
+        <span class="mh-q-name">AI 生图</span>
+      </a>
+      <a class="mh-q" href={bilibiliUrl || bilibiliProfileUrl} target="_blank" rel="noopener">
+        <span class="mh-q-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/></svg></span>
+        <span class="mh-q-name">视频教程</span>
+      </a>
+      <a class="mh-q" href={bilibiliUrl || bilibiliProfileUrl} target="_blank" rel="noopener">
+        <span class="mh-q-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8 7 5 3M16 7l3-4"/></svg></span>
+        <span class="mh-q-name">B站视频</span>
+      </a>
+      <button class="mh-q mh-desktop-q" type="button" data-exit-mobile>
+        <span class="mh-q-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
+        <span class="mh-q-name">恢复电脑</span>
+      </button>
+      <a class="mh-q" href="/feedback">
+        <span class="mh-q-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg></span>
+        <span class="mh-q-name">功能反馈</span>
+      </a>
+    </div>
+
+    <h2 class="mh-h">最新素材</h2>
+    <div class="m-card-grid mh-latest">
+      {models.slice(0, 4).map((m) => (
+        <a href={`/d/${m.id}`} class="m-asset-card">
+          <span class="m-cover">
+            {coverUrl(m.cover) ? <img src={coverUrl(m.cover)} alt={m.title} loading="lazy" /> : <i>MODEL</i>}
+            <b>{priceLabel(m)}</b>
+          </span>
+          <strong>{m.title}</strong>
+          <span class="m-asset-meta">{m.size || '-- MB'} · {m.fileType || 'SKP 模型'}</span>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <script>
+    document.querySelectorAll('.mh-quick').forEach((rail) => {
+      rail.addEventListener('wheel', (event) => {
+        if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+        event.preventDefault();
+        rail.scrollLeft += event.deltaY;
+      }, { passive: false });
+    });
+  </script>
+
   <!-- HERO -->
   <section class="hero">
     <div class="hero-slides">
@@ -101,11 +227,11 @@ const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" strok
       </div>
       <div class="grid-5">
         {models.map((m) => (
-          <a href="#" data-card-id={m.id} class="card reveal">
-            <div class="card-img-wrap">
+          <article data-card-id={m.id} class="card reveal">
+            <button class="card-img-wrap" type="button" data-preview-src={coverUrl(m.cover)} data-preview-title={m.title} aria-label={`预览 ${m.title}`}>
               {coverUrl(m.cover) ? <img src={coverUrl(m.cover)} alt={m.title} loading="lazy" /> : null}
               <span class="card-cat cat-arch">{priceLabel(m)}</span>
-            </div>
+            </button>
             <div class="card-body">
               <h3 class="card-title">{m.title}</h3>
               <p class="card-desc">{m.summary || '暂无简介'}</p>
@@ -114,7 +240,7 @@ const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" strok
                 <span class="card-foot-r"><span class="card-type">{m.fileType || 'SKP 模型'}</span><span class="btn-dl" data-dl data-download-id={m.id} role="button" tabindex="0">下载</span></span>
               </div>
             </div>
-          </a>
+          </article>
         ))}
       </div>
     </div>
@@ -129,37 +255,37 @@ const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" strok
       </div>
       <div class="grid-5">
         {courses.map((c) => (
-          <a href="#" data-card-id={c.id} class="card course-card reveal">
-            <div class="card-img-wrap">
+          <article data-card-id={c.id} class="card course-card reveal">
+            <button class="card-img-wrap" type="button" data-preview-src={coverUrl(c.cover)} data-preview-title={c.title} aria-label={`预览 ${c.title}`}>
               {coverUrl(c.cover) ? <img src={coverUrl(c.cover)} alt={c.title} loading="lazy" /> : null}
               <span class="card-cat cat-d5">{priceLabel(c)}</span>
               <div class="course-play"><div class="play-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="#0d0900"><polygon points="5 3 19 12 5 21 5 3"/></svg></div></div>
-            </div>
+            </button>
             <div class="card-body">
               <h3 class="card-title">{c.title}</h3>
               <div class="course-lessons">⏱ {c.created_at}</div>
               <div class="card-footer" style="margin-top:11px;"><span style="font-size:11px;color:var(--text-lo)">👁 {c.hits} 观看</span><span class="btn-watch">观看</span></div>
             </div>
-          </a>
+          </article>
         ))}
       </div>
     </div>
   </section>
 
-  <!-- 材质贴图（最新上传） -->
+  <!-- 平面素材（最新上传） -->
   <section class="section">
     <div class="container">
       <div class="section-head reveal">
-        <div><p class="section-label">MATERIAL</p><h2 class="section-title">材质贴图</h2><p class="section-desc">PBR 贴图、HDR 环境贴图、D5 材质库持续更新。</p></div>
-        <a href="/c/texture" class="section-more">更多贴图 <Fragment set:html={arrow} /></a>
+        <div><p class="section-label">GRAPHIC</p><h2 class="section-title">平面素材</h2><p class="section-desc">贴图、PSD、文案参考与平面资料持续更新。</p></div>
+        <a href="/c/texture" class="section-more">更多素材 <Fragment set:html={arrow} /></a>
       </div>
       <div class="grid-5">
         {materials.map((m) => (
-          <a href="#" data-card-id={m.id} class="card reveal">
-            <div class="card-img-wrap">
+          <article data-card-id={m.id} class="card reveal">
+            <button class="card-img-wrap" type="button" data-preview-src={coverUrl(m.cover)} data-preview-title={m.title} aria-label={`预览 ${m.title}`}>
               {coverUrl(m.cover) ? <img src={coverUrl(m.cover)} alt={m.title} loading="lazy" /> : null}
               <span class="card-cat cat-mat">{priceLabel(m)}</span>
-            </div>
+            </button>
             <div class="card-body">
               <h3 class="card-title">{m.title}</h3>
               <p class="card-desc">{m.summary || '暂无简介'}</p>
@@ -168,7 +294,7 @@ const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" strok
                 <span class="card-foot-r"><span class="card-type">{m.fileType || '贴图素材'}</span><span class="btn-dl" data-dl data-download-id={m.id} role="button" tabindex="0">下载</span></span>
               </div>
             </div>
-          </a>
+          </article>
         ))}
       </div>
     </div>
@@ -184,11 +310,11 @@ const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" strok
       </div>
       <div class="grid-5">
         {software.map((s) => (
-          <a href="#" data-card-id={s.id} class="card reveal">
-            <div class="card-img-wrap">
+          <article data-card-id={s.id} class="card reveal">
+            <button class="card-img-wrap" type="button" data-preview-src={coverUrl(s.cover)} data-preview-title={s.title} aria-label={`预览 ${s.title}`}>
               {coverUrl(s.cover) ? <img src={coverUrl(s.cover)} alt={s.title} loading="lazy" /> : null}
               <span class="card-cat cat-inter">{priceLabel(s)}</span>
-            </div>
+            </button>
             <div class="card-body">
               <h3 class="card-title">{s.title}</h3>
               <p class="card-desc">{s.summary || '暂无简介'}</p>
@@ -197,7 +323,7 @@ const arrow = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" strok
                 <span class="card-foot-r"><span class="card-type">{s.fileType || '软件 · 参数'}</span><span class="btn-dl" data-dl data-download-id={s.id} role="button" tabindex="0">下载</span></span>
               </div>
             </div>
-          </a>
+          </article>
         ))}
       </div>
     </div>

@@ -1,12 +1,12 @@
 ﻿---
 import '../styles/global.css';
 import { getSetting } from '../lib/settings';
-import { getCategoryTree, MODEL_GROUPS, SECTIONS, type CatNode } from '../lib/content';
+import { getCategoryTree, groupSoftwareCategories, MODEL_GROUPS, SECTIONS, type CatNode } from '../lib/content';
 
 interface Props { title?: string; description?: string; }
 const {
   title = '薛大大设计网 — 建筑·景观·室内设计资源平台',
-  description = 'SketchUp 模型、D5/Enscape/Lumion 教程、材质贴图、软件参数一站获取，登录后每日可免费下载 30 个素材。',
+  description = 'SketchUp 模型、平面素材、D5/Enscape/Lumion 教程、软件参数一站获取，登录后每日可免费下载 30 个素材。',
 } = Astro.props;
 
 // 首页开场页默认关闭：游客可浏览全站，下载链接仍由接口要求登录。
@@ -18,43 +18,69 @@ const showIntro = isHome && introGateEnabled;
 // 并行运行期：旧站入口（在 .env 设 OLD_SITE_URL=https://old.xuedda.com 即显示「旧版」切换链接；未设则不显示）
 const oldSiteUrl = process.env.OLD_SITE_URL || (import.meta.env?.OLD_SITE_URL as string) || '';
 
-// 右上角铃铛消息面板（右侧滑出，三标签）。后续可由后台/DB 提供，现为占位。
-const noticeTabs = [
-  { key: 'version', name: '版本公告', items: [
+type NoticeItem = { title: string; body: string; date: string; enabled?: boolean };
+type NoticeSettings = {
+  version?: NoticeItem[];
+  official?: NoticeItem[];
+  popup?: {
+    enabled?: boolean;
+    title?: string;
+    body?: string;
+    image?: string;
+    link?: string;
+    cta?: string;
+  };
+};
+
+const defaultNoticeSettings: NoticeSettings = {
+  version: [
     { title: '全新「控制台」上线，账单与数据一目了然', body: '原【消费记录】全面升级为【控制台】，账单与下载任务管理更清晰。', date: '2026-05-15' },
     { title: '新增 MAX 模型分区与「智能分类」', body: '模型栏目新增 MAX 分区，SU 模型按智能大类归整，查找更快。', date: '2026-05-13' },
     { title: '下载提速 & 网盘提取码自动填充', body: '详情页点击下载内联展开网盘链接，百度网盘自动带入提取码。', date: '2026-04-27' },
-  ]},
-  { key: 'official', name: '官方消息', items: [
+  ],
+  official: [
     { title: '素材下载规则更新', body: '全站素材免费下载，登录账号后每天可下载 30 个素材。', date: '2026-06-28' },
-    { title: '材质贴图库新增 HDR 专区', body: '新增大量 4K HDR 天空 / 夜空 / 室外环境贴图，持续更新。', date: '2026-05-20' },
-  ]},
-  { key: 'interactive', name: '互动消息', items: [
-    { title: '你的反馈已回复', body: '关于「批量下载」的建议已收到，相关功能排期中，感谢支持。', date: '2026-05-18' },
-  ]},
-];
-
-// 弹窗公告(图片大弹窗，首页，可关闭，本会话一次)。图片放 public/announce.jpg，改文案改这里。
-const promo = {
-  enabled: false,
-  image: '/announce.jpg',          // 用户放真实图，缺省走渐变占位
-  title: '网站公告',
-  lines: ['静态展示版已上线', '资源下载功能整理中'],
-  cta: '立刻查看',
-  link: '/c/model',
+    { title: '平面素材库新增 HDR 专区', body: '新增大量 4K HDR 天空 / 夜空 / 室外环境贴图，持续更新。', date: '2026-05-20' },
+  ],
+  popup: {
+    enabled: false,
+    title: '官方消息',
+    body: '资源库整理更新中，模型、贴图、PSD素材、软件参数与视频教程会陆续补全。',
+    image: '',
+    cta: '知道了',
+    link: '',
+  },
 };
+
+function enabledNoticeItems(items?: NoticeItem[]) {
+  return (items || []).filter((item) => item && item.enabled !== false && (item.title || item.body));
+}
 
 // 后台可配置项：客服二维码、顶部公告。
 // AI 生图独立部署：本地可指向 Next.js AI 站，生产可改成 ai.xuedda.com 或新域名。
 interface Announce { enabled: boolean; text: string; link: string }
-const [csQr, announce, modelTree, textureTree, softwareTree, videoTree] = await Promise.all([
-  getSetting<string>('cs_qr', ''),
+const [csQr, announce, noticeSettings, modelTree, textureTree, softwareTree, videoTree] = await Promise.all([
+  getSetting<string>('cs_qr', '/img/customer-service-qr.jpg'),
   getSetting<Announce>('announcement', { enabled: false, text: '', link: '' }),
+  getSetting<NoticeSettings>('notice_messages', defaultNoticeSettings),
   getCategoryTree(SECTIONS.model.id),
   getCategoryTree(SECTIONS.texture.id),
   getCategoryTree(SECTIONS.software.id),
   getCategoryTree(SECTIONS.video.id),
 ]);
+const noticeTabs = [
+  { key: 'version', name: '版本公告', items: enabledNoticeItems(noticeSettings.version?.length ? noticeSettings.version : defaultNoticeSettings.version) },
+  { key: 'official', name: '官方消息', items: enabledNoticeItems(noticeSettings.official?.length ? noticeSettings.official : defaultNoticeSettings.official) },
+  { key: 'interactive', name: '互动消息', items: [] as NoticeItem[] },
+];
+const promo = {
+  enabled: Boolean(noticeSettings.popup?.enabled),
+  image: String(noticeSettings.popup?.image || ''),
+  title: String(noticeSettings.popup?.title || '官方消息'),
+  lines: String(noticeSettings.popup?.body || '').split(/\n+/).map((line) => line.trim()).filter(Boolean),
+  cta: String(noticeSettings.popup?.cta || '知道了'),
+  link: String(noticeSettings.popup?.link || ''),
+};
 const aiImageHref =
   process.env.AI_IMAGE_URL ||
   (import.meta.env?.AI_IMAGE_URL as string) ||
@@ -111,12 +137,23 @@ function sectionGroupsForNav(tree: CatNode[], slug: string): P3Group[] {
   }));
 }
 
-const p3NavItems: P3Item[] = [
-  { name: 'AI生图', href: aiImageHref, groups: [], disabled: aiImageDisabled },
-  { name: '模型素材', href: '/c/model', groups: modelGroupsForNav(modelTree) },
-  { name: '灯光贴图', href: '/c/texture', groups: sectionGroupsForNav(textureTree, 'texture') },
-  { name: '软件参数', href: '/c/software', groups: sectionGroupsForNav(softwareTree, 'software') },
-  { name: '视频教程', href: '/c/video', groups: sectionGroupsForNav(videoTree, 'video') },
+function softwareGroupsForNav(tree: CatNode[]): P3Group[] {
+  return groupSoftwareCategories(tree).map((group) => ({
+    name: group.name,
+    href: '/c/software',
+    children: group.children.slice(0, 24).map((item) => ({
+      name: item.name,
+      href: `/c/software?category=${item.id}`,
+    })),
+  }));
+}
+
+const p3NavItems: (P3Item & { icon: string; desc: string })[] = [
+  { name: 'AI生图', href: aiImageHref, groups: [], disabled: aiImageDisabled, icon: 'M21 15l-5-5L5 21M3 3h18v18H3zM8.5 8.5h.01', desc: '暂未开放' },
+  { name: '模型素材', href: '/c/model', groups: modelGroupsForNav(modelTree), icon: 'M21 16V8l-9-5-9 5v8l9 5 9-5zM3.3 7 12 12l8.7-5M12 22V12', desc: 'SU / MAX 模型' },
+  { name: '平面素材', href: '/c/texture', groups: sectionGroupsForNav(textureTree, 'texture'), icon: 'M3 3h18v18H3zM3 9h18M9 21V9', desc: '贴图 / PSD / 文案' },
+  { name: '软件参数', href: '/c/software', groups: softwareGroupsForNav(softwareTree), icon: 'M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8', desc: '建模 / 渲染 / 平面' },
+  { name: '视频教程', href: '/c/video', groups: sectionGroupsForNav(videoTree, 'video'), icon: 'M23 7l-7 5 7 5V7zM1 5h15v14H1z', desc: '渲染 / 建模 / 实战' },
 ];
 
 // 左侧导航：把现有功能重组为更像专业素材站的工作台入口。
@@ -126,8 +163,8 @@ const lnavGroups = [
     { name: '发布需求', desc: '反馈与投稿', href: '/feedback', icon: 'M12 5v14M5 12h14' },
   ] },
   { label: '看点高级的', icon: 'M12 3l2.2 5.8L20 9l-4.5 3.8 1.5 5.9L12 15.4 7 18.7l1.5-5.9L4 9l5.8-.2L12 3z', items: [
-    { name: '模型素材', desc: 'SU / MAX / 文案', href: '/c/model', icon: 'M21 16V8l-9-5-9 5v8l9 5 9-5zM3.3 7L12 12l8.7-5M12 22V12' },
-    { name: '灯光和贴图', desc: 'HDRI / 材质 / 光影', href: '/c/texture', icon: 'M3 3h18v18H3zM3 9h18M9 21V9' },
+    { name: '模型素材', desc: 'SU / MAX 模型', href: '/c/model', icon: 'M21 16V8l-9-5-9 5v8l9 5 9-5zM3.3 7L12 12l8.7-5M12 22V12' },
+    { name: '平面素材', desc: '贴图 / PSD / 文案', href: '/c/texture', icon: 'M3 3h18v18H3zM3 9h18M9 21V9' },
     { name: '软件和参数', desc: '插件 / 预设 / 配置', href: '/c/software', icon: 'M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8' },
   ] },
   { label: '拿点有用的', icon: 'M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4v14h16V7zM8 7h8', items: [
@@ -141,13 +178,15 @@ const lnavGroups = [
   ] },
 ];
 const curPath = Astro.url.pathname;
+const isDetailPage = curPath.startsWith('/d/');
+const isMobileOverlayPage = isDetailPage || curPath.startsWith('/search');
 const isLnavActive = (href: string) => href === '/' ? curPath === '/' : curPath === href || curPath.startsWith(`${href}/`);
 
 // 主导航（贴合真实一级分类）
 const navItems = [
   { name: '首页', href: '/', active: true },
   { name: '模型', href: '/c/model' },
-  { name: '灯光贴图', href: '/c/texture' },
+  { name: '平面素材', href: '/c/texture' },
   { name: '软件参数', href: '/c/software' },
   { name: '视频教程', href: '/c/video' },
   { name: '其他相关', href: '/c/other' },
@@ -226,11 +265,11 @@ const cloudWords = [
           <div class="intro-copy">
             <p>INSPIRATION BOARD</p>
             <h2>专业设计师在<span>素材库</span>发现、收藏灵感</h2>
-            <div class="intro-tabs"><b>每日新传</b><b>室内模型</b><b>灯光贴图</b></div>
+            <div class="intro-tabs"><b>每日新传</b><b>室内模型</b><b>平面素材</b></div>
           </div>
           <div class="intro-masonry">
             <figure class="im-card tall"><img src="/img/m1.jpg" alt="" /><figcaption>SU模型</figcaption></figure>
-            <figure class="im-card"><img src="/img/t1.jpg" alt="" /><figcaption>灯光贴图</figcaption></figure>
+            <figure class="im-card"><img src="/img/t1.jpg" alt="" /><figcaption>平面素材</figcaption></figure>
             <figure class="im-card mid"><img src="/img/c1.jpg" alt="" /><figcaption>教程</figcaption></figure>
             <figure class="im-card tall"><img src="/img/m3.jpg" alt="" /><figcaption>室内</figcaption></figure>
             <figure class="im-card"><img src="/hero/hero-2.jpg" alt="" /><figcaption>项目</figcaption></figure>
@@ -246,7 +285,7 @@ const cloudWords = [
             <h2>收藏、检索、下载，把素材整理成自己的工作流</h2>
           </div>
           <div class="intro-feature-grid">
-            <article><strong>01</strong><h3>分类找模型</h3><p>建筑、室内、景观、灯光贴图和教程统一入口。</p></article>
+            <article><strong>01</strong><h3>分类找模型</h3><p>建筑、室内、景观、平面素材和教程统一入口。</p></article>
             <article><strong>02</strong><h3>AI 搜索</h3><p>用自然语言直接描述你需要的资源。</p></article>
             <article><strong>03</strong><h3>下载记录</h3><p>登录后保留最近打开的网盘资源。</p></article>
           </div>
@@ -277,7 +316,11 @@ const cloudWords = [
             <button class="ia-captcha-code" id="iaCaptchaRefresh" type="button" aria-label="刷新验证码">加载中</button>
           </div>
           <p class="ia-err" id="iaErr"></p>
-          <button type="submit" class="ia-submit" id="iaSubmit">注册并进入 →</button>
+          <label class="auth-agree ia-agree" id="iaAgreeWrap">
+            <input type="checkbox" name="agreementAccepted" value="1" />
+            <span>我已阅读并同意 <a href="/terms" target="_blank" rel="noopener">《用户协议与素材使用规则》</a></span>
+          </label>
+          <button type="submit" class="ia-submit" id="iaSubmit">同意并继续 →</button>
         </form>
         <div class="ia-oauth">
           <span>第三方登录</span>
@@ -286,7 +329,7 @@ const cloudWords = [
             <a href="/api/member/oauth/wechat/start" class="ia-oauth-btn wechat">微信登录</a>
           </div>
         </div>
-        <p class="ia-note">注册即同意《用户协议》与《隐私政策》 · <a href="/member/forgot">忘记密码？</a></p>
+        <p class="ia-note"><a href="/terms" target="_blank" rel="noopener">查看用户协议与素材使用规则</a> · <a href="/member/forgot">忘记密码？</a></p>
       </div>
     </div>
     )}
@@ -309,7 +352,7 @@ const cloudWords = [
     )}
 
     <!-- 弹窗公告（首页） -->
-    {showIntro && promo.enabled && (
+    {promo.enabled && (
     <div class="promo-mask" id="promoMask" hidden>
       <div class="promo-card">
         <button class="promo-close" id="promoClose" type="button" aria-label="关闭">✕</button>
@@ -318,7 +361,7 @@ const cloudWords = [
             <h3 class="promo-title">{promo.title}</h3>
             <div class="promo-foot">
               <div class="promo-lines">{promo.lines.map((l) => <p>{l}</p>)}</div>
-              <a class="promo-cta" href={promo.link}>{promo.cta}</a>
+              {promo.link ? <a class="promo-cta" href={promo.link}>{promo.cta}</a> : <button class="promo-cta promo-cta-button" id="promoCtaClose" type="button">{promo.cta}</button>}
             </div>
           </div>
         </div>
@@ -338,7 +381,7 @@ const cloudWords = [
           <input name="q" placeholder="搜索模型 / 贴图 / 软件 / 教程…" aria-label="搜索" />
         </form>
         <div class="nav-actions">
-          <button class="nav-burger" id="navBurger" type="button" aria-label="导航菜单">
+          <button class="nav-burger" id="navBurger" type="button" aria-label="导航菜单" aria-controls="mobileDrawer" aria-expanded="false">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>          <div class="nav-cats p3-nav" aria-label="资源栏目">
             {p3NavItems.map((item, index) => (
@@ -378,6 +421,10 @@ const cloudWords = [
           <a href="/member/register" class="guest-only nav-register">注册</a>
           <a href="/api/member/logout?next=/" class="member-only nav-logout" id="memberLogout" hidden>退出</a>
           <a href="/feedback">反馈</a>
+          <button class="viewport-mode-btn" id="viewportModeBtn" type="button" aria-label="切换手机适配" title="切换手机适配">
+            <span class="viewport-mode-icon" aria-hidden="true">▯</span>
+            <span class="viewport-mode-text">手机适配</span>
+          </button>
           <!-- 字号调节（阅读模式滑块） -->
           <div class="fontsize-wrap">
             <button class="fontsize-btn" id="fontBtn" title="调整字号" aria-label="调整字号">
@@ -400,6 +447,83 @@ const cloudWords = [
         </div>
       </div>
     </nav>
+
+    <!-- 手机端抽屉导航：桌面导航太密，移动端独立组织常用入口 -->
+    <div class="mobile-drawer" id="mobileDrawer" hidden>
+      <button class="mobile-drawer-backdrop" type="button" data-mobile-close aria-label="关闭菜单"></button>
+      <aside class="mobile-drawer-panel" aria-label="手机导航">
+        <div class="mobile-drawer-head">
+          <div class="mobile-drawer-brand">
+            <span class="mobile-drawer-mark">薛</span>
+            <span class="mobile-drawer-brand-copy">
+              <strong>XDesign</strong>
+              <span>薛大大生态设计</span>
+            </span>
+          </div>
+          <button class="mobile-drawer-close" type="button" data-mobile-close aria-label="关闭菜单">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+
+        <div class="mobile-drawer-account">
+          <a href="/member" class="mda-card member-only" hidden data-mobile-close>
+            <span class="mda-avatar">薛</span>
+            <span class="mda-copy"><strong>会员中心</strong><span>下载记录 · 账号设置</span></span>
+            <svg class="mda-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+          </a>
+          <div class="mda-guest guest-only">
+            <a href="/member/login" class="mda-btn primary" data-mobile-close>登录</a>
+            <a href="/member/register" class="mda-btn" data-mobile-close>注册账号</a>
+          </div>
+        </div>
+
+        <form class="mobile-drawer-search" action="/search" method="get">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input name="q" placeholder="搜索模型 / 贴图 / 教程" />
+        </form>
+
+        <div class="mobile-menu-section">
+          <p>资源入口</p>
+          <div class="mobile-app-grid">
+            {p3NavItems.map((item) => (
+              <a href={item.disabled ? '#' : item.href} class={`mobile-app-tile ${item.disabled ? 'is-disabled' : ''}`} aria-disabled={item.disabled ? 'true' : undefined} data-disabled={item.disabled ? 'true' : undefined} {...(item.disabled ? {} : { 'data-mobile-close': true })}>
+                <span class="mat-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d={item.icon} /></svg></span>
+                <span class="mat-label">{item.name}</span>
+              </a>
+            ))}
+            <a href="/feedback" class="mobile-app-tile" data-mobile-close>
+              <span class="mat-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+              <span class="mat-label">意见反馈</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="mobile-menu-section">
+          <p>分类快捷</p>
+          <div class="mobile-chip-wrap">
+            {modelGroupsForNav(modelTree).slice(0, 3).map((group) => <a href={group.href} data-mobile-close>{group.name}</a>)}
+            <a href="/c/model?type=max" data-mobile-close>MAX模型</a>
+            <a href="/c/texture" data-mobile-close>平面素材</a>
+            <a href="/c/software" data-mobile-close>软件参数</a>
+          </div>
+        </div>
+
+        <div class="mobile-menu-section">
+          <p>更多</p>
+          <div class="mobile-menu-list">
+            <button type="button" class="mobile-menu-row mmr-theme" id="drawerThemeToggle">
+              <span class="mmr-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+              <span class="mmr-copy"><strong>深色模式</strong></span>
+              <span class="mmr-switch" id="drawerThemeSwitch" aria-hidden="true"></span>
+            </button>
+            <a href="/api/member/logout?next=/" class="mobile-menu-row mmr-danger member-only nav-logout" hidden>
+              <span class="mmr-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span>
+              <span class="mmr-copy"><strong>退出登录</strong></span>
+            </a>
+          </div>
+        </div>
+      </aside>
+    </div>
 
 
     <!-- 左侧导航（可收起） -->
@@ -442,6 +566,30 @@ const cloudWords = [
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
     </button>
 
+    {!isMobileOverlayPage && <nav class="mobile-tabbar" aria-label="手机底部导航">
+      <a class={`mobile-tab ${curPath === '/' ? 'active' : ''}`} href="/">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
+        <span>首页</span>
+      </a>
+      <a class={`mobile-tab is-disabled ${curPath.startsWith('/ai-image') || curPath.startsWith('/ask') || curPath.startsWith('/chat') ? 'active' : ''}`} href="#" aria-disabled="true" data-disabled="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.7 4.1L18 9l-4.3 1.9L12 15l-1.7-4.1L6 9l4.3-1.9z"/><path d="M19 14l.8 1.9 2 .8-2 .8L19 20l-.8-1.7-2-.8 2-.8z"/></svg>
+        <span>AI</span>
+      </a>
+      <a class={`mobile-tab ${curPath === '/c' || curPath.startsWith('/c/') || curPath.startsWith('/d/') ? 'active' : ''}`} href="/c">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>
+        <span>素材</span>
+      </a>
+      <a class={`mobile-tab ${curPath.startsWith('/member') || curPath.startsWith('/feedback') ? 'active' : ''}`} href="/member">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></svg>
+        <span>我的</span>
+      </a>
+    </nav>}
+
+    <button class="desktop-restore-float" type="button" data-exit-mobile aria-label="恢复电脑适配">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      <span>恢复电脑</span>
+    </button>
+
     <main>
       <slot />
     </main>
@@ -452,13 +600,13 @@ const cloudWords = [
         <div class="footer-grid">
           <div>
             <div class="footer-brand-name">薛大大设计网</div>
-            <p class="footer-brand-desc">专注于建筑、景观、室内设计的资源与学习平台。SU 模型、D5 教程、材质贴图、软件工具一站获取。</p>
+            <p class="footer-brand-desc">专注于建筑、景观、室内设计的资源与学习平台。SU 模型、D5 教程、平面素材、软件工具一站获取。</p>
           </div>
           <div>
             <p class="footer-links-title">资源分类</p>
             <ul class="footer-links">
               <li><a href="/c/model">SU模型</a></li>
-              <li><a href="/c/texture">灯光贴图</a></li>
+              <li><a href="/c/texture">平面素材</a></li>
               <li><a href="/c/software">软件参数</a></li>
               <li><a href="/c/video">视频教程</a></li>
               <li><a href={aiImageDisabled ? '#' : aiImageHref} class={aiImageDisabled ? 'is-disabled' : ''} aria-disabled={aiImageDisabled ? 'true' : undefined} data-disabled={aiImageDisabled ? 'true' : undefined}>AI生图</a></li>
@@ -480,8 +628,8 @@ const cloudWords = [
           </div>
         </div>
         <div class="footer-bottom">
-          <span>薛大大设计网 © xuedda.com</span>
-          <div style="display:flex;gap:16px;">
+          <span class="footer-copy">薛大大设计网 © xuedda.com</span>
+          <div class="footer-legal">
             <a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">苏ICP备17050823号-1</a>
           </div>
         </div>
@@ -495,6 +643,16 @@ const cloudWords = [
         <button class="dlm-x" id="dlClose" aria-label="关闭">✕</button>
         <div class="dlm-body" id="dlBody"></div>
       </div>
+    </div>
+
+    <!-- 封面预览：点素材封面只放大图片，不读取下载链接 -->
+    <div class="preview-modal" id="previewModal" hidden>
+      <button class="preview-mask" id="previewMask" type="button" aria-label="关闭预览"></button>
+      <figure class="preview-card">
+        <button class="preview-close" id="previewClose" type="button" aria-label="关闭预览">✕</button>
+        <img id="previewImg" alt="" />
+        <figcaption id="previewTitle"></figcaption>
+      </figure>
     </div>
 
     <!-- 客服浮窗（右下角） -->
@@ -537,6 +695,7 @@ const cloudWords = [
                 </div>
               </div>
             ))}
+            {t.key === 'interactive' && <div id="interactiveNoticeList" class="interactive-notice-list"></div>}
             <div class="notice-end">没有更多消息</div>
           </div>
         ))}
@@ -567,10 +726,49 @@ const cloudWords = [
 
 
     <script is:inline>
+      document.addEventListener('error', (event) => {
+        const img = event.target;
+        if (!(img instanceof HTMLImageElement)) return;
+        const wrap = img.closest('.card-img-wrap');
+        if (!wrap) return;
+        img.hidden = true;
+        wrap.classList.add('image-missing');
+      }, true);
+
       document.addEventListener('click', (event) => {
         const disabledLink = event.target.closest('[data-disabled="true"]');
         if (disabledLink) event.preventDefault();
       });
+
+      // 封面预览：只响应带 data-preview-src 的封面按钮。
+      (function () {
+        const modal = document.getElementById('previewModal');
+        const img = document.getElementById('previewImg');
+        const title = document.getElementById('previewTitle');
+        if (!modal || !img || !title) return;
+        const close = () => {
+          modal.hidden = true;
+          img.removeAttribute('src');
+          title.textContent = '';
+        };
+        document.getElementById('previewMask')?.addEventListener('click', close);
+        document.getElementById('previewClose')?.addEventListener('click', close);
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape' && !modal.hidden) close();
+        });
+        document.addEventListener('click', (event) => {
+          const trigger = event.target.closest('[data-preview-src]');
+          if (!trigger) return;
+          event.preventDefault();
+          event.stopPropagation();
+          const src = trigger.getAttribute('data-preview-src');
+          if (!src) return;
+          img.src = src;
+          img.alt = trigger.getAttribute('data-preview-title') || '素材预览';
+          title.textContent = trigger.getAttribute('data-preview-title') || '';
+          modal.hidden = false;
+        }, true);
+      })();
 
       // 卡片下载：当前页小弹窗展示网盘链接，不跳详情页
       (function () {
@@ -705,6 +903,8 @@ const cloudWords = [
         const confirm = intro.querySelector('.ia-confirm');
         const submit = document.getElementById('iaSubmit');
         const err = document.getElementById('iaErr');
+        const agreeWrap = document.getElementById('iaAgreeWrap');
+        const agreeInput = agreeWrap?.querySelector('input');
         const auth = document.getElementById('introAuth');
         const captchaToken = document.getElementById('iaCaptchaToken');
         const captchaAnswer = document.getElementById('iaCaptchaAnswer');
@@ -740,7 +940,9 @@ const cloudWords = [
           mode = nextMode === 'login' ? 'login' : 'register';
           intro.querySelectorAll('.ia-tab').forEach((x) => x.classList.toggle('active', x.dataset.mode === mode));
           confirm.style.display = mode === 'register' ? 'block' : 'none';
-          submit.textContent = mode === 'register' ? '注册并进入 →' : '登录并进入 →';
+          if (agreeWrap) agreeWrap.style.display = mode === 'register' ? 'flex' : 'none';
+          if (agreeInput) agreeInput.required = mode === 'register';
+          submit.textContent = mode === 'register' ? '同意并继续 →' : '登录并进入 →';
           err.textContent = '';
           loadCaptcha();
         };
@@ -783,6 +985,7 @@ const cloudWords = [
           const captcha = (f.get('captchaAnswer') || '').toString().trim();
           if (!u || !p) { err.textContent = '请输入用户名和密码'; return; }
           if (mode === 'register' && p !== c) { err.textContent = '两次密码不一致'; return; }
+          if (mode === 'register' && !agreeInput?.checked) { err.textContent = '请先阅读并同意用户协议。'; return; }
           if (!captcha) { err.textContent = '请输入验证码'; return; }
           try {
             const res = await fetch(mode === 'register' ? '/api/member/register' : '/api/member/login', {
@@ -794,6 +997,7 @@ const cloudWords = [
                 password: p,
                 captchaToken: (f.get('captchaToken') || '').toString(),
                 captchaAnswer: captcha,
+                agreementAccepted: mode === 'register' ? (agreeInput?.checked ? '1' : '') : undefined,
               }),
             });
             const data = await res.json();
@@ -821,6 +1025,7 @@ const cloudWords = [
         waitIntro();
         const close = () => { mask.hidden = true; sessionStorage.setItem('xdd-promo', '1'); };
         document.getElementById('promoClose')?.addEventListener('click', close);
+        document.getElementById('promoCtaClose')?.addEventListener('click', close);
         mask.addEventListener('click', (e) => { if (e.target === mask) close(); });
       })();
 
@@ -957,10 +1162,27 @@ const cloudWords = [
         openBtn?.addEventListener('click', open);
       })();
 
-      // 移动端汉堡菜单
-      document.getElementById('navBurger')?.addEventListener('click', () => {
-        document.getElementById('navMain')?.classList.toggle('open');
-      });
+      // 移动端抽屉菜单
+      (function () {
+        const drawer = document.getElementById('mobileDrawer');
+        const btn = document.getElementById('navBurger');
+        if (!drawer || !btn) return;
+        const open = () => {
+          drawer.hidden = false;
+          requestAnimationFrame(() => drawer.classList.add('open'));
+          document.body.classList.add('mobile-drawer-open');
+          btn.setAttribute('aria-expanded', 'true');
+        };
+        const close = () => {
+          drawer.classList.remove('open');
+          document.body.classList.remove('mobile-drawer-open');
+          btn.setAttribute('aria-expanded', 'false');
+          setTimeout(() => { if (!drawer.classList.contains('open')) drawer.hidden = true; }, 180);
+        };
+        btn.addEventListener('click', () => drawer.classList.contains('open') ? close() : open());
+        drawer.querySelectorAll('[data-mobile-close]').forEach((el) => el.addEventListener('click', close));
+        window.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+      })();
 
       // 左侧导航 收起/展开（记忆状态）
       (function () {
@@ -992,7 +1214,7 @@ const cloudWords = [
             // Guests may browse the site. Download APIs still require a member account.
           })
           .catch(() => {});
-        document.getElementById('memberLogout')?.addEventListener('click', async (event) => {
+        document.querySelectorAll('.nav-logout').forEach((logoutLink) => logoutLink.addEventListener('click', async (event) => {
           event.preventDefault();
           const logout = event.currentTarget;
           logout.setAttribute('aria-disabled', 'true');
@@ -1005,18 +1227,24 @@ const cloudWords = [
           localStorage.removeItem('xdd-entered');
           sessionStorage.removeItem('xdd-promo');
           window.location.replace('/');
-        });
+        }));
       })();
 
       // 右侧消息抽屉（铃铛）
       (function () {
         const bell = document.getElementById('noticeBell');
+        const openers = document.querySelectorAll('#noticeBell, [data-notice-open]');
         const drawer = document.getElementById('noticeDrawer');
         const mask = document.getElementById('noticeMask');
-        if (!bell || !drawer || !mask) return;
-        const open = () => { drawer.classList.add('open'); mask.hidden = false; drawer.setAttribute('aria-hidden', 'false'); bell.querySelector('.notice-bell-dot')?.classList.add('hide'); };
+        if (!openers.length || !drawer || !mask) return;
+        const open = () => {
+          drawer.classList.add('open');
+          mask.hidden = false;
+          drawer.setAttribute('aria-hidden', 'false');
+          document.querySelectorAll('.notice-bell-dot, .mh-dot').forEach((dot) => dot.classList.add('hide'));
+        };
         const close = () => { drawer.classList.remove('open'); mask.hidden = true; drawer.setAttribute('aria-hidden', 'true'); };
-        bell.addEventListener('click', () => drawer.classList.contains('open') ? close() : open());
+        openers.forEach((opener) => opener.addEventListener('click', () => drawer.classList.contains('open') ? close() : open()));
         document.getElementById('noticeClose')?.addEventListener('click', close);
         mask.addEventListener('click', close);
         drawer.querySelectorAll('.notice-tab').forEach((tab) => {
@@ -1026,6 +1254,55 @@ const cloudWords = [
             drawer.querySelectorAll('.notice-pane').forEach((p) => p.classList.toggle('active', p.dataset.pane === k));
           });
         });
+      })();
+
+      // 互动消息：管理员回复用户反馈后，登录用户在这里看到。
+      (function () {
+        const list = document.getElementById('interactiveNoticeList');
+        const pane = document.querySelector('.notice-pane[data-pane="interactive"]');
+        if (!list || !pane) return;
+        const empty = pane.querySelector('.notice-empty');
+        const tabDot = document.querySelector('.notice-tab[data-tab="interactive"] .notice-tab-dot');
+        const setEmpty = (text) => {
+          if (empty) {
+            empty.hidden = false;
+            empty.textContent = text;
+          }
+          list.replaceChildren();
+          tabDot?.remove();
+        };
+        const addMessage = (item) => {
+          const row = document.createElement('div');
+          row.className = 'notice-item';
+          const ava = document.createElement('span');
+          ava.className = 'notice-ava';
+          ava.textContent = '回';
+          const body = document.createElement('div');
+          body.className = 'notice-it-body';
+          const title = document.createElement('div');
+          title.className = 'notice-it-title';
+          title.textContent = item.title || '你的反馈已回复';
+          const text = document.createElement('div');
+          text.className = 'notice-it-text';
+          text.textContent = item.body || '';
+          const date = document.createElement('div');
+          date.className = 'notice-it-date';
+          date.textContent = item.date || '';
+          body.append(title, text, date);
+          row.append(ava, body);
+          list.appendChild(row);
+        };
+        fetch('/api/member/messages', { credentials:'include', cache:'no-store' })
+          .then((r) => r.json())
+          .then((data) => {
+            const rows = Array.isArray(data.rows) ? data.rows : [];
+            if (!data.logged) { setEmpty('登录后查看互动消息'); return; }
+            if (!rows.length) { setEmpty('暂无互动消息'); return; }
+            if (empty) empty.hidden = true;
+            list.replaceChildren();
+            rows.forEach(addMessage);
+          })
+          .catch(() => setEmpty('互动消息暂时读取失败'));
       })();
       // 字号调节（阅读模式）：缩放 main 内容，记忆到 localStorage
       (function () {
@@ -1151,11 +1428,27 @@ const cloudWords = [
           }
           modal.hidden = false;
         }
+        const downloadRequests = new Map();
+        function fetchDownload(id) {
+          const key = String(id || '');
+          if (!key) return Promise.reject(new Error('missing download id'));
+          if (!downloadRequests.has(key)) {
+            downloadRequests.set(key, fetch('/api/download/' + encodeURIComponent(key), {
+              credentials:'include',
+              cache:'no-store',
+            }).then(async (res) => ({ res, data: await res.json().catch(() => ({})) })));
+          }
+          return downloadRequests.get(key);
+        }
+        function prefetchDownloadFrom(el) {
+          const card = el?.closest?.('[data-card-id]');
+          const id = el?.dataset?.downloadId || card?.dataset?.cardId;
+          if (id) void fetchDownload(id).catch(() => downloadRequests.delete(String(id)));
+        }
         async function doDownload(id, title) {
           openLoading(title);
           try {
-            const res = await fetch('/api/download/' + encodeURIComponent(id), { credentials:'include' });
-            const data = await res.json().catch(() => ({}));
+            const { res, data } = await fetchDownload(id);
             if (res.status === 401) return openState('请先登录或注册', '游客可以浏览素材，查看网盘链接需要账号。', { text:'去登录', href:'/member/login' });
             if (res.status === 429) return openState('今日下载已达上限', data.message || '每个账号每天最多下载 30 个素材，明天再来。');
             if (res.status === 403) return openState('暂时无法下载', data.message || '当前账号暂无下载权限。');
@@ -1165,32 +1458,72 @@ const cloudWords = [
             openState('网络错误', '请刷新后重试。');
           }
         }
-        // 委托：资源卡片和「下载」按钮都不进入详情页，直接弹出下载链接
+        // 委托：只有「下载」按钮读取网盘链接；封面点击交给图片预览。
         document.addEventListener('click', (e) => {
-          const trigger = e.target.closest('.btn-dl, a[data-card-id], a[href^="/d/"]');
+          const trigger = e.target.closest('.btn-dl');
           if (!trigger) return;
-          const card = trigger.closest('[data-card-id], a[href^="/d/"]');
-          const href = trigger.matches?.('a[href^="/d/"]') ? trigger.getAttribute('href') : (card?.getAttribute?.('href') || '');
-          const m = href.match(/\/d\/(\d+)/);
-          const id = trigger.dataset?.downloadId || card?.dataset?.cardId || m?.[1];
+          const card = trigger.closest('[data-card-id]');
+          const id = trigger.dataset?.downloadId || card?.dataset?.cardId;
           if (!id) return;
           e.preventDefault(); e.stopPropagation();
           const title = card?.querySelector?.('.card-title,.rank-title')?.textContent || trigger.dataset?.title || trigger.textContent || '';
           doDownload(id, title);
         }, true);
+        document.addEventListener('pointerover', (e) => {
+          const trigger = e.target.closest?.('.btn-dl');
+          if (trigger) prefetchDownloadFrom(trigger);
+        }, { passive: true });
+        document.addEventListener('focusin', (e) => {
+          const trigger = e.target.closest?.('.btn-dl');
+          if (trigger) prefetchDownloadFrom(trigger);
+        });
         const initialDownload = new URLSearchParams(window.location.search).get('download');
         if (initialDownload) {
-          setTimeout(() => doDownload(initialDownload, '资源下载'), 120);
+          setTimeout(() => {
+            doDownload(initialDownload, '资源下载');
+          }, 120);
         }
       })();
 
       // 主题切换（默认深色，记忆到 localStorage）
       const root = document.documentElement;
+      (function () {
+        const key = 'xdd-ui-mode';
+        const btn = document.getElementById('viewportModeBtn');
+        const apply = (mode) => {
+          const next = mode === 'mobile' ? 'mobile' : 'auto';
+          root.setAttribute('data-ui-mode', next);
+          if (next === 'mobile') localStorage.setItem(key, next);
+          else localStorage.removeItem(key);
+          if (btn) {
+            btn.classList.toggle('active', next === 'mobile');
+            btn.setAttribute('aria-pressed', String(next === 'mobile'));
+            btn.querySelector('.viewport-mode-text').textContent = next === 'mobile' ? '退出手机' : '手机适配';
+          }
+          window.dispatchEvent(new Event('resize'));
+        };
+        apply(localStorage.getItem(key));
+        btn?.addEventListener('click', () => {
+          apply(root.getAttribute('data-ui-mode') === 'mobile' ? 'auto' : 'mobile');
+        });
+        document.querySelectorAll('[data-exit-mobile]').forEach((exit) => {
+          exit.addEventListener('click', () => apply('auto'));
+        });
+      })();
       root.setAttribute('data-theme', localStorage.getItem('xdd-theme') || 'dark');
-      document.getElementById('themeToggle')?.addEventListener('click', () => {
-        const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      const drawerThemeSwitch = document.getElementById('drawerThemeSwitch');
+      const syncThemeSwitch = () => drawerThemeSwitch?.classList.toggle('on', root.getAttribute('data-theme') !== 'light');
+      const setTheme = (next) => {
         root.setAttribute('data-theme', next);
         localStorage.setItem('xdd-theme', next);
+        syncThemeSwitch();
+      };
+      syncThemeSwitch();
+      document.getElementById('themeToggle')?.addEventListener('click', () => {
+        setTheme(root.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+      });
+      document.getElementById('drawerThemeToggle')?.addEventListener('click', () => {
+        setTheme(root.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
       });
 
       // 左侧侧栏 收起/展开

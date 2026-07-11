@@ -6,7 +6,7 @@ import {
   getMemberDailyDownloadUsage,
   recordMemberDownload,
 } from '../../../lib/content';
-import { getMemberById, MEMBER_COOKIE, verifyMemberToken } from '../../../lib/member';
+import { MEMBER_COOKIE, verifyMemberToken } from '../../../lib/member';
 import { fail, ok } from '../../../lib/api';
 import { clientIp, rateLimit } from '../../../lib/ratelimit';
 import { sanitizeDownloadFiles } from '../../../lib/security';
@@ -15,15 +15,14 @@ export const GET: APIRoute = async ({ params, request }) => {
   const limited = rateLimit(`download:${clientIp(request)}`, 60, 60_000);
   if (!limited.ok) return fail('操作太频繁，请稍后再试', 429);
 
+  const memberId = verifyMemberToken(cookieValue(request.headers, MEMBER_COOKIE));
+  if (!memberId) return fail('请先登录后下载', 401);
+
   const id = Number(params.id);
   const item = await getDownloadById(id);
   if (!item) return fail('资源不存在', 404);
 
-  const memberId = verifyMemberToken(cookieValue(request.headers, MEMBER_COOKIE));
-  const member = memberId ? await getMemberById(memberId) : null;
-  if (!member) return fail('请先登录后下载', 401);
-
-  const usage = await getMemberDailyDownloadUsage(member.id, item.id);
+  const usage = await getMemberDailyDownloadUsage(memberId, item.id);
   if (!usage.alreadyDownloaded && usage.count >= DAILY_DOWNLOAD_LIMIT) {
     return fail(`今日免费下载次数已用完，每个账号每天最多下载 ${DAILY_DOWNLOAD_LIMIT} 个素材。`, 429);
   }
@@ -38,10 +37,10 @@ export const GET: APIRoute = async ({ params, request }) => {
   const safeFiles = sanitizeDownloadFiles(visibleFiles);
   if (!safeFiles.length) return fail('该资源暂未配置可用下载链接', 404);
 
-  try {
-    await recordMemberDownload(member.id, item);
-  } catch (error) {
-    console.warn('record download failed', error);
+  if (!usage.alreadyDownloaded) {
+    void recordMemberDownload(memberId, item, true).catch((error) => {
+      console.warn('record download failed', error);
+    });
   }
 
   return ok({

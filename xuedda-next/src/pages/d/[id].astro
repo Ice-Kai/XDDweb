@@ -1,4 +1,71 @@
 ---
+import Base from '../../layouts/Base.astro';
+import { getDownloadById, coverUrl } from '../../lib/content';
+
 const id = Number(Astro.params.id || 0);
-return Astro.redirect(id > 0 ? `/?download=${id}` : '/', 302);
+const item = id > 0 ? await getDownloadById(id) : null;
+if (!item) return Astro.redirect('/', 302);
+const cover = coverUrl(item.cover);
+const title = item.title || '素材详情';
+const intro = item.description || item.summary || '精选建筑、室内、景观设计素材，适合 SketchUp、D5、Enscape 等常用设计工作流。';
 ---
+<Base title={`${title} - 薛大大设计网`}>
+  <section class="m-detail">
+    <header class="m-page-head center">
+      <a class="m-icon-btn" href="javascript:history.back()" aria-label="返回">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
+      <strong>素材详情</strong>
+      <button class="m-icon-btn" type="button" aria-label="分享">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12v8h16v-8"/><path d="M12 16V3m0 0 5 5m-5-5-5 5"/></svg>
+      </button>
+    </header>
+
+    <div class="m-detail-preview">
+      {cover ? <img src={cover} alt={title} /> : <i>PREVIEW</i>}
+      <span>免费</span>
+      <button type="button" aria-label="收藏"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-9.2-8.5C.9 9 .9 5.4 3.7 3.5 6.1 1.9 9 2.6 12 5.4c3-2.8 5.9-3.5 8.3-1.9 2.8 1.9 2.8 5.5.9 9C19 16.6 12 21 12 21z"/></svg></button>
+      <div class="m-dots"><b></b><i></i><i></i><i></i></div>
+    </div>
+
+    <div class="m-detail-body">
+      <h1>{title}</h1>
+      <p class="m-rating">★ 4.9 · {item.download_num || item.hits || 0} 次下载</p>
+      <div class="m-info-pills">
+        <span>{item.fileType || 'SKP 格式'}</span>
+        <span>{item.size || '-- MB'}</span>
+        <span>设计素材</span>
+        <span>D5 适配</span>
+      </div>
+
+      <h2>素材介绍</h2>
+      <p class="m-desc">{intro}</p>
+    </div>
+
+    <div class="m-detail-action">
+      <button type="button" class="m-fav-btn">
+        <svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-9.2-8.5C.9 9 .9 5.4 3.7 3.5 6.1 1.9 9 2.6 12 5.4c3-2.8 5.9-3.5 8.3-1.9 2.8 1.9 2.8 5.5.9 9C19 16.6 12 21 12 21z"/></svg>
+        <span>收藏</span>
+      </button>
+      <button type="button" class="m-download-main btn-dl" data-download-id={item.id} data-title={title}>
+        <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"/></svg>
+        <span>立即下载 · 免费</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="detail-page desktop-page">
+    <div class="container detail-wrap">
+      <div class="detail-preview">
+        {cover ? <img src={cover} alt={title} /> : null}
+      </div>
+      <div class="detail-info">
+        <p class="section-label">DETAIL</p>
+        <h1>{title}</h1>
+        <div class="detail-price"><span class="p">免费</span><span>{item.fileType || '设计素材'} · {item.size || '-- MB'}</span></div>
+        <p>{intro}</p>
+        <button class="dl-main btn-dl" type="button" data-download-id={item.id} data-title={title}>立即下载</button>
+      </div>
+    </div>
+  </section>
+</Base>

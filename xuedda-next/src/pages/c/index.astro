@@ -1,0 +1,98 @@
+---
+import Base from '../../layouts/Base.astro';
+
+const entries = [
+  {
+    title: '模型素材',
+    desc: 'SU / MAX 模型',
+    href: '/c/model',
+    tag: 'MODEL',
+    icon: 'M21 16V8l-9-5-9 5v8l9 5 9-5zM3.3 7 12 12l8.7-5M12 22V12',
+    tone: 'cool',
+  },
+  {
+    title: '平面素材',
+    desc: '贴图 / PSD / 文案参考',
+    href: '/c/texture',
+    tag: 'GRAPHIC',
+    icon: 'M3 3h18v18H3zM3 9h18M9 21V9',
+    tone: 'warm',
+  },
+  {
+    title: '软件参数',
+    desc: '插件 / 安装包 / 渲染参数',
+    href: '/c/software',
+    tag: 'SOFT',
+    icon: 'M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8',
+    tone: 'cool',
+  },
+  {
+    title: '视频教程',
+    desc: 'D5 / SU / Enscape 系统课',
+    href: '/c/video',
+    tag: 'COURSE',
+    icon: 'M23 7l-7 5 7 5V7zM1 5h15v14H1z',
+    tone: 'warm',
+  },
+];
+---
+
+<Base title="素材库 - 薛大大设计网">
+  <section class="m-material-hub">
+    <header class="m-page-head center">
+      <a class="m-icon-btn" href="/" aria-label="返回首页">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </a>
+      <strong>素材库</strong>
+      <a class="m-icon-btn" href="/search" aria-label="搜索">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      </a>
+    </header>
+
+    <div class="m-hub-hero">
+      <strong>选择素材类型</strong>
+      <span>先选大类，再进入下一级栏目筛选。</span>
+    </div>
+
+    <div class="m-hub-grid">
+      {entries.map((entry) => (
+        <a href={entry.href} class={`m-hub-card ${entry.tone}`}>
+          <span class="m-hub-bg"></span>
+          <span class="m-hub-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d={entry.icon} /></svg>
+          </span>
+          <span class="m-hub-copy">
+            <em>{entry.tag}</em>
+            <strong>{entry.title}</strong>
+            <small>{entry.desc}</small>
+          </span>
+          <i></i>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <div class="container desktop-page">
+    <div style="padding:42px 0 80px;">
+      <div class="section-head">
+        <div>
+          <p class="section-label">LIBRARY</p>
+          <h1 class="section-title">素材库</h1>
+          <p class="section-desc">选择一个资源大类继续浏览。</p>
+        </div>
+      </div>
+      <div class="quick-entry-grid">
+        {entries.map((entry) => (
+          <a href={entry.href} class="quick-entry-card">
+            <span class="quick-entry-mark">{entry.tag.slice(0, 2)}</span>
+            <span class="quick-entry-copy">
+              <strong>{entry.title}</strong>
+              <em>{entry.desc}</em>
+            </span>
+            <span class="quick-entry-action">进入栏目</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </div>
+</Base>

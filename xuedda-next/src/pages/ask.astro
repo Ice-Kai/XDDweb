@@ -37,11 +37,11 @@ const sorts: { k: string; t: string }[] = [{ k: 'newest', t: '最新' }, { k: 'p
     ) : (
       <div class="grid-5" style="padding:6px 0 60px;">
         {items.map((m: DownloadItem) => (
-          <a href="#" data-card-id={m.id} class="card">
-            <div class="card-img-wrap">
+          <article data-card-id={m.id} class="card">
+            <button class="card-img-wrap" type="button" data-preview-src={coverUrl(m.cover)} data-preview-title={m.title} aria-label={`预览 ${m.title}`}>
               {coverUrl(m.cover) ? <img src={coverUrl(m.cover)} alt={m.title} loading="lazy" /> : null}
               <span class="card-cat cat-arch">免费</span>
-            </div>
+            </button>
             <div class="card-body">
               <h3 class="card-title">{m.title}</h3>
               <p class="card-desc">{m.summary || '暂无简介'}</p>
@@ -50,7 +50,7 @@ const sorts: { k: string; t: string }[] = [{ k: 'newest', t: '最新' }, { k: 'p
                 <span class="card-foot-r"><span class="card-type">{m.fileType || '资源'}</span><span class="btn-dl" data-dl data-download-id={m.id} role="button" tabindex="0">下载</span></span>
               </div>
             </div>
-          </a>
+          </article>
         ))}
       </div>
     )}
