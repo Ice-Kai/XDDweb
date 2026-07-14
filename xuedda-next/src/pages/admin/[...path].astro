@@ -1,4 +1,6 @@
 ---
+Astro.response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+Astro.response.headers.set('Pragma', 'no-cache');
 ---
 <!doctype html>
 <html lang="zh-CN">
@@ -96,6 +98,10 @@
 
       .board { display:grid; grid-template-columns:minmax(0,1fr) 420px; gap:16px; align-items:start; }
       .board.wide-left { grid-template-columns:280px minmax(0,1fr) 420px; }
+      .ai-operations-board { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .ai-operations-board .data-panel { min-width:0; }
+      .ai-operations-board .table-wrap { max-height:380px; }
+      .ai-operations-board table { min-width:680px; }
       .material-console { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; align-items:start; }
       .material-side { position:sticky; top:82px; max-height:calc(100vh - 104px); display:flex; flex-direction:column; }
       .material-side .category-tree { max-height:none; flex:1; }
@@ -323,6 +329,23 @@
       .feedback-meta { display:flex; gap:8px; flex-wrap:wrap; color:var(--muted); font-size:12px; }
       .feedback-body,.feedback-reply { white-space:pre-wrap; line-height:1.7; }
       .feedback-reply { border:1px solid var(--gold-border); border-radius:8px; background:var(--gold-pale); padding:10px; }
+      .hero-admin-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; }
+      .hero-admin-card { border:1px solid var(--line); border-radius:12px; background:var(--panel-2); overflow:hidden; }
+      .hero-admin-head { padding:14px 16px; border-bottom:1px solid var(--line); background:var(--panel); }
+      .hero-admin-head h3 { margin:0; font-size:15px; font-weight:900; }
+      .hero-admin-head p { margin:4px 0 0; color:var(--muted); font-size:12px; }
+      .hero-admin-body { display:grid; gap:12px; padding:14px; }
+      .hero-admin-fields { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+      .hero-admin-fields .wide { grid-column:1 / -1; }
+      .hero-admin-preview { width:100%; aspect-ratio:16/9; border-radius:10px; border:1px solid var(--line); background:#eceef1; object-fit:cover; }
+      .hero-admin-savebar { grid-column:1 / -1; display:flex; align-items:center; justify-content:flex-end; gap:12px; padding:14px; border:1px solid var(--line); border-radius:10px; background:var(--panel); }
+      .hero-panel-list { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+      .hero-panel-card { border:1px solid var(--line); border-radius:12px; background:var(--panel-2); overflow:hidden; }
+      .hero-panel-card-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 14px; border-bottom:1px solid var(--line); background:var(--panel); }
+      .hero-panel-card-head h3 { margin:0; font-size:15px; }
+      .hero-panel-index { display:inline-grid; place-items:center; min-width:28px; height:24px; padding:0 7px; border-radius:999px; background:#18181b; color:#fff; font-size:11px; font-weight:900; }
+      .hero-panel-form { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:14px; }
+      .hero-panel-form .wide { grid-column:1 / -1; }
       .notice-admin-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; }
       .notice-admin-card { border:1px solid var(--line); border-radius:12px; background:var(--panel-2); overflow:hidden; }
       .notice-admin-card.full { grid-column:1 / -1; }
@@ -340,6 +363,9 @@
 
       @media (max-width:1280px) {
         .board,.board.wide-left { grid-template-columns:1fr; }
+        .ai-operations-board { grid-template-columns:1fr; }
+        .hero-admin-grid { grid-template-columns:1fr; }
+        .hero-panel-list { grid-template-columns:1fr; }
         .notice-admin-grid { grid-template-columns:1fr; }
         .material-console,.material-grid { grid-template-columns:1fr; }
         .material-side { position:static; max-height:none; }
@@ -377,6 +403,7 @@
         <div class="brand"><div class="brand-mark">XD</div><div><b>薛大大生态设计</b><span>asset control</span></div></div>
         <div class="side-section">Manage</div>
         <nav class="nav">
+          <button class="nav-btn" data-view="heroPanels" type="button"><span class="nav-left"><span class="nav-ico">H</span><span class="nav-text">首页封面与文案</span></span><span class="nav-count">4 张</span></button>
           <button class="nav-btn active" data-view="dashboard" type="button"><span class="nav-left"><span class="nav-ico">01</span><span class="nav-text">工作台</span></span><span class="nav-count" id="navDashCount">-</span></button>
           <button class="nav-btn" data-view="categories" type="button"><span class="nav-left"><span class="nav-ico">02</span><span class="nav-text">栏目管理</span></span><span class="nav-count" id="navCategoryCount">-</span></button>
           <button class="nav-btn" data-view="contents" type="button"><span class="nav-left"><span class="nav-ico">03</span><span class="nav-text">资源管理</span></span><span class="nav-count" id="navResourceCount">-</span></button>
@@ -384,6 +411,8 @@
           <button class="nav-btn" data-view="notices" type="button"><span class="nav-left"><span class="nav-ico">05</span><span class="nav-text">消息公告</span></span><span class="nav-count" id="navNoticeCount">3</span></button>
           <button class="nav-btn" data-view="users" type="button"><span class="nav-left"><span class="nav-ico">06</span><span class="nav-text">用户管理</span></span><span class="nav-count" id="navUserCount">-</span></button>
           <button class="nav-btn" data-view="logs" type="button"><span class="nav-left"><span class="nav-ico">07</span><span class="nav-text">操作日志</span></span><span class="nav-count" id="navLogCount"></span></button>
+          <button class="nav-btn" data-view="aiOperations" type="button"><span class="nav-left"><span class="nav-ico">08</span><span class="nav-text">AI 与充值</span></span><span class="nav-count">运营</span></button>
+          <button class="nav-btn" data-view="aiModels" type="button"><span class="nav-left"><span class="nav-ico">AI</span><span class="nav-text">AI 模型状态</span></span><span class="nav-count">监控</span></button>
         </nav>
         <div class="side-note">现在按旧 PHP 流程：先维护栏目树，再在指定栏目下新增/编辑资源，支持排序、显示状态、批量移动和分类上传。</div>
       </aside>
@@ -642,6 +671,69 @@
           </div>
         </section>
 
+        <section id="heroPanelsView" class="view">
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title"><h2>首页封面与文案</h2><p>四张轮播逐张独立编辑，图片、文字和按钮互不影响</p></div>
+              <div class="row-actions"><a class="btn ghost" href="/" target="_blank" rel="noopener">预览首页</a><button id="heroPanelsReload" class="btn secondary" type="button">重新读取</button><button id="heroPanelsSaveTop" class="btn" type="button">保存并发布到首页</button></div>
+            </div>
+            <div class="panel-body">
+              <div id="heroPanelRows" class="hero-panel-list"></div>
+              <div class="hero-admin-savebar" style="margin-top:14px;"><p id="heroPanelsMsg" class="message"></p><button id="heroPanelsSave" class="btn" type="button">保存并发布到首页</button></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="homeHeroView" class="view">
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title"><h2>首页封面管理</h2><p>编辑 AI 首屏和课程轮播；保存后刷新首页即可生效</p></div>
+              <div class="row-actions"><a class="btn ghost" href="/" target="_blank" rel="noopener">预览首页</a><button id="homeHeroReload" class="btn secondary" type="button">重新读取</button></div>
+            </div>
+            <div class="panel-body">
+              <div class="hero-admin-grid">
+                <article class="hero-admin-card">
+                  <div class="hero-admin-head"><h3>AI 生图首屏</h3><p>首页默认显示的第一张封面，推荐使用 16:9 图片</p></div>
+                  <div class="hero-admin-body">
+                    <img id="aiHeroPreview" class="hero-admin-preview" alt="AI 生图封面预览" />
+                    <div class="field"><span>封面图片</span><div class="upload-row"><input id="aiHeroImage" class="input" placeholder="/uploads/admin/cover/..." /><button id="aiHeroPick" class="upload-btn" type="button">上传封面</button><input id="aiHeroUpload" class="file-input-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></div></div>
+                    <div class="hero-admin-fields">
+                      <label class="field wide"><span>顶部标签</span><input id="aiHeroTag" class="input" /></label>
+                      <label class="field"><span>主标题第一行</span><input id="aiHeroTitle1" class="input" /></label>
+                      <label class="field"><span>主标题第二行</span><input id="aiHeroTitle2" class="input" /></label>
+                      <label class="field wide"><span>副标题</span><input id="aiHeroSub" class="input" /></label>
+                      <label class="field"><span>主按钮文案</span><input id="aiHeroBtn1Text" class="input" /></label>
+                      <label class="field"><span>主按钮链接</span><input id="aiHeroBtn1Href" class="input" /></label>
+                      <label class="field"><span>次按钮文案</span><input id="aiHeroBtn2Text" class="input" /></label>
+                      <label class="field"><span>次按钮链接</span><input id="aiHeroBtn2Href" class="input" /></label>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="hero-admin-card">
+                  <div class="hero-admin-head"><h3>课程轮播封面</h3><p>每行一个图片地址，可上传后自动追加；所有课程图共用同一套文案</p></div>
+                  <div class="hero-admin-body">
+                    <img id="courseHeroPreview" class="hero-admin-preview" alt="课程轮播封面预览" />
+                    <div class="field"><span>轮播图片地址</span><textarea id="courseHeroSlides" class="textarea" rows="4" placeholder="每行一个图片地址"></textarea><div class="row-actions"><button id="courseHeroPick" class="upload-btn" type="button">上传并添加封面</button><input id="courseHeroUpload" class="file-input-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/gif" /></div></div>
+                    <div class="hero-admin-fields">
+                      <label class="field wide"><span>顶部标签</span><input id="courseHeroTag" class="input" /></label>
+                      <label class="field"><span>主标题第一行</span><input id="courseHeroTitle1" class="input" /></label>
+                      <label class="field"><span>主标题第二行</span><input id="courseHeroTitle2" class="input" /></label>
+                      <label class="field wide"><span>副标题</span><input id="courseHeroSub" class="input" /></label>
+                      <label class="field"><span>主按钮文案</span><input id="courseHeroBtn1Text" class="input" /></label>
+                      <label class="field"><span>主按钮链接</span><input id="courseHeroBtn1Href" class="input" /></label>
+                      <label class="field"><span>次按钮文案</span><input id="courseHeroBtn2Text" class="input" /></label>
+                      <label class="field"><span>次按钮链接</span><input id="courseHeroBtn2Href" class="input" /></label>
+                    </div>
+                  </div>
+                </article>
+
+                <div class="hero-admin-savebar"><p id="homeHeroMsg" class="message"></p><button id="homeHeroSave" class="btn" type="button">保存首页封面</button></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section id="noticesView" class="view">
           <div class="panel">
             <div class="panel-head">
@@ -744,6 +836,57 @@
             <div class="panel-body"><div id="logPager" class="content-pager"></div><p id="logMsg" class="message"></p></div>
           </div>
         </section>
+        <section id="aiOperationsView" class="view">
+          <div class="panel-head ai-operations-head">
+            <div class="panel-title"><h2>AI 与充值</h2><p>查看充值、生图消耗、模型定价，并可快速调整用户积分。</p></div>
+            <button id="aiCreditManage" class="btn" type="button">修改用户积分</button>
+          </div>
+          <div class="dash-grid">
+            <div class="stat-card"><span>累计实收</span><b id="aiPaidAmount">¥0.00</b><small id="aiPaidOrders">0 笔已支付订单</small></div>
+            <div class="stat-card"><span>今日实收</span><b id="aiTodayAmount">¥0.00</b><small id="aiTodayOrders">0 笔订单</small></div>
+            <div class="stat-card"><span>生图总量</span><b id="aiGenerationTotal">0</b><small id="aiGenerationToday">今日 0 次</small></div>
+            <div class="stat-card"><span>成功 / 失败 / 进行中</span><b id="aiGenerationResult">0 / 0 / 0</b><small id="aiConsumedCredits">累计消耗 0 积分</small></div>
+          </div>
+          <div class="board ai-operations-board">
+            <div class="panel data-panel">
+              <div class="panel-head"><div class="panel-title"><h2>最近充值</h2><p>微信支付回调确认后的真实订单</p></div><button id="aiOperationsRefresh" class="btn ghost" type="button">刷新</button></div>
+              <div class="table-wrap"><table><thead><tr><th>时间</th><th>用户 ID</th><th>充值项</th><th>积分</th><th>金额</th><th>状态</th></tr></thead><tbody id="aiOrderRows"></tbody></table></div>
+            </div>
+            <div class="panel data-panel">
+              <div class="panel-head"><div class="panel-title"><h2>最近生图</h2><p>成功、失败与上游错误原因</p></div></div>
+              <div class="table-wrap"><table><thead><tr><th>时间</th><th>用户 ID</th><th>模型</th><th>积分</th><th>状态</th><th>结果</th></tr></thead><tbody id="aiGenerationRows"></tbody></table></div>
+            </div>
+          </div>
+          <div class="panel" style="margin-top:14px;">
+            <div class="panel-head"><div class="panel-title"><h2>API 渠道</h2><p>密钥加密存储，只显示首尾字符；启用渠道会参与自动轮询。</p></div><button id="aiChannelNew" class="btn" type="button">新增渠道</button></div>
+            <div class="panel-body">
+              <form id="aiChannelForm" class="form-grid" style="margin-bottom:14px;">
+                <input id="aiChannelId" type="hidden" />
+                <label class="field"><span>渠道名称</span><input id="aiChannelName" class="input" placeholder="例如 ZEX 主通道" required /></label>
+                <label class="field"><span>中转站网址</span><input id="aiChannelUrl" class="input" type="url" placeholder="https://zexapi.com/v1" required /></label>
+                <label class="field"><span>API 密钥</span><input id="aiChannelKey" class="input" type="password" autocomplete="new-password" placeholder="编辑时留空代表不更换" /></label>
+                <label class="field"><span>优先级</span><input id="aiChannelPriority" class="input" type="number" min="0" value="100" /></label>
+                <label class="field"><span>状态</span><select id="aiChannelEnabled" class="select"><option value="1">启用并参与轮询</option><option value="0">停用</option></select></label>
+                <div class="drawer-actions wide"><button class="btn" type="submit">保存渠道</button><button id="aiChannelReset" class="btn ghost" type="button">清空</button></div>
+              </form>
+              <p id="aiChannelMsg" class="message"></p>
+            </div>
+            <div class="table-wrap"><table><thead><tr><th>名称</th><th>中转网址</th><th>密钥</th><th>优先级</th><th>状态</th><th>操作</th></tr></thead><tbody id="aiChannelRows"></tbody></table></div>
+          </div>
+        </section>
+
+        <section id="aiModelsView" class="view">
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title"><h2>AI 模型状态</h2><p>真实返图成功自动点亮；404、连续超时或上游错误会自动置灰。</p></div><button id="aiModelsRefresh" class="btn ghost" type="button">刷新状态</button></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>模型</th><th>清晰度</th><th>积分价格</th><th>前台状态</th><th>最后检测</th><th>操作</th></tr></thead>
+                <tbody id="aiModelRows"></tbody>
+              </table>
+            </div>
+            <div class="panel-body"><p id="aiModelsMsg" class="message">模型状态存入 MySQL；重新开放后会由下一次真实生成自动复核。</p></div>
+          </div>
+        </section>
       </main>
 
       <div id="userOverlay" class="drawer-overlay hide"></div>
@@ -768,8 +911,10 @@
 
     <script>
       const $ = (id) => document.getElementById(id);
-      const state = { admin:null, stats:{}, categories:[], contentRows:[], selectedContentIds:new Set(), contentPage:1, feedbackPage:1, currentView:'dashboard', activeCategoryId:0, batchItems:[], expandedCats:new Set(), userRows:[], userPage:1, currentUserId:0, logRows:[], logPage:1, linkStatus:{}, lastCheckIndex:-1, noticeSettings:null };
+      const state = { admin:null, stats:{}, categories:[], contentRows:[], selectedContentIds:new Set(), contentPage:1, feedbackPage:1, currentView:'dashboard', activeCategoryId:0, batchItems:[], expandedCats:new Set(), userRows:[], userPage:1, currentUserId:0, logRows:[], logPage:1, linkStatus:{}, lastCheckIndex:-1, noticeSettings:null, homeHeroSettings:null, heroPanels:[] };
       const viewCopy = {
+        heroPanels:['首页封面与文案','四张轮播逐张替换图片、文字和按钮'],
+        homeHero:['首页封面','编辑 AI 生图首屏、课程轮播图片和文案'],
         dashboard:['工作台','站点数据与近期维护动作'],
         categories:['栏目管理','新增、删减、排序和管理分类树'],
         contents:['资源管理','按栏目上传、筛选、移动和维护资源'],
@@ -777,6 +922,8 @@
         notices:['消息公告','编辑版本公告、官方消息与进站弹窗'],
         users:['用户管理','积分、会员、下载记录与登录时间'],
         logs:['操作日志','后台新增 / 编辑 / 隐藏等动作记录'],
+        aiOperations:['AI 与充值','查看真实充值、生图消耗和维护 API 轮询渠道'],
+        aiModels:['AI 模型状态','自动监测生图通道，异常时前台自动置灰'],
       };
       const DEFAULT_NOTICE_SETTINGS = {
         version: [
@@ -788,6 +935,28 @@
         ],
         popup: { enabled:false, title:'官方消息', body:'资源库整理更新中，模型、贴图、PSD素材、软件参数与视频教程会陆续补全。', image:'', link:'', cta:'知道了' },
       };
+      const DEFAULT_AI_HERO_SETTINGS = {
+        image:'/hero/hero-ai-cover.webp',
+        tag:'XDESIGN AI STUDIO · AI 生图正式上线',
+        titleL1:'AI 生图新功能', titleL2:'现在就能体验',
+        sub:'多模型生图 · 参考图创作 · 生成记录自动保存',
+        btn1:{ text:'立即体验 AI 生图', href:'/ai-studio/' },
+        btn2:{ text:'注册领取 100 积分', href:'/member/register' },
+      };
+      const DEFAULT_COURSE_HERO_SETTINGS = {
+        slides:['/hero/hero-1.jpg','/hero/hero-2.jpg','/hero/hero-3.jpg'],
+        tag:'薛大大推荐 · D5 RENDER 全套教程',
+        titleL1:'从入门到拟真', titleL2:'实战项目教学',
+        sub:'Photorealistic · Systematic · Project-based',
+        btn1:{ text:'立即进入课程', href:'/c/video' },
+        btn2:{ text:'浏览资源库', href:'/c/model' },
+      };
+      const DEFAULT_HERO_PANELS = [
+        { image:'/hero/hero-ai-p2.webp', tag:'XDESIGN AI STUDIO · AI 生图正式上线', titleL1:'AI 生图新功能', titleL2:'现在就能体验', sub:'多模型生图 · 参考图创作 · 生成记录自动保存', btn1:{text:'立即体验 AI 生图',href:'/ai-studio/'}, btn2:{text:'注册领取 100 积分',href:'/member/register'}, kind:'ai' },
+        { image:'/hero/hero-1.jpg', tag:'薛大大推荐 · D5 RENDER 全套教程', titleL1:'从入门到拟真', titleL2:'实战项目教学', sub:'Photorealistic · Systematic · Project-based', btn1:{text:'立即进入课程',href:'/c/video'}, btn2:{text:'浏览资源库',href:'/c/model'}, kind:'course' },
+        { image:'/hero/hero-2.jpg', tag:'XUEDDA · 网站内容上新', titleL1:'薛大大网站上新', titleL2:'新资源每天持续更新', sub:'建筑 · 室内 · 景观 · 工装模型与设计素材', btn1:{text:'查看最新上架',href:'/c/model'}, btn2:{text:'进入资源目录',href:'/search'}, kind:'new' },
+        { image:'/hero/hero-3.jpg', tag:'XDESIGN RESOURCE LIBRARY', titleL1:'设计资源持续更新', titleL2:'找模型与素材更直接', sub:'SU 模型 · 平面素材 · 软件参数 · 视频教程', btn1:{text:'浏览模型素材',href:'/c/model'}, btn2:{text:'观看视频教程',href:'/c/video'}, kind:'resource' },
+      ];
       const modelNames = { download:'下载资源', course:'课程', article:'文章', picture:'图集', link:'链接', video:'观看', mp4:'视频', question:'问答', page:'单页' };
       const DESIGN_CATEGORY_GROUPS = [
         { key:'arch', name:'建筑', ids:[108, 342, 348, 349, 288] },
@@ -972,9 +1141,13 @@
         if (name === 'categories') renderCategories();
         if (name === 'contents') loadContents();
         if (name === 'feedback') loadFeedback();
+        if (name === 'heroPanels') loadHeroPanels();
+        if (name === 'homeHero') loadHomeHero();
         if (name === 'notices') loadNotices();
         if (name === 'users') loadUsers();
         if (name === 'logs') loadLogs();
+        if (name === 'aiOperations') loadAiOperations();
+        if (name === 'aiModels') loadAiModels();
       }
       function updateCounts() {
         $('navDashCount').textContent = '4';
@@ -1005,6 +1178,124 @@
         $('sMembers').textContent = text(state.stats.members ?? '-');
         $('sFeedback').textContent = text(state.stats.feedback ?? '-');
         updateCounts();
+      }
+      function moneyFromFen(value) { return `¥${(Number(value || 0) / 100).toFixed(2)}`; }
+      function resetAiChannelForm() {
+        $('aiChannelId').value = '';
+        $('aiChannelName').value = '';
+        $('aiChannelUrl').value = 'https://zexapi.com/v1';
+        $('aiChannelKey').value = '';
+        $('aiChannelPriority').value = '100';
+        $('aiChannelEnabled').value = '1';
+      }
+      async function loadAiChannels() {
+        const data = await api('/api/admin/ai-channels');
+        const tbody = $('aiChannelRows'); tbody.replaceChildren();
+        if (!(data.channels || []).length) {
+          const tr = document.createElement('tr'); const td = el('td', 'empty', '尚未在后台保存渠道，当前继续使用服务器环境变量。'); td.colSpan = 6; tr.appendChild(td); tbody.appendChild(tr); return;
+        }
+        for (const channel of data.channels || []) {
+          const tr = document.createElement('tr');
+          tr.appendChild(el('td', '', channel.name));
+          tr.appendChild(el('td', 'resource-sub', channel.baseUrl));
+          tr.appendChild(el('td', '', channel.keyHint || '已加密'));
+          tr.appendChild(el('td', '', channel.priority));
+          const status = el('td'); status.appendChild(el('span', `pill ${channel.enabled ? 'ok' : 'bad'}`, channel.enabled ? '启用' : '停用')); tr.appendChild(status);
+          const actions = el('td');
+          const edit = el('button', 'btn ghost small', '编辑'); edit.type = 'button'; edit.onclick = () => {
+            $('aiChannelId').value = channel.id; $('aiChannelName').value = channel.name; $('aiChannelUrl').value = channel.baseUrl; $('aiChannelKey').value = ''; $('aiChannelPriority').value = channel.priority; $('aiChannelEnabled').value = channel.enabled ? '1' : '0'; $('aiChannelName').focus();
+          };
+          const remove = el('button', 'btn danger small', '删除'); remove.type = 'button'; remove.onclick = async () => {
+            if (!confirm(`确定删除渠道“${channel.name}”吗？`)) return;
+            await api('/api/admin/ai-channels', json('DELETE', { id:channel.id }));
+            setMsg('aiChannelMsg', '渠道已删除', 'ok'); await loadAiChannels();
+          };
+          actions.append(edit, remove); tr.appendChild(actions); tbody.appendChild(tr);
+        }
+      }
+      async function loadAiOperations() {
+        setMsg('aiChannelMsg', '正在读取运营数据…');
+        try {
+          const data = await api('/api/admin/credits');
+          const orders = data.orderSummary || {}, generations = data.generationSummary || {};
+          $('aiPaidAmount').textContent = moneyFromFen(orders.paid_amount_fen);
+          $('aiPaidOrders').textContent = `${Number(orders.paid_orders || 0)} 笔已支付订单`;
+          $('aiTodayAmount').textContent = moneyFromFen(orders.today_amount_fen);
+          $('aiTodayOrders').textContent = `${Number(orders.today_orders || 0)} 笔订单`;
+          $('aiGenerationTotal').textContent = Number(generations.total_generations || 0);
+          $('aiGenerationToday').textContent = `今日 ${Number(generations.today_generations || 0)} 次`;
+          $('aiGenerationResult').textContent = `${Number(generations.completed_generations || 0)} / ${Number(generations.failed_generations || 0)} / ${Number(generations.processing_generations || 0)}`;
+          $('aiConsumedCredits').textContent = `累计消耗 ${Number(generations.consumed_credits || 0)} 积分`;
+          const orderRows = $('aiOrderRows'); orderRows.replaceChildren();
+          for (const row of data.recentOrders || []) {
+            const tr = document.createElement('tr');
+            tr.appendChild(el('td', '', fmtDateTime(row.paid_at || row.created_at))); tr.appendChild(el('td', '', row.member_id)); tr.appendChild(el('td', '', row.product_name)); tr.appendChild(el('td', '', row.credits)); tr.appendChild(el('td', '', moneyFromFen(row.amount_fen)));
+            const status = el('td'); status.appendChild(el('span', `pill ${row.status === 'paid' ? 'ok' : row.status === 'failed' ? 'bad' : 'warn'}`, row.status)); tr.appendChild(status); orderRows.appendChild(tr);
+          }
+          const generationRows = $('aiGenerationRows'); generationRows.replaceChildren();
+          for (const row of data.recentGenerations || []) {
+            const tr = document.createElement('tr');
+            tr.appendChild(el('td', '', fmtDateTime(row.created_at))); tr.appendChild(el('td', '', row.member_id)); tr.appendChild(el('td', '', row.provider_model || '—')); tr.appendChild(el('td', '', row.credit_cost));
+            const status = el('td'); status.appendChild(el('span', `pill ${row.status === 'completed' ? 'ok' : row.status === 'failed' ? 'bad' : 'warn'}`, row.status)); tr.appendChild(status);
+            tr.appendChild(el('td', 'resource-sub', row.error_message || (row.status === 'completed' ? '已返图' : '等待中'))); generationRows.appendChild(tr);
+          }
+          await loadAiChannels();
+          setMsg('aiChannelMsg', '运营数据和 API 渠道已更新', 'ok');
+        } catch (error) { setMsg('aiChannelMsg', error.message || '读取运营数据失败', 'error'); }
+      }
+      function aiStatusText(status) {
+        return status === 'available' ? '可用' : status === 'degraded' ? '异常' : '已置灰';
+      }
+      function aiStatusClass(status) {
+        return status === 'available' ? 'ok' : status === 'degraded' ? 'warn' : 'error';
+      }
+      async function loadAiModels() {
+        setMsg('aiModelsMsg', '正在读取模型健康状态...');
+        try {
+          const data = await api('/api/admin/ai-models');
+          const rows = $('aiModelRows'); rows.replaceChildren();
+          for (const model of data.models || []) for (const resolution of model.resolutions || []) {
+            const tr = document.createElement('tr');
+            tr.appendChild(el('td', '', model.label));
+            tr.appendChild(el('td', '', resolution.value));
+            const priceCell = el('td');
+            const priceGroup = el('div', 'row-actions');
+            const priceInput = document.createElement('input');
+            priceInput.className = 'input mono';
+            priceInput.type = 'number'; priceInput.min = '1'; priceInput.max = '100000'; priceInput.step = '1';
+            priceInput.value = String(resolution.creditCost || 1);
+            priceInput.style.width = '92px';
+            const savePrice = el('button', 'btn secondary small', '保存价格');
+            savePrice.type = 'button';
+            savePrice.onclick = async () => {
+              savePrice.disabled = true;
+              try {
+                await api('/api/admin/ai-models', json('POST', { action:'price', model:model.id, resolution:resolution.value, creditCost:Number(priceInput.value) }));
+                setMsg('aiModelsMsg', `${model.label} ${resolution.value} 已调整为 ${Number(priceInput.value)} 积分。`, 'ok');
+                await loadAiModels();
+              } catch (error) { setMsg('aiModelsMsg', error.message || '价格保存失败', 'error'); }
+              finally { savePrice.disabled = false; }
+            };
+            priceGroup.append(priceInput, savePrice); priceCell.appendChild(priceGroup); tr.appendChild(priceCell);
+            const status = el('td');
+            status.appendChild(el('span', `pill ${aiStatusClass(resolution.status)}`, aiStatusText(resolution.status)));
+            tr.appendChild(status);
+            tr.appendChild(el('td', '', resolution.lastCheckedAt ? fmtDateTime(resolution.lastCheckedAt) : '尚未进行真实返图'));
+            const actions = el('td');
+            const reopen = el('button', 'btn ghost small', '重新开放'); reopen.type = 'button';
+            reopen.onclick = async () => {
+              reopen.disabled = true;
+              try {
+                await api('/api/admin/ai-models', json('POST', { action:'reset', model:model.id, resolution:resolution.value }));
+                setMsg('aiModelsMsg', `${model.label} ${resolution.value} 已重新开放；下一次真实生成会自动复核。`, 'ok');
+                await loadAiModels();
+              } catch (error) { setMsg('aiModelsMsg', error.message || '更新失败', 'error'); }
+              finally { reopen.disabled = false; }
+            };
+            actions.appendChild(reopen); tr.appendChild(actions); rows.appendChild(tr);
+          }
+          setMsg('aiModelsMsg', '已读取模型健康状态', 'ok');
+        } catch (error) { setMsg('aiModelsMsg', error.message || '读取失败', 'error'); }
       }
       async function loadCategories() {
         const data = await api('/api/admin/categories');
@@ -2032,6 +2323,212 @@
         card.appendChild(actions);
         return card;
       }
+      function cloneHeroPanel(value, index) {
+        const fallback = DEFAULT_HERO_PANELS[index] || DEFAULT_HERO_PANELS[0];
+        const source = value && typeof value === 'object' ? value : fallback;
+        return {
+          ...fallback,
+          ...source,
+          btn1:{ ...fallback.btn1, ...(source.btn1 || {}) },
+          btn2:{ ...fallback.btn2, ...(source.btn2 || {}) },
+          kind:fallback.kind,
+        };
+      }
+      async function loadHeroPanels() {
+        setMsg('heroPanelsMsg', '正在读取四张轮播配置...');
+        const data = await api('/api/admin/settings?key=home_hero_panels');
+        const source = Array.isArray(data.value) ? data.value : [];
+        state.heroPanels = DEFAULT_HERO_PANELS.map((fallback, index) => cloneHeroPanel(source[index] || fallback, index));
+        renderHeroPanels();
+        setMsg('heroPanelsMsg', '四张轮播配置已读取', 'ok');
+      }
+      function renderHeroPanels() {
+        const wrap = $('heroPanelRows');
+        wrap.replaceChildren();
+        const labels = ['AI 生图首屏（P2）', 'D5 教程', '薛大大网站上新', '设计资源更新'];
+        state.heroPanels.forEach((panel, index) => {
+          const card = el('article', 'hero-panel-card');
+          const head = el('div', 'hero-panel-card-head');
+          head.append(el('h3', '', labels[index] || `轮播 ${index + 1}`), el('span', 'hero-panel-index', `P${index + 1}`));
+          const form = el('div', 'hero-panel-form');
+          const preview = document.createElement('img');
+          preview.className = 'hero-admin-preview wide';
+          preview.alt = `${labels[index] || '首页轮播'}预览`;
+          preview.src = panel.image || '';
+          form.appendChild(preview);
+
+          const addInput = (label, value, update, wide = false) => {
+            const field = el('label', `field${wide ? ' wide' : ''}`);
+            field.appendChild(el('span', '', label));
+            const input = el('input', 'input');
+            input.value = value || '';
+            input.addEventListener('input', () => update(input.value.trim()));
+            field.appendChild(input);
+            form.appendChild(field);
+            return input;
+          };
+          const imageField = addInput('封面图片 URL', panel.image, (value) => { panel.image = value; preview.src = value; }, true);
+          const uploadRow = el('div', 'row-actions wide');
+          const uploadButton = el('button', 'upload-btn', '上传并替换这张封面');
+          uploadButton.type = 'button';
+          const uploadInput = document.createElement('input');
+          uploadInput.type = 'file';
+          uploadInput.accept = 'image/jpeg,image/png,image/webp,image/gif';
+          uploadInput.className = 'file-input-hidden';
+          uploadButton.onclick = () => uploadInput.click();
+          uploadInput.onchange = async () => {
+            const file = uploadInput.files?.[0];
+            if (!file) return;
+            const oldText = uploadButton.textContent;
+            try {
+              uploadButton.disabled = true;
+              uploadButton.textContent = '上传中...';
+              const data = await uploadFile('cover', file);
+              panel.image = data.url || '';
+              imageField.value = panel.image;
+              preview.src = panel.image;
+              setMsg('heroPanelsMsg', `第 ${index + 1} 张封面已上传，正在自动发布...`);
+              await saveHeroPanels(`第 ${index + 1} 张封面已保存并发布到首页。`);
+            } catch (error) {
+              setMsg('heroPanelsMsg', error.message || '封面上传失败', 'error');
+            } finally {
+              uploadButton.disabled = false;
+              uploadButton.textContent = oldText;
+              uploadInput.value = '';
+            }
+          };
+          uploadRow.append(uploadButton, uploadInput);
+          form.appendChild(uploadRow);
+          addInput('顶部标签', panel.tag, (value) => { panel.tag = value; }, true);
+          addInput('主标题第一行', panel.titleL1, (value) => { panel.titleL1 = value; });
+          addInput('主标题第二行', panel.titleL2, (value) => { panel.titleL2 = value; });
+          addInput('副标题', panel.sub, (value) => { panel.sub = value; }, true);
+          addInput('主按钮文案', panel.btn1?.text, (value) => { panel.btn1.text = value; });
+          addInput('主按钮链接', panel.btn1?.href, (value) => { panel.btn1.href = value; });
+          addInput('次按钮文案', panel.btn2?.text, (value) => { panel.btn2.text = value; });
+          addInput('次按钮链接', panel.btn2?.href, (value) => { panel.btn2.href = value; });
+          card.append(head, form);
+          wrap.appendChild(card);
+        });
+      }
+      async function saveHeroPanels(successMessage = '四张首页轮播已保存并发布，刷新首页即可看到。') {
+        if (state.heroPanels.length !== 4 || state.heroPanels.some((panel) => !panel.image || !panel.titleL1)) {
+          return setMsg('heroPanelsMsg', '四张封面都需要图片和主标题', 'error');
+        }
+        const buttons = [$('heroPanelsSaveTop'), $('heroPanelsSave')].filter(Boolean);
+        buttons.forEach((button) => { button.disabled = true; });
+        setMsg('heroPanelsMsg', '正在保存四张轮播...');
+        try {
+          await api('/api/admin/settings', json('POST', { key:'home_hero_panels', value:state.heroPanels }));
+          setMsg('heroPanelsMsg', successMessage, 'ok');
+        } finally {
+          buttons.forEach((button) => { button.disabled = false; });
+        }
+      }
+      function cloneHeroSettings(value, defaults, hasSlides = false) {
+        const source = value && typeof value === 'object' ? value : defaults;
+        return {
+          ...(hasSlides ? { slides:Array.isArray(source.slides) && source.slides.length ? source.slides.map(String) : [...defaults.slides] } : { image:String(source.image || defaults.image) }),
+          tag:String(source.tag || defaults.tag),
+          titleL1:String(source.titleL1 || defaults.titleL1),
+          titleL2:String(source.titleL2 || defaults.titleL2),
+          sub:String(source.sub || defaults.sub),
+          btn1:{ ...defaults.btn1, ...(source.btn1 || {}) },
+          btn2:{ ...defaults.btn2, ...(source.btn2 || {}) },
+        };
+      }
+      async function loadHomeHero() {
+        setMsg('homeHeroMsg', '正在读取首页封面配置...');
+        const [aiData, courseData] = await Promise.all([
+          api('/api/admin/settings?key=home_ai_hero'),
+          api('/api/admin/settings?key=home_hero'),
+        ]);
+        state.homeHeroSettings = {
+          ai:cloneHeroSettings(aiData.value, DEFAULT_AI_HERO_SETTINGS),
+          course:cloneHeroSettings(courseData.value, DEFAULT_COURSE_HERO_SETTINGS, true),
+        };
+        renderHomeHero();
+        setMsg('homeHeroMsg', '首页封面配置已读取', 'ok');
+      }
+      function renderHomeHero() {
+        const ai = state.homeHeroSettings?.ai || cloneHeroSettings(null, DEFAULT_AI_HERO_SETTINGS);
+        const course = state.homeHeroSettings?.course || cloneHeroSettings(null, DEFAULT_COURSE_HERO_SETTINGS, true);
+        $('aiHeroImage').value = ai.image || '';
+        $('aiHeroPreview').src = ai.image || '';
+        $('aiHeroTag').value = ai.tag || '';
+        $('aiHeroTitle1').value = ai.titleL1 || '';
+        $('aiHeroTitle2').value = ai.titleL2 || '';
+        $('aiHeroSub').value = ai.sub || '';
+        $('aiHeroBtn1Text').value = ai.btn1?.text || '';
+        $('aiHeroBtn1Href').value = ai.btn1?.href || '';
+        $('aiHeroBtn2Text').value = ai.btn2?.text || '';
+        $('aiHeroBtn2Href').value = ai.btn2?.href || '';
+        $('courseHeroSlides').value = (course.slides || []).join('\n');
+        $('courseHeroPreview').src = course.slides?.[0] || '';
+        $('courseHeroTag').value = course.tag || '';
+        $('courseHeroTitle1').value = course.titleL1 || '';
+        $('courseHeroTitle2').value = course.titleL2 || '';
+        $('courseHeroSub').value = course.sub || '';
+        $('courseHeroBtn1Text').value = course.btn1?.text || '';
+        $('courseHeroBtn1Href').value = course.btn1?.href || '';
+        $('courseHeroBtn2Text').value = course.btn2?.text || '';
+        $('courseHeroBtn2Href').value = course.btn2?.href || '';
+      }
+      function collectHomeHero() {
+        return {
+          ai:{
+            image:$('aiHeroImage').value.trim() || DEFAULT_AI_HERO_SETTINGS.image,
+            tag:$('aiHeroTag').value.trim(), titleL1:$('aiHeroTitle1').value.trim(), titleL2:$('aiHeroTitle2').value.trim(), sub:$('aiHeroSub').value.trim(),
+            btn1:{ text:$('aiHeroBtn1Text').value.trim(), href:$('aiHeroBtn1Href').value.trim() },
+            btn2:{ text:$('aiHeroBtn2Text').value.trim(), href:$('aiHeroBtn2Href').value.trim() },
+          },
+          course:{
+            slides:$('courseHeroSlides').value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean).slice(0, 8),
+            tag:$('courseHeroTag').value.trim(), titleL1:$('courseHeroTitle1').value.trim(), titleL2:$('courseHeroTitle2').value.trim(), sub:$('courseHeroSub').value.trim(),
+            btn1:{ text:$('courseHeroBtn1Text').value.trim(), href:$('courseHeroBtn1Href').value.trim() },
+            btn2:{ text:$('courseHeroBtn2Text').value.trim(), href:$('courseHeroBtn2Href').value.trim() },
+          },
+        };
+      }
+      async function saveHomeHero() {
+        const value = collectHomeHero();
+        if (!value.course.slides.length) return setMsg('homeHeroMsg', '课程轮播至少保留一张图片', 'error');
+        setMsg('homeHeroMsg', '正在保存首页封面...');
+        await Promise.all([
+          api('/api/admin/settings', json('POST', { key:'home_ai_hero', value:value.ai })),
+          api('/api/admin/settings', json('POST', { key:'home_hero', value:value.course })),
+        ]);
+        state.homeHeroSettings = value;
+        setMsg('homeHeroMsg', '首页封面已保存，刷新首页即可看到。', 'ok');
+      }
+      async function uploadHomeHeroImage(input, kind) {
+        const file = input.files?.[0];
+        if (!file) return;
+        const button = $(kind === 'ai' ? 'aiHeroPick' : 'courseHeroPick');
+        const oldText = button.textContent;
+        try {
+          button.disabled = true;
+          button.textContent = '上传中...';
+          setMsg('homeHeroMsg', '正在上传首页封面...');
+          const data = await uploadFile('cover', file);
+          if (kind === 'ai') {
+            $('aiHeroImage').value = data.url || '';
+            $('aiHeroPreview').src = data.url || '';
+          } else {
+            const slides = $('courseHeroSlides').value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
+            slides.push(data.url || '');
+            $('courseHeroSlides').value = slides.filter(Boolean).join('\n');
+            $('courseHeroPreview').src = slides[0] || data.url || '';
+          }
+          setMsg('homeHeroMsg', '封面已上传，确认预览后点击保存首页封面。', 'ok');
+        } catch (error) {
+          setMsg('homeHeroMsg', error.message || '首页封面上传失败', 'error');
+        } finally {
+          button.disabled = false;
+          button.textContent = oldText;
+          input.value = '';
+        }
+      }
       function cloneNoticeSettings(value) {
         const source = value && typeof value === 'object' ? value : DEFAULT_NOTICE_SETTINGS;
         return {
@@ -2192,6 +2689,26 @@
         }
       };
       $('logout').onclick = async () => { await fetch('/api/admin/logout', { method:'POST', credentials:'include' }); location.reload(); };
+      $('aiModelsRefresh').onclick = () => { void loadAiModels(); };
+      $('aiOperationsRefresh').onclick = () => { void loadAiOperations(); };
+      $('aiCreditManage').onclick = () => {
+        setView('users');
+        setTimeout(() => {
+          $('userQ')?.focus();
+          $('userQ')?.scrollIntoView({ block:'center', behavior:'smooth' });
+        }, 0);
+      };
+      $('aiChannelNew').onclick = resetAiChannelForm;
+      $('aiChannelReset').onclick = resetAiChannelForm;
+      $('aiChannelForm').onsubmit = async (event) => {
+        event.preventDefault();
+        try {
+          await api('/api/admin/ai-channels', json('POST', {
+            id:Number($('aiChannelId').value || 0), name:$('aiChannelName').value.trim(), baseUrl:$('aiChannelUrl').value.trim(), apiKey:$('aiChannelKey').value.trim(), priority:Number($('aiChannelPriority').value || 100), enabled:$('aiChannelEnabled').value === '1',
+          }));
+          setMsg('aiChannelMsg', 'API 渠道已安全保存，并会参与后续任务轮询。', 'ok'); resetAiChannelForm(); await loadAiChannels();
+        } catch (error) { setMsg('aiChannelMsg', error.message || '保存渠道失败', 'error'); }
+      };
       document.querySelectorAll('.nav-btn').forEach((button) => button.addEventListener('click', () => setView(button.dataset.view)));
       // ── 用户管理 ──────────────────────────────────────────────
       const LEVEL_NAMES = ['普通会员', '月卡', '季卡/半年卡', '年卡'];
@@ -2436,10 +2953,21 @@
       bindFilePicker('catCoverPick', 'catCoverUpload');
       bindFilePicker('coverPick', 'coverUpload');
       bindFilePicker('resourcePick', 'resourceUpload');
+      bindFilePicker('aiHeroPick', 'aiHeroUpload');
+      bindFilePicker('courseHeroPick', 'courseHeroUpload');
       bindFilePicker('noticePopupPick', 'noticePopupUpload');
       $('catCoverUpload').onchange = (event) => handleUpload(event.currentTarget, 'cover', 'catCover');
       $('coverUpload').onchange = (event) => handleUpload(event.currentTarget, 'cover', 'fCover');
       $('resourceUpload').onchange = (event) => handleUpload(event.currentTarget, 'resource', 'fFileUrl');
+      $('aiHeroUpload').onchange = (event) => uploadHomeHeroImage(event.currentTarget, 'ai');
+      $('courseHeroUpload').onchange = (event) => uploadHomeHeroImage(event.currentTarget, 'course');
+      $('aiHeroImage').oninput = () => { $('aiHeroPreview').src = $('aiHeroImage').value.trim(); };
+      $('courseHeroSlides').oninput = () => { $('courseHeroPreview').src = $('courseHeroSlides').value.split(/\r?\n/).map((value) => value.trim()).find(Boolean) || ''; };
+      $('homeHeroReload').onclick = loadHomeHero;
+      $('homeHeroSave').onclick = saveHomeHero;
+      $('heroPanelsReload').onclick = loadHeroPanels;
+      $('heroPanelsSave').onclick = () => saveHeroPanels();
+      $('heroPanelsSaveTop').onclick = () => saveHeroPanels();
       $('noticePopupUpload').onchange = (event) => uploadNoticePopupImage(event.currentTarget);
       $('noticePopupImage').oninput = () => {
         const url = $('noticePopupImage').value.trim();

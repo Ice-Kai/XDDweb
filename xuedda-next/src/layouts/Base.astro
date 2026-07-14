@@ -17,6 +17,9 @@ const showIntro = isHome && introGateEnabled;
 
 // 并行运行期：旧站入口（在 .env 设 OLD_SITE_URL=https://old.xuedda.com 即显示「旧版」切换链接；未设则不显示）
 const oldSiteUrl = process.env.OLD_SITE_URL || (import.meta.env?.OLD_SITE_URL as string) || '';
+const aiImageEnabled = String(
+  process.env.AI_IMAGE_ENABLED || (import.meta.env?.AI_IMAGE_ENABLED as string) || '',
+).trim().toLowerCase() === 'true';
 
 type NoticeItem = { title: string; body: string; date: string; enabled?: boolean };
 type NoticeSettings = {
@@ -73,19 +76,23 @@ const noticeTabs = [
   { key: 'official', name: '官方消息', items: enabledNoticeItems(noticeSettings.official?.length ? noticeSettings.official : defaultNoticeSettings.official) },
   { key: 'interactive', name: '互动消息', items: [] as NoticeItem[] },
 ];
-const promo = {
-  enabled: Boolean(noticeSettings.popup?.enabled),
-  image: String(noticeSettings.popup?.image || ''),
-  title: String(noticeSettings.popup?.title || '官方消息'),
-  lines: String(noticeSettings.popup?.body || '').split(/\n+/).map((line) => line.trim()).filter(Boolean),
-  cta: String(noticeSettings.popup?.cta || '知道了'),
-  link: String(noticeSettings.popup?.link || ''),
-};
 const aiImageHref =
   process.env.AI_IMAGE_URL ||
   (import.meta.env?.AI_IMAGE_URL as string) ||
   '/ai-image';
-const aiImageDisabled = true;
+const aiImageDisabled = !aiImageEnabled;
+const customPromoEnabled = Boolean(noticeSettings.popup?.enabled);
+const promo = {
+  enabled: customPromoEnabled || aiImageEnabled,
+  image: customPromoEnabled ? String(noticeSettings.popup?.image || '/hero/hero-2.jpg') : '/hero/hero-2.jpg',
+  title: customPromoEnabled ? String(noticeSettings.popup?.title || '官方消息') : '薛大大网站 AI 生图功能上线',
+  lines: String(customPromoEnabled
+    ? noticeSettings.popup?.body || ''
+    : '支持 Image 2 与 Banana 多种模型，模型状态会自动检测。\n生成记录、积分消费和失败退款均可在会员中心查看。')
+    .split(/\n+/).map((line) => line.trim()).filter(Boolean),
+  cta: customPromoEnabled ? String(noticeSettings.popup?.cta || '知道了') : '进入 AI 工作台',
+  link: customPromoEnabled ? String(noticeSettings.popup?.link || '') : aiImageHref,
+};
 
 type P3Group = { name: string; href: string; children: Array<{ name: string; href: string }> };
 type P3Item = { name: string; href: string; groups: P3Group[]; disabled?: boolean };
@@ -149,7 +156,7 @@ function softwareGroupsForNav(tree: CatNode[]): P3Group[] {
 }
 
 const p3NavItems: (P3Item & { icon: string; desc: string })[] = [
-  { name: 'AI生图', href: aiImageHref, groups: [], disabled: aiImageDisabled, icon: 'M21 15l-5-5L5 21M3 3h18v18H3zM8.5 8.5h.01', desc: '暂未开放' },
+  { name: 'AI生图', href: aiImageHref, groups: [], disabled: aiImageDisabled, icon: 'M21 15l-5-5L5 21M3 3h18v18H3zM8.5 8.5h.01', desc: aiImageDisabled ? '服务维护中' : '多模型 AI 创作' },
   { name: '模型素材', href: '/c/model', groups: modelGroupsForNav(modelTree), icon: 'M21 16V8l-9-5-9 5v8l9 5 9-5zM3.3 7 12 12l8.7-5M12 22V12', desc: 'SU / MAX 模型' },
   { name: '平面素材', href: '/c/texture', groups: sectionGroupsForNav(textureTree, 'texture'), icon: 'M3 3h18v18H3zM3 9h18M9 21V9', desc: '贴图 / PSD / 文案' },
   { name: '软件参数', href: '/c/software', groups: softwareGroupsForNav(softwareTree), icon: 'M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8', desc: '建模 / 渲染 / 平面' },
@@ -162,17 +169,17 @@ const lnavGroups = [
     { name: '首页', desc: '推荐 / 最新', href: '/', icon: 'M3 12l9-9 9 9M5 10v10h14V10', badge: 'NEW' },
     { name: '发布需求', desc: '反馈与投稿', href: '/feedback', icon: 'M12 5v14M5 12h14' },
   ] },
-  { label: '看点高级的', icon: 'M12 3l2.2 5.8L20 9l-4.5 3.8 1.5 5.9L12 15.4 7 18.7l1.5-5.9L4 9l5.8-.2L12 3z', items: [
+  { label: '素材资源', icon: 'M12 3l2.2 5.8L20 9l-4.5 3.8 1.5 5.9L12 15.4 7 18.7l1.5-5.9L4 9l5.8-.2L12 3z', items: [
     { name: '模型素材', desc: 'SU / MAX 模型', href: '/c/model', icon: 'M21 16V8l-9-5-9 5v8l9 5 9-5zM3.3 7L12 12l8.7-5M12 22V12' },
     { name: '平面素材', desc: '贴图 / PSD / 文案', href: '/c/texture', icon: 'M3 3h18v18H3zM3 9h18M9 21V9' },
     { name: '软件和参数', desc: '插件 / 预设 / 配置', href: '/c/software', icon: 'M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8' },
   ] },
-  { label: '拿点有用的', icon: 'M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4v14h16V7zM8 7h8', items: [
+  { label: 'AI 工具', icon: 'M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4v14h16V7zM8 7h8', items: [
     { name: 'AI 智能搜索', desc: '模型 / 贴图 / 教程', href: '/ask', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.3-4.3', ai: true },
-    { name: 'AI 生图', desc: '暂未开放', href: aiImageHref, icon: 'M21 15l-5-5L5 21M3 3h18v18H3zM8.5 8.5h.01', ai: true, disabled: aiImageDisabled },
+    { name: 'AI 生图', desc: aiImageDisabled ? '服务维护中' : '多模型 AI 创作', href: aiImageHref, icon: 'M21 15l-5-5L5 21M3 3h18v18H3zM8.5 8.5h.01', ai: true, disabled: aiImageDisabled },
     { name: 'AI 问答', desc: '设计问题快速问', href: '/chat', icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z', ai: true },
   ] },
-  { label: '学点真干货', icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z', items: [
+  { label: '学习中心', icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z', items: [
     { name: '视频教程', desc: '渲染 / 建模 / 实战', href: '/c/video', icon: 'M23 7l-7 5 7 5V7zM1 5h15v14H1z' },
     { name: '资源目录', desc: '按栏目浏览全站', href: '/c/model', icon: 'M3 6h18M3 12h18M3 18h18' },
   ] },
@@ -306,6 +313,7 @@ const cloudWords = [
           <button type="button" class="ia-tab active" data-mode="register">注册</button>
           <button type="button" class="ia-tab" data-mode="login">登录</button>
         </div>
+        <p class="ia-bonus" style="margin:10px 0 2px;padding:8px 10px;border-radius:9px;background:var(--gold-pale);border:1px solid var(--gold-border);color:var(--gold);font-size:12.5px;text-align:center;">🎁 新用户注册即送 <strong>100 积分</strong>，可用于 AI 生图</p>
         <form class="ia-form" id="introAuthForm">
           <input class="ia-input" name="username" autocomplete="username" placeholder="用户名 / 手机号" required />
           <input class="ia-input" name="password" type="password" autocomplete="current-password" placeholder="密码" required />
@@ -353,16 +361,20 @@ const cloudWords = [
 
     <!-- 弹窗公告（首页） -->
     {promo.enabled && (
-    <div class="promo-mask" id="promoMask" hidden>
-      <div class="promo-card">
+    <div class="promo-mask" id="promoMask" hidden data-promo-key={promo.title}>
+      <div class={`promo-card ${promo.image ? 'has-image' : ''}`}>
         <button class="promo-close" id="promoClose" type="button" aria-label="关闭">✕</button>
-        <div class="promo-media" style={`background-image:url('${promo.image}')`}>
-          <div class="promo-overlay">
-            <h3 class="promo-title">{promo.title}</h3>
-            <div class="promo-foot">
-              <div class="promo-lines">{promo.lines.map((l) => <p>{l}</p>)}</div>
-              {promo.link ? <a class="promo-cta" href={promo.link}>{promo.cta}</a> : <button class="promo-cta promo-cta-button" id="promoCtaClose" type="button">{promo.cta}</button>}
-            </div>
+        <div class="promo-media">
+          {promo.image ? <img src={promo.image} alt="" loading="eager" /> : <div class="promo-media-placeholder" aria-hidden="true"><span>XD</span><i>AI</i></div>}
+          <span class="promo-media-tag">XDESIGN AI STUDIO</span>
+        </div>
+        <div class="promo-content">
+          <p class="promo-eyebrow">网站公告</p>
+          <h3 class="promo-title">{promo.title}</h3>
+          <div class="promo-lines">{promo.lines.map((l) => <p>{l}</p>)}</div>
+          <div class="promo-foot">
+            <span>探索全新的设计创作工作流</span>
+            {promo.link ? <a class="promo-cta" href={promo.link}>{promo.cta}</a> : <button class="promo-cta promo-cta-button" id="promoCtaClose" type="button">{promo.cta}</button>}
           </div>
         </div>
       </div>
@@ -386,8 +398,8 @@ const cloudWords = [
           </button>          <div class="nav-cats p3-nav" aria-label="资源栏目">
             {p3NavItems.map((item, index) => (
               <>
-                <div class={`p3-item ${item.groups.length ? 'has-menu' : ''} ${item.disabled ? 'is-disabled' : ''}`}>
-                  <a class={`p3-link ${item.disabled ? 'is-disabled' : ''}`} href={item.disabled ? '#' : item.href} aria-disabled={item.disabled ? 'true' : undefined} data-disabled={item.disabled ? 'true' : undefined} aria-haspopup={item.groups.length ? 'true' : undefined}>
+                <div class={`p3-item ${index === 0 ? 'is-ai-feature' : ''} ${item.groups.length ? 'has-menu' : ''} ${item.disabled ? 'is-disabled' : ''}`}>
+                  <a class={`p3-link ${index === 0 ? 'is-ai-feature' : ''} ${item.disabled ? 'is-disabled' : ''}`} href={item.disabled ? '#' : item.href} aria-disabled={item.disabled ? 'true' : undefined} data-disabled={item.disabled ? 'true' : undefined} aria-haspopup={item.groups.length ? 'true' : undefined}>
                     {item.name}
                     {item.groups.length ? <span class="p3-arrow" aria-hidden="true"></span> : null}
                   </a>
@@ -415,8 +427,6 @@ const cloudWords = [
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             <span class="notice-bell-dot"></span>
           </button>
-          <a href="/member" class="member-only" hidden>会员中心</a>
-          <a href="/member" class="member-only" hidden>下载记录</a>
           <a href="/member/login" class="guest-only">登录</a>
           <a href="/member/register" class="guest-only nav-register">注册</a>
           <a href="/api/member/logout?next=/" class="member-only nav-logout" id="memberLogout" hidden>退出</a>
@@ -444,9 +454,40 @@ const cloudWords = [
             <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
             <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           </button>
+          <div class="nav-account member-only" id="navAccount" hidden>
+            <button class="nav-avatar" id="navAvatarBtn" type="button" aria-label="个人中心" aria-haspopup="true" aria-expanded="false"><span id="navAccountAva">会</span></button>
+            <div class="nav-account-menu" id="navAccountMenu" hidden role="menu">
+              <div class="nam-head">
+                <span class="nam-ava" id="navMenuAva">会</span>
+                <div class="nam-who"><b id="navAccountName">会员</b><small id="navAccountId">ID --</small></div>
+              </div>
+              <a href="/member" class="nam-item" role="menuitem"><span class="nam-ico">◎</span>个人会员中心</a>
+              <a href="/member/credits" class="nam-item" role="menuitem"><span class="nam-ico">✦</span>积分充值</a>
+              <a href="/api/member/logout?next=/" class="nam-item nam-danger nav-logout" role="menuitem"><span class="nam-ico">⇥</span>退出登录</a>
+            </div>
+          </div>
         </div>
       </div>
     </nav>
+
+    <style is:global>
+      .nav-account{position:relative;margin-left:6px;}
+      .nav-avatar{display:grid;place-items:center;width:38px;height:38px;padding:0;border:0;border-radius:50%;background:linear-gradient(135deg,#d8a544,#c9963c);color:#fff;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 2px 8px rgba(201,150,60,.32);transition:transform .16s ease,box-shadow .16s ease;}
+      .nav-avatar:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(201,150,60,.4);}
+      .nav-avatar span{pointer-events:none;}
+      .nav-account-menu{position:absolute;top:48px;right:0;z-index:120;width:232px;padding:8px;border:1px solid var(--border,#e6e6ea);border-radius:14px;background:var(--bg-card,#fff);box-shadow:0 20px 48px rgba(20,18,14,.18);}
+      .nav-account-menu[hidden]{display:none;}
+      .nam-head{display:flex;align-items:center;gap:11px;padding:10px 10px 12px;margin-bottom:6px;border-bottom:1px solid var(--border,#eee);}
+      .nam-ava{flex:0 0 auto;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#d8a544,#c9963c);color:#fff;font-size:18px;font-weight:900;}
+      .nam-who{display:flex;flex-direction:column;min-width:0;line-height:1.3;}
+      .nam-who b{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-hi,#1a1a1e);font-size:15px;font-weight:800;}
+      .nam-who small{color:var(--text-lo,#8a8d93);font-family:var(--font-mono,monospace);font-size:12px;font-weight:700;}
+      .nam-item{display:flex;align-items:center;gap:10px;padding:10px 11px;border-radius:9px;color:var(--text-hi,#26262b);font-size:14px;text-decoration:none;transition:background .14s ease,color .14s ease;}
+      .nam-item:hover{background:var(--gold-pale,#fdf6e9);color:#996818;}
+      .nam-ico{display:grid;place-items:center;width:22px;color:var(--gold,#c9963c);font-size:14px;}
+      .nam-danger{color:#c15542;}.nam-danger:hover{background:#fdecec;color:#b23a28;}
+      @media(max-width:900px){.nav-account{display:none!important;}}
+    </style>
 
     <!-- 手机端抽屉导航：桌面导航太密，移动端独立组织常用入口 -->
     <div class="mobile-drawer" id="mobileDrawer" hidden>
@@ -485,8 +526,8 @@ const cloudWords = [
         <div class="mobile-menu-section">
           <p>资源入口</p>
           <div class="mobile-app-grid">
-            {p3NavItems.map((item) => (
-              <a href={item.disabled ? '#' : item.href} class={`mobile-app-tile ${item.disabled ? 'is-disabled' : ''}`} aria-disabled={item.disabled ? 'true' : undefined} data-disabled={item.disabled ? 'true' : undefined} {...(item.disabled ? {} : { 'data-mobile-close': true })}>
+            {p3NavItems.map((item, index) => (
+              <a href={item.disabled ? '#' : item.href} class={`mobile-app-tile ${index === 0 ? 'is-ai-feature' : ''} ${item.disabled ? 'is-disabled' : ''}`} aria-disabled={item.disabled ? 'true' : undefined} data-disabled={item.disabled ? 'true' : undefined} {...(item.disabled ? {} : { 'data-mobile-close': true })}>
                 <span class="mat-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d={item.icon} /></svg></span>
                 <span class="mat-label">{item.name}</span>
               </a>
@@ -571,9 +612,9 @@ const cloudWords = [
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
         <span>首页</span>
       </a>
-      <a class={`mobile-tab is-disabled ${curPath.startsWith('/ai-image') || curPath.startsWith('/ask') || curPath.startsWith('/chat') ? 'active' : ''}`} href="#" aria-disabled="true" data-disabled="true">
+      <a class={`mobile-tab ai-feature ${aiImageDisabled ? 'is-disabled' : ''} ${curPath.startsWith('/ai-image') || curPath.startsWith('/ai-studio') ? 'active' : ''}`} href={aiImageDisabled ? '#' : aiImageHref} aria-disabled={aiImageDisabled ? 'true' : undefined} data-disabled={aiImageDisabled ? 'true' : undefined}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.7 4.1L18 9l-4.3 1.9L12 15l-1.7-4.1L6 9l4.3-1.9z"/><path d="M19 14l.8 1.9 2 .8-2 .8L19 20l-.8-1.7-2-.8 2-.8z"/></svg>
-        <span>AI</span>
+        <span>AI生图</span>
       </a>
       <a class={`mobile-tab ${curPath === '/c' || curPath.startsWith('/c/') || curPath.startsWith('/d/') ? 'active' : ''}`} href="/c">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>
@@ -701,29 +742,6 @@ const cloudWords = [
         ))}
       </div>
     </aside>
-
-    <!-- 底部网站公告：进站浮起，可收起为底部小标签 -->
-    <aside class="site-notice" id="siteNotice" aria-label="网站公告">
-      <button class="site-notice-tab" id="siteNoticeOpen" type="button" aria-label="展开网站公告">
-        <span class="site-notice-tab-dot"></span>
-        网站公告
-      </button>
-      <div class="site-notice-panel">
-        <div class="site-notice-copy">
-          <p class="site-notice-kicker">网站公告</p>
-          <h2>资源库整理更新中</h2>
-          <p>模型、贴图、PSD素材、软件参数与视频教程会陆续补全。下载或访问遇到问题，可以通过反馈入口告诉我们。</p>
-        </div>
-        <div class="site-notice-actions">
-          <a href="/feedback" class="site-notice-primary">提交反馈</a>
-          <a href="/c/model" class="site-notice-secondary">查看资源</a>
-          <button class="site-notice-close" id="siteNoticeClose" type="button" aria-label="收起网站公告">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-          </button>
-        </div>
-      </div>
-    </aside>
-
 
     <script is:inline>
       document.addEventListener('error', (event) => {
@@ -1017,13 +1035,17 @@ const cloudWords = [
       (function () {
         const mask = document.getElementById('promoMask');
         if (!mask) return;
-        if (sessionStorage.getItem('xdd-promo') === '1') return;
+        const promoKey = `xdd-promo:${mask.dataset.promoKey || 'default'}`;
+        if (sessionStorage.getItem(promoKey) === '1') return;
         const waitIntro = () => {
           if (document.getElementById('intro')) { setTimeout(waitIntro, 400); return; }
           setTimeout(() => { mask.hidden = false; }, 400);
         };
-        waitIntro();
-        const close = () => { mask.hidden = true; sessionStorage.setItem('xdd-promo', '1'); };
+        fetch('/api/member/me', { credentials: 'include', cache: 'no-store' })
+          .then((response) => response.json())
+          .then((data) => { if (data?.member) waitIntro(); })
+          .catch(() => {});
+        const close = () => { mask.hidden = true; sessionStorage.setItem(promoKey, '1'); };
         document.getElementById('promoClose')?.addEventListener('click', close);
         document.getElementById('promoCtaClose')?.addEventListener('click', close);
         mask.addEventListener('click', (e) => { if (e.target === mask) close(); });
@@ -1129,38 +1151,6 @@ const cloudWords = [
         if (drawer) { drawer.classList.add('open'); if (mask) mask.hidden = false; drawer.setAttribute('aria-hidden', 'false'); }
       });
 
-      // 底部网站公告：进入网站后从浏览器底边浮起，可收起成小入口
-      (function () {
-        const root = document.getElementById('siteNotice');
-        if (!root) return;
-        const closeBtn = document.getElementById('siteNoticeClose');
-        const openBtn = document.getElementById('siteNoticeOpen');
-        const key = 'xdd-site-notice-collapsed';
-        const open = () => {
-          root.classList.add('open');
-          root.classList.remove('collapsed');
-          root.setAttribute('aria-expanded', 'true');
-          sessionStorage.removeItem(key);
-        };
-        const collapse = () => {
-          root.classList.remove('open');
-          root.classList.add('collapsed');
-          root.setAttribute('aria-expanded', 'false');
-          sessionStorage.setItem(key, '1');
-        };
-        if (sessionStorage.getItem(key) === '1') {
-          root.classList.add('collapsed');
-          root.setAttribute('aria-expanded', 'false');
-        } else {
-          const waitIntro = () => {
-            if (document.getElementById('intro')) { setTimeout(waitIntro, 350); return; }
-            setTimeout(open, 420);
-          };
-          waitIntro();
-        }
-        closeBtn?.addEventListener('click', collapse);
-        openBtn?.addEventListener('click', open);
-      })();
 
       // 移动端抽屉菜单
       (function () {
@@ -1211,6 +1201,14 @@ const cloudWords = [
             const logged = !!d.member;
             guests.forEach((el) => el.hidden = logged);
             members.forEach((el) => el.hidden = !logged);
+            if (logged) {
+              const name = (d.member.nickname || d.member.username || '会员').toString();
+              const initial = Array.from(name)[0] || '会';
+              const nm = document.getElementById('navAccountName'); if (nm) nm.textContent = name;
+              const idEl = document.getElementById('navAccountId'); if (idEl) idEl.textContent = 'ID ' + (d.member.id ?? '--');
+              document.getElementById('navAccountAva') && (document.getElementById('navAccountAva').textContent = initial);
+              document.getElementById('navMenuAva') && (document.getElementById('navMenuAva').textContent = initial);
+            }
             // Guests may browse the site. Download APIs still require a member account.
           })
           .catch(() => {});
@@ -1228,6 +1226,21 @@ const cloudWords = [
           sessionStorage.removeItem('xdd-promo');
           window.location.replace('/');
         }));
+      })();
+
+      // 顶栏个人中心下拉
+      (function () {
+        const wrap = document.getElementById('navAccount');
+        const btn = document.getElementById('navAvatarBtn');
+        const menu = document.getElementById('navAccountMenu');
+        if (!wrap || !btn || !menu) return;
+        const openMenu = (open) => {
+          menu.hidden = !open;
+          btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        };
+        btn.addEventListener('click', (e) => { e.stopPropagation(); openMenu(menu.hidden); });
+        document.addEventListener('click', (e) => { if (!wrap.contains(e.target)) openMenu(false); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') openMenu(false); });
       })();
 
       // 右侧消息抽屉（铃铛）
@@ -1531,17 +1544,26 @@ const cloudWords = [
       document.getElementById('sidebarToggle')?.addEventListener('click', () => panel?.classList.toggle('open'));
 
       // Hero 轮播
+      const hero = document.querySelector('.hero');
       const slides = document.querySelectorAll('.hero-slide');
       const dots = document.querySelectorAll('.hero-dot');
       if (slides.length > 1) {
         let cur = 0, tmr;
         const goTo = (n) => {
-          slides[cur].classList.remove('active'); dots[cur]?.classList.remove('active');
+          slides[cur].classList.remove('active');
+          slides[cur].setAttribute('aria-hidden', 'true');
+          dots[cur]?.classList.remove('active');
+          dots[cur]?.setAttribute('aria-pressed', 'false');
           cur = (n + slides.length) % slides.length;
-          slides[cur].classList.add('active'); dots[cur]?.classList.add('active');
+          slides[cur].classList.add('active');
+          slides[cur].setAttribute('aria-hidden', 'false');
+          dots[cur]?.classList.add('active');
+          dots[cur]?.setAttribute('aria-pressed', 'true');
         };
         const start = () => { clearInterval(tmr); tmr = setInterval(() => goTo(cur + 1), 5000); };
         dots.forEach((d, i) => d.addEventListener('click', () => { goTo(i); start(); }));
+        hero?.addEventListener('mouseenter', () => clearInterval(tmr));
+        hero?.addEventListener('mouseleave', start);
         start();
       }
 

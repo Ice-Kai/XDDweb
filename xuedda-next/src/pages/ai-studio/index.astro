@@ -1,0 +1,15 @@
+---
+import AiStudioApp from '../../components/ai-studio/AiStudioApp';
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>XDesign AI Studio</title>
+  </head>
+  <body>
+    <AiStudioApp allowGuestPreview={import.meta.env.DEV} client:only="react" />
+  </body>
+</html>

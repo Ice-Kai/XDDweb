@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { access, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fail, ok } from '../../../lib/api';
+import { encodeWebp } from '../../../lib/webp';
 
 const COVER_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
 const RESOURCE_EXTS = new Set(['.zip', '.rar', '.7z', '.skp', '.max', '.psd', '.psb', '.dwg', '.dxf', '.fbx', '.obj', '.pdf', '.txt', '.doc', '.docx']);
@@ -65,6 +66,18 @@ export const POST: APIRoute = async ({ request }) => {
     await mkdir(targetDir, { recursive: true });
     await writeFile(path.join(targetDir, filename), buffer);
   }));
+
+  // Best-effort: generate a WebP sibling (x.jpg -> x.jpg.webp) so nginx can serve
+  // the smaller WebP to browsers that accept it. Never blocks the upload — if the
+  // encoder fails the original image is still served.
+  if (kind === 'cover') {
+    const webp = await encodeWebp(buffer, ext);
+    if (webp) {
+      await Promise.all(targetDirs.map((targetDir) =>
+        writeFile(path.join(targetDir, `${filename}.webp`), webp).catch(() => undefined),
+      ));
+    }
+  }
 
   return ok({
     url: `${folder}/${filename}`,

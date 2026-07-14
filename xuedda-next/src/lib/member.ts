@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { db, legacyPrefix } from './db';
 import { md5 } from './auth';
+import { grantWelcomeCredits } from './credits';
 import { secureCookieSuffix, sessionSecret } from './security';
 
 export interface MemberSession {
@@ -17,6 +18,11 @@ export interface OAuthMemberProfile {
   nickname?: string;
   avatar?: string;
   sex?: number | string;
+}
+
+export interface RegistrationGuard {
+  ipHash: string;
+  deviceHash: string;
 }
 
 export const MEMBER_COOKIE = 'xdd_member';
@@ -107,18 +113,50 @@ export async function findMemberForPasswordReset(identity: string) {
   };
 }
 
-export async function registerMember(username: string, password: string) {
-  const [exists] = await db.query<any[]>(
-    `SELECT id FROM ${legacyPrefix}lz_member WHERE user_name = ? OR email = ? LIMIT 1`,
-    [username, username],
-  );
-  if (exists[0]) throw new Error('用户名已存在');
-  const email = username.includes('@') ? username : '';
-  const [res] = await db.query<any>(
-    `INSERT INTO ${legacyPrefix}lz_member (user_name,email,password,create_time,update_time,last_login_time,integral,level,user_type) VALUES (?,?,?,NOW(),NOW(),NOW(),0,0,0)`,
-    [username, email, legacyPassword(password)],
-  );
-  return getMemberById(Number(res.insertId));
+export async function registerMember(username: string, password: string, guard: RegistrationGuard) {
+  const conn = await db.getConnection();
+  let memberId = 0;
+  try {
+    await conn.beginTransaction();
+    const [exists] = await conn.query<any[]>(
+      `SELECT id FROM ${legacyPrefix}lz_member WHERE user_name = ? OR email = ? LIMIT 1`,
+      [username, username],
+    );
+    if (exists[0]) throw new Error('用户名已存在');
+
+    const [guardRows] = await conn.query<any[]>(
+      `SELECT
+         SUM(ip_hash = ?) AS ip_count,
+         SUM(device_hash = ?) AS device_count
+       FROM xdd_registration_guard
+       WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)`,
+      [guard.ipHash, guard.deviceHash],
+    );
+    if (Number(guardRows[0]?.ip_count || 0) >= 5 || Number(guardRows[0]?.device_count || 0) >= 2) {
+      throw new Error('该网络或设备今日注册次数已达上限，请明天再试');
+    }
+
+    const email = username.includes('@') ? username : '';
+    const [res] = await conn.query<any>(
+      `INSERT INTO ${legacyPrefix}lz_member
+        (user_name,email,password,create_time,update_time,last_login_time,integral,level,user_type)
+       VALUES (?,?,?,NOW(),NOW(),NOW(),0,0,0)`,
+      [username, email, legacyPassword(password)],
+    );
+    memberId = Number(res.insertId);
+    await grantWelcomeCredits(conn, memberId);
+    await conn.query(
+      `INSERT INTO xdd_registration_guard (member_id,ip_hash,device_hash) VALUES (?,?,?)`,
+      [memberId, guard.ipHash, guard.deviceHash],
+    );
+    await conn.commit();
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
+  }
+  return getMemberById(memberId);
 }
 
 function normalizeSex(value: OAuthMemberProfile['sex']) {
@@ -159,13 +197,34 @@ export async function upsertOAuthMember(provider: 'qq' | 'wechat', profile: OAut
   }
 
   const username = `${provider}_${openid}`.slice(0, 96);
-  const [res] = await db.query<any>(
-    `INSERT INTO ${legacyPrefix}lz_member
-      (user_name,email,password,nickname,avatar,sex,openid,user_type,create_time,update_time,last_login_time,integral,level)
-     VALUES (?,?,?,?,?,?,?,?,NOW(),NOW(),NOW(),0,0)`,
-    [username, '', '', nickname, avatar, sex, openid, userType],
-  );
-  return getMemberById(Number(res.insertId));
+  const conn = await db.getConnection();
+  let memberId = 0;
+  try {
+    await conn.beginTransaction();
+    const [again] = await conn.query<any[]>(
+      `SELECT id FROM ${legacyPrefix}lz_member WHERE openid = ? LIMIT 1 FOR UPDATE`,
+      [openid],
+    );
+    if (again[0]) {
+      memberId = Number(again[0].id);
+    } else {
+      const [res] = await conn.query<any>(
+        `INSERT INTO ${legacyPrefix}lz_member
+          (user_name,email,password,nickname,avatar,sex,openid,user_type,create_time,update_time,last_login_time,integral,level)
+         VALUES (?,?,?,?,?,?,?,?,NOW(),NOW(),NOW(),0,0)`,
+        [username, '', '', nickname, avatar, sex, openid, userType],
+      );
+      memberId = Number(res.insertId);
+      await grantWelcomeCredits(conn, memberId);
+    }
+    await conn.commit();
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
+  }
+  return getMemberById(memberId);
 }
 
 export function isVip(member: MemberSession | null) {

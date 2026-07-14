@@ -422,6 +422,21 @@ export async function getDownloadById(id: number) {
 
 export const DAILY_DOWNLOAD_LIMIT = 30;
 
+export async function getMemberDailyDownloadCount(memberId: number) {
+  const uid = Number(memberId);
+  if (!Number.isInteger(uid) || uid <= 0) return 0;
+  const [[usage]] = await db.query<any[]>(
+    `SELECT COUNT(DISTINCT content_id) AS n
+     FROM ${appPrefix}logs
+     WHERE kind = 'download'
+       AND member_id = ?
+       AND created_at >= CURDATE()
+       AND created_at < DATE_ADD(CURDATE(), INTERVAL 1 DAY)`,
+    [uid],
+  );
+  return Math.max(0, Number(usage?.n || 0));
+}
+
 export async function getMemberDailyDownloadUsage(memberId: number, contentId: number) {
   const uid = Number(memberId);
   const id = Number(contentId);

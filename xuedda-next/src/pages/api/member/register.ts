@@ -1,10 +1,10 @@
 import type { APIRoute } from 'astro';
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import { fail, readJson } from '../../../lib/api';
 import { verifyCaptcha } from '../../../lib/captcha';
 import { createMemberToken, registerMember, setMemberCookie } from '../../../lib/member';
 import { clientIp, rateLimit } from '../../../lib/ratelimit';
-import { publicRegistrationEnabled, secureCookieSuffix } from '../../../lib/security';
+import { publicRegistrationEnabled, secureCookieSuffix, sessionSecret } from '../../../lib/security';
 
 const REGISTER_DEVICE_COOKIE = 'xdd_register_device';
 
@@ -16,6 +16,10 @@ function cookieValue(headers: Headers, name: string) {
 
 function registerDeviceCookie(deviceId: string) {
   return `${REGISTER_DEVICE_COOKIE}=${encodeURIComponent(deviceId)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}${secureCookieSuffix()}`;
+}
+
+function registrationFingerprint(value: string) {
+  return createHmac('sha256', sessionSecret()).update(value || 'unknown').digest('hex');
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -55,7 +59,10 @@ export const POST: APIRoute = async ({ request }) => {
   if (username.length < 3 || password.length < 6) return fail('用户名至少 3 位，密码至少 6 位');
 
   try {
-    const member = await registerMember(username, password);
+    const member = await registerMember(username, password, {
+      ipHash: registrationFingerprint(`ip:${ip}`),
+      deviceHash: registrationFingerprint(`device:${deviceId}`),
+    });
     if (!member) return fail('注册失败');
 
     const headers = new Headers({ 'content-type': 'application/json; charset=utf-8' });

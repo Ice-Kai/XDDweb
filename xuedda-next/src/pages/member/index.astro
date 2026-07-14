@@ -2,420 +2,284 @@
 import Base from '../../layouts/Base.astro';
 ---
 
-<Base title="我的 - 薛大大设计网">
-  <section class="m-mine">
-    <header class="m-page-head loose">
-      <div>
-        <strong>我的</strong>
-        <span>积分、下载记录和账号服务</span>
-      </div>
-      <a class="m-icon-btn" href="/member/login" aria-label="账号设置">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.8 1.8 0 0 0 .36 2l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.8 1.8 0 0 0-2-.36 1.8 1.8 0 0 0-1.1 1.66V21a2 2 0 1 1-4 0v-.09a1.8 1.8 0 0 0-1.1-1.66 1.8 1.8 0 0 0-2 .36l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.8 1.8 0 0 0 .36-2 1.8 1.8 0 0 0-1.66-1.1H3a2 2 0 1 1 0-4h.09a1.8 1.8 0 0 0 1.66-1.1 1.8 1.8 0 0 0-.36-2l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.8 1.8 0 0 0 2 .36A1.8 1.8 0 0 0 10.34 3V3a2 2 0 1 1 4 0v.09a1.8 1.8 0 0 0 1.1 1.66 1.8 1.8 0 0 0 2-.36l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.8 1.8 0 0 0-.36 2 1.8 1.8 0 0 0 1.66 1.1H21a2 2 0 1 1 0 4h-.09A1.8 1.8 0 0 0 19.4 15z"/></svg>
-      </a>
-    </header>
+<Base title="会员中心 - 薛大大设计网">
+  <main class="account-page">
+    <div class="container account-shell">
+      <header class="account-heading">
+        <div>
+          <p class="section-label">MEMBER CENTER</p>
+          <h1>会员中心</h1>
+          <p>集中查看积分、素材下载和 AI 创作任务。</p>
+        </div>
+        <div class="account-actions">
+          <a href="/member/credits">积分充值</a>
+          <a href="/api/member/logout?next=/">退出登录</a>
+        </div>
+      </header>
 
-    <div class="m-profile-card">
-      <div class="m-avatar">薛</div>
-      <div class="m-profile-copy">
-        <strong id="mMobileName">设计师</strong>
-        <span id="mMobileLevel">普通会员</span>
-      </div>
-      <a id="mMobileLoginLink" href="/member/login">登录</a>
-      <div class="m-profile-stats">
-        <span><b id="mMobileDownloadCount">0</b><em>下载</em></span>
-        <span><b id="mMobileIntegralMini">0</b><em>积分</em></span>
-        <span><b>30</b><em>日额度</em></span>
-      </div>
-    </div>
+      <section class="account-overview" aria-label="账户概览">
+        <div class="account-person">
+          <span class="account-avatar" id="accountAvatar">XD</span>
+          <div>
+            <strong id="accountName">正在读取账户...</strong>
+            <span id="accountLevel">普通会员</span>
+          </div>
+        </div>
+        <dl class="account-metrics">
+          <div><dt>可用积分</dt><dd id="creditBalance">0</dd></div>
+          <div><dt>今日下载</dt><dd><span id="todayDownloads">0</span><small>/ 30</small></dd></div>
+          <div><dt>AI 创作</dt><dd id="generationCount">0</dd></div>
+        </dl>
+      </section>
 
-    <div class="m-points-card">
-      <div>
-        <span>我的积分</span>
-        <strong id="mMobileIntegral">0</strong>
-      </div>
-      <button type="button">签到领积分</button>
-      <nav>
-        <a href="#points"><svg viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18M5 4h14v18H5z"/></svg><span>积分明细</span></a>
-        <a href="#downloads"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg><span>下载额度</span></a>
-        <a href="/feedback"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/></svg><span>反馈</span></a>
+      <nav class="account-tabs" aria-label="会员记录">
+        <button class="active" type="button" data-tab="downloads">下载记录 <span id="downloadCount">0</span></button>
+        <button type="button" data-tab="credits">积分明细</button>
+        <button type="button" data-tab="generations">生图记录</button>
       </nav>
+
+      <section class="account-records">
+        <div class="record-toolbar">
+          <div>
+            <strong id="recordTitle">下载记录</strong>
+            <span id="recordDescription">最近打开过的素材链接，可随时回查。</span>
+          </div>
+          <button id="refreshRecords" type="button" title="刷新记录" aria-label="刷新记录">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M18.5 9a7 7 0 0 0-12-2L4 11M5.5 15a7 7 0 0 0 12 2l2.5-4"/></svg>
+          </button>
+        </div>
+
+        <div class="record-panel active" data-panel="downloads">
+          <div class="record-table-wrap">
+            <table class="record-table">
+              <thead><tr><th class="record-idx-head">#</th><th>素材名称</th><th class="record-action-head">操作</th></tr></thead>
+              <tbody id="downloadRows"><tr><td colspan="3" class="record-empty">正在读取下载记录...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="record-panel" data-panel="credits" hidden>
+          <div class="record-table-wrap">
+            <table class="record-table">
+              <thead><tr><th>变动说明</th><th>类型</th><th>积分变动</th><th>变动后余额</th><th>时间</th></tr></thead>
+              <tbody id="creditRows"><tr><td colspan="5" class="record-empty">正在读取积分明细...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="record-panel" data-panel="generations" hidden>
+          <div class="record-table-wrap">
+            <table class="record-table">
+              <thead><tr><th>创作描述</th><th>画幅</th><th>消耗</th><th>提交时间</th><th>状态</th><th>结果</th></tr></thead>
+              <tbody id="generationRows"><tr><td colspan="6" class="record-empty">正在读取生图记录...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </div>
-
-    <div class="m-service-grid" aria-label="常用服务">
-      <a href="#downloads">
-        <span><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></span>
-        <strong>下载记录</strong>
-        <em>最近打开的资源</em>
-      </a>
-      <a href="#points">
-        <span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M8 11h8"/></svg></span>
-        <strong>我的积分</strong>
-        <em>积分与额度</em>
-      </a>
-      <a href="/feedback">
-        <span><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></span>
-        <strong>帮助反馈</strong>
-        <em>问题和建议</em>
-      </a>
-      <a href="/member/forgot">
-        <span><svg viewBox="0 0 24 24"><path d="M12 17v.01"/><path d="M17 8a5 5 0 0 0-10 0v3H5v10h14V11h-2z"/></svg></span>
-        <strong>找回密码</strong>
-        <em>忘记密码处理</em>
-      </a>
-    </div>
-
-    <div class="m-menu-card">
-      <a href="/member/login"><span>账号设置</span><i></i></a>
-      <a href="/member/vip"><span>会员权益</span><i></i></a>
-      <a href="/feedback"><span>功能反馈</span><i></i></a>
-    </div>
-
-    <section class="m-download-card" id="downloads">
-      <div class="m-block-title">
-        <strong>下载记录</strong>
-        <button type="button" id="mReloadDownloads">刷新</button>
-      </div>
-      <div class="m-download-list" id="mMobileDownloadList">
-        <p>正在读取下载记录...</p>
-      </div>
-    </section>
-
-    <section class="m-download-card" id="points">
-      <div class="m-block-title">
-        <strong>积分明细</strong>
-        <span>当前积分 <b id="mMobileIntegralTail">0</b></span>
-      </div>
-      <div class="m-points-note">积分功能后续接入签到、兑换和任务记录，这里先作为个人中心入口保留。</div>
-    </section>
-
-    <a class="m-logout" href="/api/member/logout?next=/">退出登录</a>
-  </section>
-
-  <section class="member-page desktop-page" id="desktop-downloads">
-    <div class="container member-sheet">
-      <div class="member-head compact">
-        <p class="section-label">MEMBER CENTER</p>
-        <h1>下载记录</h1>
-        <p>按时间记录你打开过的素材链接，方便回查。每个账号每天最多打开 30 个素材下载链接。</p>
-      </div>
-
-      <div class="member-toolbar">
-        <div>
-          <b id="mName">未登录</b>
-          <span id="mLevel">普通会员</span>
-        </div>
-        <div>
-          <span>积分</span>
-          <b id="mIntegral">0</b>
-        </div>
-        <div>
-          <span>最近记录</span>
-          <b id="mDownloadCount">0</b>
-        </div>
-      </div>
-
-      <div class="member-table-card">
-        <div class="member-table-head">
-          <strong>下载记录</strong>
-          <button type="button" id="reloadDownloads">刷新</button>
-        </div>
-        <div class="member-table-wrap">
-          <table class="member-download-table">
-            <thead>
-              <tr>
-                <th>序号</th>
-                <th>资源名称</th>
-                <th>类型</th>
-                <th>大小</th>
-                <th>下载时间</th>
-                <th>状态</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody id="downloadRows">
-              <tr><td colspan="7" class="member-empty">正在读取下载记录...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </section>
+  </main>
 
   <style>
-    .member-sheet { max-width:1320px; }
-    .member-head.compact { margin-bottom:18px; }
-    .member-head.compact h1 { margin:4px 0 8px; }
-    .member-toolbar { display:grid; grid-template-columns:1fr 160px 160px; gap:10px; margin-bottom:14px; }
-    .member-toolbar > div { min-height:64px; display:flex; flex-direction:column; justify-content:center; gap:4px; padding:14px 16px; border:1px solid var(--border); border-radius:10px; background:var(--bg-card); box-shadow:var(--shadow-card); }
-    .member-toolbar b { color:var(--text-hi); font-size:18px; font-weight:900; }
-    .member-toolbar span { color:var(--text-lo); font-size:12px; }
-    .member-table-card { border:1px solid var(--border); border-radius:12px; background:var(--bg-card); box-shadow:var(--shadow-card); overflow:hidden; }
-    .member-table-head { height:54px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 16px; border-bottom:1px solid var(--border); }
-    .member-table-head strong { color:var(--text-hi); font-size:16px; font-weight:900; }
-    .member-table-head button { height:34px; padding:0 14px; border:1px solid var(--border); border-radius:8px; background:var(--bg-elevated); color:var(--text-md); font-family:var(--font-base); font-weight:800; cursor:pointer; }
-    .member-table-wrap { overflow:auto; }
-    .member-download-table { width:100%; min-width:860px; border-collapse:separate; border-spacing:0; font-size:13px; }
-    .member-download-table th { height:42px; padding:0 12px; background:var(--bg-elevated); color:var(--text-lo); font-weight:900; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap; }
-    .member-download-table td { height:48px; padding:8px 12px; color:var(--text-md); border-bottom:1px solid var(--border); vertical-align:middle; }
-    .member-download-table tr:last-child td { border-bottom:none; }
-    .member-col-index { width:64px; color:var(--text-lo); font-family:var(--font-mono); }
-    .member-resource-title { max-width:520px; color:var(--text-hi); font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .member-tag { display:inline-flex; align-items:center; min-height:24px; padding:2px 8px; border-radius:999px; background:var(--bg-elevated); color:var(--text-md); font-size:12px; white-space:nowrap; }
-    .member-status { color:#18a058; font-weight:800; }
-    .member-status.off { color:var(--text-lo); }
-    .member-open { display:inline-flex; align-items:center; justify-content:center; height:30px; padding:0 12px; border:1px solid rgba(201,150,60,.35); border-radius:7px; background:rgba(201,150,60,.1); color:var(--gold); font-size:12px; font-weight:900; text-decoration:none; white-space:nowrap; }
-    .member-open.disabled { opacity:.45; cursor:not-allowed; pointer-events:none; }
-    .member-empty { height:72px !important; text-align:center !important; color:var(--text-lo) !important; }
-
-    @media (max-width:760px) {
-      .m-service-grid {
-        display:grid;
-        grid-template-columns:repeat(2,minmax(0,1fr));
-        gap:12px;
-        margin:12px 16px 0;
-      }
-      .m-service-grid a {
-        min-height:112px;
-        display:flex;
-        flex-direction:column;
-        justify-content:center;
-        gap:5px;
-        padding:14px;
-        border:1px solid #eee;
-        border-radius:18px;
-        background:#fff;
-        box-shadow:0 3px 12px rgba(20,20,30,.04);
-      }
-      .m-service-grid span {
-        width:38px;
-        height:38px;
-        display:grid;
-        place-items:center;
-        border-radius:13px;
-        background:#eaf2fb;
-        color:#2e7ac8;
-      }
-      .m-service-grid svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.9; }
-      .m-service-grid strong { color:#161616; font-size:14px; font-weight:900; }
-      .m-service-grid em { color:#9aa0a6; font-size:11px; font-style:normal; }
-      .m-download-card {
-        margin:12px 16px 0;
-        padding:14px;
-        border:1px solid #eee;
-        border-radius:18px;
-        background:#fff;
-        box-shadow:0 3px 12px rgba(20,20,30,.04);
-      }
-      .m-block-title {
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        gap:10px;
-        margin-bottom:10px;
-      }
-      .m-block-title strong { color:#161616; font-size:15px; font-weight:900; }
-      .m-block-title button {
-        height:30px;
-        padding:0 11px;
-        border:0;
-        border-radius:999px;
-        background:#eaf2fb;
-        color:#2e7ac8;
-        font-size:12px;
-        font-weight:900;
-      }
-      .m-block-title span { color:#9aa0a6; font-size:12px; }
-      .m-block-title b { color:#2e7ac8; }
-      .m-download-list {
-        display:flex;
-        flex-direction:column;
-        gap:8px;
-      }
-      .m-download-list p,
-      .m-points-note {
-        margin:0;
-        color:#9aa0a6;
-        font-size:12px;
-        line-height:1.7;
-      }
-      .m-download-item {
-        display:grid;
-        grid-template-columns:1fr auto;
-        gap:6px 10px;
-        align-items:center;
-        padding:10px 0;
-        border-top:1px solid #f4f4f5;
-      }
-      .m-download-item:first-child { border-top:0; padding-top:0; }
-      .m-download-item strong {
-        min-width:0;
-        color:#1c1c1c;
-        font-size:12.5px;
-        line-height:1.45;
-        overflow:hidden;
-        text-overflow:ellipsis;
-        white-space:nowrap;
-      }
-      .m-download-item span {
-        color:#9aa0a6;
-        font-size:11px;
-      }
-      .m-download-item a {
-        grid-row:1 / span 2;
-        grid-column:2;
-        display:flex;
-        align-items:center;
-        height:30px;
-        padding:0 10px;
-        border-radius:999px;
-        background:#2e7ac8;
-        color:#fff;
-        font-size:11px;
-        font-weight:900;
-      }
+    .account-page { min-height:calc(100vh - 64px); padding:48px 0 80px; background:var(--bg); }
+    .account-shell { max-width:1280px; }
+    .account-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:26px; }
+    .account-heading h1 { margin:5px 0 6px; color:var(--text-hi); font-size:32px; line-height:1.2; letter-spacing:0; }
+    .account-heading p:last-child { margin:0; color:var(--text-lo); font-size:14px; }
+    .account-actions { display:flex; align-items:center; gap:9px; }
+    .account-actions a { display:inline-flex; align-items:center; justify-content:center; height:38px; padding:0 15px; border:1px solid var(--border); border-radius:7px; background:var(--bg-elevated); color:var(--text-md); font-size:13px; font-weight:800; }
+    .account-actions a:first-child { border-color:var(--gold); background:var(--gold); color:#171006; }
+    .account-overview { display:grid; grid-template-columns:minmax(280px,1fr) minmax(520px,.9fr); align-items:stretch; border:1px solid var(--border); border-radius:8px; background:var(--bg-card); box-shadow:var(--shadow-card); overflow:hidden; }
+    .account-person { display:flex; align-items:center; gap:15px; min-height:112px; padding:22px 26px; }
+    .account-avatar { width:50px; height:50px; display:grid; place-items:center; flex:0 0 50px; border-radius:8px; background:#171717; color:#fff; font-size:13px; font-weight:900; }
+    .account-person div { min-width:0; display:flex; flex-direction:column; gap:6px; }
+    .account-person strong { overflow:hidden; color:var(--text-hi); font-size:19px; text-overflow:ellipsis; white-space:nowrap; }
+    .account-person span:last-child { color:var(--text-lo); font-size:12px; }
+    .account-metrics { display:grid; grid-template-columns:repeat(3,1fr); margin:0; border-left:1px solid var(--border); }
+    .account-metrics div { display:flex; flex-direction:column; justify-content:center; gap:8px; padding:20px 24px; border-left:1px solid var(--border); }
+    .account-metrics div:first-child { border-left:0; }
+    .account-metrics dt { color:var(--text-lo); font-size:12px; }
+    .account-metrics dd { margin:0; color:var(--text-hi); font-family:var(--font-mono); font-size:25px; font-weight:800; }
+    .account-metrics small { margin-left:4px; color:var(--text-lo); font-size:12px; font-weight:500; }
+    .account-tabs { display:flex; gap:28px; margin-top:30px; border-bottom:1px solid var(--border); }
+    .account-tabs button { position:relative; height:48px; padding:0; border:0; background:none; color:var(--text-lo); font-family:var(--font-base); font-size:14px; font-weight:800; cursor:pointer; }
+    .account-tabs button::after { content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:transparent; }
+    .account-tabs button.active { color:var(--text-hi); }
+    .account-tabs button.active::after { background:var(--gold); }
+    .account-tabs span { display:inline-grid; min-width:22px; height:20px; margin-left:5px; padding:0 5px; place-items:center; border-radius:999px; background:var(--bg-elevated); color:var(--text-lo); font-size:11px; }
+    .account-records { margin-top:18px; border:1px solid var(--border); border-radius:8px; background:var(--bg-card); box-shadow:var(--shadow-card); overflow:hidden; }
+    .record-toolbar { min-height:68px; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:14px 18px; border-bottom:1px solid var(--border); }
+    .record-toolbar div { display:flex; flex-direction:column; gap:4px; }
+    .record-toolbar strong { color:var(--text-hi); font-size:15px; }
+    .record-toolbar span { color:var(--text-lo); font-size:12px; }
+    .record-toolbar button { width:36px; height:36px; display:grid; place-items:center; border:1px solid var(--border); border-radius:7px; background:var(--bg-elevated); color:var(--text-md); cursor:pointer; }
+    .record-toolbar svg { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.8; }
+    .record-toolbar button.loading svg { animation:recordSpin .8s linear infinite; }
+    @keyframes recordSpin { to { transform:rotate(360deg); } }
+    .record-table-wrap { overflow:auto; }
+    .record-table { width:100%; min-width:680px; border-collapse:collapse; font-size:13px; }
+    .record-table th { height:42px; padding:0 14px; background:var(--bg-elevated); color:var(--text-lo); font-size:12px; font-weight:800; text-align:left; white-space:nowrap; }
+    .record-table td { height:50px; padding:9px 14px; border-top:1px solid var(--border); color:var(--text-md); vertical-align:middle; }
+    .record-table tbody tr:nth-child(even) { background:color-mix(in srgb,var(--text-hi) 2.6%,transparent); }
+    .record-table tbody tr:hover { background:color-mix(in srgb,var(--gold) 7%,transparent); }
+    .record-table td:not(:first-child) { border-left:1px solid color-mix(in srgb,var(--border) 55%,transparent); }
+    .record-title { max-width:430px; color:var(--text-hi) !important; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .record-idx-head { width:56px; }
+    .record-idx { width:56px; color:var(--text-lo) !important; font-family:var(--font-mono,monospace); font-weight:700; text-align:center; }
+    .record-title-doc::before { content:"📄"; margin-right:8px; opacity:.7; font-size:13px; }
+    .record-action-head { width:128px; }
+    .record-tag,.record-status { display:inline-flex; align-items:center; min-height:24px; padding:2px 8px; border-radius:5px; background:var(--bg-elevated); color:var(--text-md); font-size:11px; font-weight:700; white-space:nowrap; }
+    .record-status.success { background:rgba(26,160,91,.1); color:#15945a; }
+    .record-status.waiting { background:rgba(201,150,60,.12); color:var(--gold); }
+    .record-status.failed { background:rgba(205,65,65,.1); color:#c94141; }
+    .record-delta.plus { color:#15945a; font-weight:900; }
+    .record-delta.minus { color:#c94141; font-weight:900; }
+    .record-link { display:inline-flex; align-items:center; justify-content:center; height:30px; padding:0 10px; border:1px solid var(--gold-border); border-radius:6px; background:var(--gold-soft); color:var(--gold); font-size:12px; font-weight:800; }
+    .record-link.disabled { opacity:.42; pointer-events:none; }
+    .record-error { max-width:380px; color:#c94141 !important; font-size:12px; line-height:1.45; }
+    .record-empty { height:110px !important; text-align:center; color:var(--text-lo) !important; }
+    @media (max-width:820px) {
+      .account-page { padding:22px 0 92px; }
+      .account-shell { width:100%; padding:0 14px; }
+      .account-heading { align-items:flex-start; margin-bottom:18px; }
+      .account-heading h1 { font-size:25px; }
+      .account-heading p:last-child { display:none; }
+      .account-actions a:first-child { display:none; }
+      .account-overview { grid-template-columns:1fr; }
+      .account-person { min-height:86px; padding:16px; }
+      .account-metrics { border-top:1px solid var(--border); border-left:0; }
+      .account-metrics div { padding:15px 12px; text-align:center; }
+      .account-metrics dd { font-size:20px; }
+      .account-tabs { gap:20px; overflow-x:auto; }
+      .account-tabs button { flex:0 0 auto; }
+      .record-toolbar { min-height:62px; }
+      .record-table { min-width:620px; }
     }
   </style>
 
   <script>
-    const tbody = document.getElementById('downloadRows');
-    const mobileList = document.getElementById('mMobileDownloadList');
-    const countNode = document.getElementById('mDownloadCount');
-    const mobileCountNode = document.getElementById('mMobileDownloadCount');
+    const descriptions = {
+      downloads: ['下载记录', '最近打开过的素材链接，可随时回查。'],
+      credits: ['积分明细', '充值、兑换、生图消费和失败退款都会完整记录。'],
+      generations: ['生图记录', '查看 AI 任务状态、积分消耗和失败原因。'],
+    };
+    const state = { downloads: [], credits: [], generations: [] };
+    const qs = (selector) => document.querySelector(selector);
     const text = (value) => String(value ?? '');
+    const escapeTime = (value) => text(value).replace('T', ' ').slice(0, 19) || '--';
 
-    function setText(id, value) {
-      const node = document.getElementById(id);
-      if (node) node.textContent = text(value);
+    function td(value, className = '') {
+      const node = document.createElement('td');
+      node.className = className;
+      node.textContent = text(value);
+      return node;
     }
-
-    function emptyRow(message) {
+    function empty(tbody, colspan, message) {
+      tbody.replaceChildren();
+      const row = document.createElement('tr');
+      const cell = td(message, 'record-empty');
+      cell.colSpan = colspan;
+      row.append(cell);
+      tbody.append(row);
+    }
+    function badge(value, className = '') {
+      const span = document.createElement('span');
+      span.className = `record-status ${className}`.trim();
+      span.textContent = value;
+      return span;
+    }
+    function renderDownloads() {
+      const tbody = document.getElementById('downloadRows');
       if (!tbody) return;
       tbody.replaceChildren();
-      const tr = document.createElement('tr');
-      const td = document.createElement('td');
-      td.colSpan = 7;
-      td.className = 'member-empty';
-      td.textContent = message;
-      tr.appendChild(td);
-      tbody.appendChild(tr);
-    }
-
-    function emptyMobileDownloads(message) {
-      if (!mobileList) return;
-      mobileList.replaceChildren();
-      const p = document.createElement('p');
-      p.textContent = message;
-      mobileList.appendChild(p);
-    }
-
-    function cell(className, value) {
-      const td = document.createElement('td');
-      if (className) td.className = className;
-      td.textContent = text(value);
-      return td;
-    }
-
-    function renderMobileDownloads(rows) {
-      if (!mobileList) return;
-      mobileList.replaceChildren();
-      if (!rows.length) {
-        emptyMobileDownloads('还没有下载记录。');
-        return;
-      }
-      rows.slice(0, 6).forEach((row) => {
-        const item = document.createElement('div');
-        item.className = 'm-download-item';
-        const title = document.createElement('strong');
-        title.textContent = row.title || '资源已下架';
-        const meta = document.createElement('span');
-        meta.textContent = `${row.fileType || '资源'} · ${row.downloadedAt || '--'}`;
-        const open = document.createElement('a');
-        open.href = row.available && row.contentId ? `/d/${row.contentId}` : '#';
-        open.textContent = row.available && row.contentId ? '打开' : '失效';
-        if (!row.available || !row.contentId) open.style.opacity = '.45';
-        item.append(title, meta, open);
-        mobileList.appendChild(item);
+      if (!state.downloads.length) return empty(tbody, 3, '还没有下载记录。');
+      state.downloads.forEach((item, index) => {
+        const row = document.createElement('tr');
+        row.append(td(String(index + 1), 'record-idx'));
+        row.append(td(item.title || '资源已下架', 'record-title record-title-doc'));
+        const action = td('');
+        const link = document.createElement('a');
+        link.className = item.available && item.contentId ? 'record-link btn-dl' : 'record-link disabled';
+        link.href = '#';
+        link.textContent = item.available && item.contentId ? '打开链接' : '不可用';
+        if (item.available && item.contentId) { link.dataset.downloadId = item.contentId; link.dataset.title = item.title || '资源下载'; }
+        action.append(link); row.append(action); tbody.append(row);
       });
     }
-
-    function renderDownloads(rows) {
-      if (countNode) countNode.textContent = String(rows.length);
-      if (mobileCountNode) mobileCountNode.textContent = String(rows.length);
-      renderMobileDownloads(rows);
+    function renderCredits() {
+      const tbody = document.getElementById('creditRows');
       if (!tbody) return;
       tbody.replaceChildren();
-      if (!rows.length) {
-        emptyRow('还没有下载记录。');
-        return;
-      }
-      rows.forEach((row, index) => {
-        const tr = document.createElement('tr');
-        tr.appendChild(cell('member-col-index', String(index + 1).padStart(2, '0')));
-        tr.appendChild(cell('member-resource-title', row.title || '资源已下架'));
-        const type = cell('', '');
-        const typeTag = document.createElement('span');
-        typeTag.className = 'member-tag';
-        typeTag.textContent = row.fileType || '资源';
-        type.appendChild(typeTag);
-        tr.appendChild(type);
-        tr.appendChild(cell('', row.fileSize || '-- MB'));
-        tr.appendChild(cell('', row.downloadedAt || '--'));
-        const status = cell('', '');
-        const statusText = document.createElement('span');
-        statusText.className = row.available ? 'member-status' : 'member-status off';
-        statusText.textContent = row.available ? '可重新打开' : '已下架';
-        status.appendChild(statusText);
-        tr.appendChild(status);
-        const action = cell('', '');
-        const open = document.createElement('a');
-        open.className = row.available && row.contentId ? 'member-open btn-dl' : 'member-open disabled';
-        open.href = '#';
-        open.textContent = row.available && row.contentId ? '打开链接' : '不可用';
-        if (row.available && row.contentId) {
-          open.dataset.downloadId = row.contentId;
-          open.dataset.title = row.title || '资源下载';
-        }
-        action.appendChild(open);
-        tr.appendChild(action);
-        tbody.appendChild(tr);
+      if (!state.credits.length) return empty(tbody, 5, '还没有积分变动记录。');
+      const kindNames = { redeem:'卡密兑换', generation:'AI 生图', refund:'失败退款', admin:'后台调整', purchase:'积分充值' };
+      state.credits.forEach((item) => {
+        const row = document.createElement('tr');
+        row.append(td(item.description || '积分变动', 'record-title'));
+        const kind = td(''); kind.append(badge(kindNames[item.kind] || item.kind || '积分')); row.append(kind);
+        const amount = Number(item.amount || 0); row.append(td(`${amount > 0 ? '+' : ''}${amount}`, `record-delta ${amount >= 0 ? 'plus' : 'minus'}`));
+        row.append(td(item.balance_after ?? '--')); row.append(td(escapeTime(item.created_at))); tbody.append(row);
       });
     }
-
-    async function loadMemberCenter() {
-      emptyRow('正在读取下载记录...');
-      emptyMobileDownloads('正在读取下载记录...');
+    function renderGenerations() {
+      const tbody = document.getElementById('generationRows');
+      if (!tbody) return;
+      tbody.replaceChildren();
+      if (!state.generations.length) return empty(tbody, 6, '还没有 AI 生图记录。');
+      const statusNames = { processing:'生成中', completed:'已完成', failed:'生成失败', cancelled:'已取消' };
+      state.generations.forEach((item) => {
+        const row = document.createElement('tr');
+        row.append(td(item.prompt || '未命名任务', item.error ? 'record-error' : 'record-title'));
+        row.append(td(item.ratio || '--')); row.append(td(`${Number(item.creditCost || 0)} 积分`)); row.append(td(escapeTime(item.createdAt)));
+        const status = td(''); const statusClass = item.status === 'completed' ? 'success' : item.status === 'processing' ? 'waiting' : 'failed'; status.append(badge(statusNames[item.status] || item.status, statusClass)); row.append(status);
+        const result = td('');
+        if (item.image) { const link = document.createElement('a'); link.className = 'record-link'; link.href = item.image; link.target = '_blank'; link.rel = 'noopener'; link.textContent = '查看图片'; result.append(link); }
+        else result.textContent = item.error || (item.status === 'processing' ? '正在生成' : '--');
+        if (item.error) result.className = 'record-error';
+        row.append(result); tbody.append(row);
+      });
+    }
+    async function jsonFetch(url) {
+      const response = await fetch(url, { credentials:'include', cache:'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || '请求失败');
+      return data;
+    }
+    async function loadAll() {
+      const refresh = document.getElementById('refreshRecords');
+      refresh?.classList.add('loading');
       try {
-        const [me, downloads] = await Promise.all([
-          fetch('/api/member/me', { credentials: 'include' }).then((r) => r.json()),
-          fetch('/api/member/downloads?limit=50', { credentials: 'include' }).then((r) => r.json()),
+        const me = await jsonFetch('/api/member/me');
+        if (!me.member) { location.href = '/member/login?next=/member'; return; }
+        const [downloads, credits, generations] = await Promise.allSettled([
+          jsonFetch('/api/member/downloads?limit=50'),
+          jsonFetch('/api/member/credits'),
+          jsonFetch('/api/ai-image/generate'),
         ]);
-        if (!me.member) {
-          emptyRow('请先登录后查看下载记录。');
-          emptyMobileDownloads('登录后可以查看下载记录、积分和每日额度。');
-          return;
-        }
         const name = me.member.nickname || me.member.username || '设计师';
-        const level = me.isVip ? 'VIP 会员' : '普通会员';
-        const integral = me.member.integral || 0;
-        setText('mName', name);
-        setText('mLevel', level);
-        setText('mIntegral', integral);
-        setText('mMobileName', name);
-        setText('mMobileLevel', level);
-        setText('mMobileIntegral', integral);
-        setText('mMobileIntegralMini', integral);
-        setText('mMobileIntegralTail', integral);
-        const loginLink = document.getElementById('mMobileLoginLink');
-        if (loginLink) loginLink.textContent = '已登录';
-        renderDownloads(downloads.rows || []);
-      } catch {
-        emptyRow('下载记录读取失败，请刷新后重试。');
-        emptyMobileDownloads('下载记录读取失败，请刷新后重试。');
-      }
+        qs('#accountName').textContent = name;
+        qs('#accountLevel').textContent = me.isVip ? 'VIP 会员' : '普通会员';
+        qs('#accountAvatar').textContent = name.slice(0, 2).toUpperCase();
+        if (downloads.status === 'fulfilled') {
+          state.downloads = downloads.value.rows || [];
+          qs('#todayDownloads').textContent = downloads.value.todayCount || 0;
+          qs('#downloadCount').textContent = state.downloads.length;
+          const daily = qs('.account-metrics small'); if (daily) daily.textContent = `/ ${downloads.value.dailyLimit || 30}`;
+        } else empty(document.getElementById('downloadRows'), 3, '下载记录读取失败，请稍后重试。');
+        if (credits.status === 'fulfilled') { state.credits = credits.value.ledger || []; qs('#creditBalance').textContent = credits.value.balance || 0; }
+        else empty(document.getElementById('creditRows'), 5, '积分功能尚未初始化或暂时不可用。');
+        if (generations.status === 'fulfilled') { state.generations = generations.value.tasks || []; qs('#generationCount').textContent = state.generations.length; }
+        else empty(document.getElementById('generationRows'), 6, '生图记录暂时不可用。');
+        renderDownloads(); renderCredits(); renderGenerations();
+      } catch (error) {
+        if (/登录/.test(error?.message || '')) location.href = '/member/login?next=/member';
+      } finally { refresh?.classList.remove('loading'); }
     }
-
-    document.getElementById('reloadDownloads')?.addEventListener('click', loadMemberCenter);
-    document.getElementById('mReloadDownloads')?.addEventListener('click', loadMemberCenter);
-    loadMemberCenter();
+    document.querySelectorAll('[data-tab]').forEach((button) => button.addEventListener('click', () => {
+      const tab = button.dataset.tab;
+      document.querySelectorAll('[data-tab]').forEach((node) => node.classList.toggle('active', node === button));
+      document.querySelectorAll('[data-panel]').forEach((panel) => { const active = panel.dataset.panel === tab; panel.hidden = !active; panel.classList.toggle('active', active); });
+      qs('#recordTitle').textContent = descriptions[tab][0]; qs('#recordDescription').textContent = descriptions[tab][1];
+    }));
+    document.getElementById('refreshRecords')?.addEventListener('click', loadAll);
+    loadAll();
   </script>
 </Base>
